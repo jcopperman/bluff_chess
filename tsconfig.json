@@ -1,0 +1,11 @@
+{
+  // Browser build: compiles the game to dist/ for index.html.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "rootDir": ".",
+    "outDir": "dist",
+    "sourceMap": true
+  },
+  "include": ["main.ts", "engine/**/*.ts", "bot/**/*.ts", "ui/**/*.ts"]
+}

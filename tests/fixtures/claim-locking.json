@@ -1,0 +1,8 @@
+{ "name": "claims lock: a piece that claimed knight cannot later move as a bishop",
+  "config": { "setups": { "white": ["rook","knight","bishop","queen","bishop","knight","rook"], "black": ["rook","knight","bishop","queen","bishop","knight","rook"] } },
+  "actions": [
+    { "type": "move", "player": "white", "from": "b1", "to": "c3", "claim": "knight" },
+    { "type": "pass", "player": "black" },
+    { "type": "move", "player": "black", "from": "e7", "to": "e5" },
+    { "type": "move", "player": "white", "from": "c3", "to": "b4", "claim": "bishop" } ],
+  "expect": { "error": "Illegal move" } }

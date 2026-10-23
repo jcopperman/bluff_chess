@@ -1,0 +1,79 @@
+{
+  "name": "the defender may keep calling showdowns while mated and holding chips",
+  "config": {
+    "pieces": [
+      {
+        "id": "w-k",
+        "owner": "white",
+        "type": "king",
+        "square": "a1"
+      },
+      {
+        "id": "b-k",
+        "owner": "black",
+        "type": "king",
+        "square": "g8"
+      },
+      {
+        "id": "b-pf",
+        "owner": "black",
+        "type": "pawn",
+        "square": "f7"
+      },
+      {
+        "id": "b-pg",
+        "owner": "black",
+        "type": "pawn",
+        "square": "g7"
+      },
+      {
+        "id": "b-ph",
+        "owner": "black",
+        "type": "pawn",
+        "square": "h7"
+      },
+      {
+        "id": "w-d1",
+        "owner": "white",
+        "type": "rook",
+        "square": "d1",
+        "claim": "rook",
+        "hasMoved": true
+      },
+      {
+        "id": "w-b1",
+        "owner": "white",
+        "type": "bishop",
+        "square": "b2",
+        "claim": "bishop",
+        "hasMoved": true
+      }
+    ]
+  },
+  "actions": [
+    {
+      "type": "move",
+      "player": "white",
+      "from": "d1",
+      "to": "d8",
+      "claim": "rook"
+    },
+    {
+      "type": "pass",
+      "player": "black"
+    },
+    {
+      "type": "showdown",
+      "player": "black",
+      "targetPieceId": "w-b1"
+    }
+  ],
+  "expect": {
+    "phase": "showdown",
+    "turn": "black",
+    "chips": {
+      "white": 7,
+      "black": 5
+    }
+  }
+}

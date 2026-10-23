@@ -1,0 +1,46 @@
+{
+  "name": "promoted pieces are face-up",
+  "config": {
+    "pieces": [
+      {
+        "id": "w-k",
+        "owner": "white",
+        "type": "king",
+        "square": "e1"
+      },
+      {
+        "id": "w-pa",
+        "owner": "white",
+        "type": "pawn",
+        "square": "a7",
+        "hasMoved": true
+      },
+      {
+        "id": "b-k",
+        "owner": "black",
+        "type": "king",
+        "square": "h5"
+      }
+    ]
+  },
+  "actions": [
+    {
+      "type": "move",
+      "player": "white",
+      "from": "a7",
+      "to": "a8",
+      "promotion": "knight"
+    }
+  ],
+  "expect": {
+    "phase": "move",
+    "pieces": {
+      "w-pa": {
+        "type": "knight",
+        "faceUp": true,
+        "promoted": true,
+        "square": "a8"
+      }
+    }
+  }
+}

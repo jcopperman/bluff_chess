@@ -1,0 +1,54 @@
+{
+  "name": "a bluffed check is a real check until called",
+  "config": {
+    "turn": "black",
+    "pieces": [
+      {
+        "id": "w-k",
+        "owner": "white",
+        "type": "king",
+        "square": "e1"
+      },
+      {
+        "id": "b-k",
+        "owner": "black",
+        "type": "king",
+        "square": "h8"
+      },
+      {
+        "id": "b-a8",
+        "owner": "black",
+        "type": "knight",
+        "square": "a5"
+      }
+    ]
+  },
+  "actions": [
+    {
+      "type": "move",
+      "player": "black",
+      "from": "a5",
+      "to": "e5",
+      "claim": "rook"
+    },
+    {
+      "type": "pass",
+      "player": "white"
+    }
+  ],
+  "expect": {
+    "turn": "white",
+    "eventsInclude": [
+      "check"
+    ],
+    "legal": {
+      "player": "white",
+      "excludes": [
+        {
+          "from": "e1",
+          "to": "e2"
+        }
+      ]
+    }
+  }
+}

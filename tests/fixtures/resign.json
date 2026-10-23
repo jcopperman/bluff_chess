@@ -1,0 +1,38 @@
+{
+  "name": "resigning ends the game",
+  "config": {
+    "setups": {
+      "white": [
+        "rook",
+        "knight",
+        "bishop",
+        "queen",
+        "bishop",
+        "knight",
+        "rook"
+      ],
+      "black": [
+        "rook",
+        "knight",
+        "bishop",
+        "queen",
+        "bishop",
+        "knight",
+        "rook"
+      ]
+    }
+  },
+  "actions": [
+    {
+      "type": "resign",
+      "player": "white"
+    }
+  ],
+  "expect": {
+    "phase": "over",
+    "result": {
+      "winner": "black",
+      "reason": "resign"
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "bluff-chess",
+  "version": "0.1.0",
+  "description": "Chess where your pieces are hidden, every move is a claim, and your opponent can call your bluff.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "npm run build && node tools/serve.ts",
+    "dev": "node tools/serve.ts --watch",
+    "test": "node --test \"tests/*.test.ts\"",
+    "typecheck": "tsc -p tsconfig.core.json && tsc -p tsconfig.node.json && tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "typescript": "^7.0.2"
+  },
+  "engines": {
+    "node": ">=23.6"
+  }
+}

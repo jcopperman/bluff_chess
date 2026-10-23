@@ -1,0 +1,85 @@
+{
+  "id": "tutor",
+  "name": "Professor Fumble",
+  "title": "Tutorial opponent",
+  "avatar": "🎓",
+  "color": "#7a9e7e",
+  "blurb": "A cheerful lecturer who bluffs constantly and is terrible at hiding it.",
+  "teaches": "The basics: hidden pieces, claims, calling, showdowns.",
+  "chessStrength": 1,
+  "bluffRate": 0.7,
+  "bluffMargin": 20,
+  "callThreshold": 60,
+  "chipCaution": 1.2,
+  "adaptivity": 0,
+  "callThinkMs": [
+    700,
+    1200
+  ],
+  "tells": [
+    {
+      "kind": "thinkTime",
+      "neutral": [
+        500,
+        900
+      ],
+      "honest": [
+        500,
+        900
+      ],
+      "bluff": [
+        2400,
+        3200
+      ]
+    },
+    {
+      "kind": "dialogue",
+      "chance": 0.9,
+      "honest": [
+        "Nothing up my sleeve!",
+        "A perfectly ordinary move.",
+        "Textbook, really."
+      ],
+      "bluff": [
+        "Oh, this one is definitely a... yes. Yes it is.",
+        "Ahem. Moving on, moving on.",
+        "Don't look at it too closely."
+      ]
+    }
+  ],
+  "lines": {
+    "greet": [
+      "Welcome! Watch how long I think. That's a hint, by the way."
+    ],
+    "call": [
+      "I call! Show me!"
+    ],
+    "pass": [
+      "I believe you. Probably."
+    ],
+    "caughtLying": [
+      "Ah! You got me. Well spotted!"
+    ],
+    "catchesYou": [
+      "Aha! A fib! Off the board it goes."
+    ],
+    "wrongCall": [
+      "Oops, that one was real. A chip for you."
+    ],
+    "confirmed": [
+      "Told you it was real!"
+    ],
+    "showdown": [
+      "Showdown! One last look..."
+    ],
+    "win": [
+      "Checkmate! Good game. Try again?"
+    ],
+    "lose": [
+      "Splendid! You've graduated."
+    ],
+    "playerQueen": [
+      "A queen? Ooh, is it though?"
+    ]
+  }
+}

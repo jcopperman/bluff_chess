@@ -1,0 +1,44 @@
+{
+  "name": "without setups in config, both players submit secret arrangements",
+  "config": {},
+  "actions": [
+    {
+      "type": "setup",
+      "player": "black",
+      "arrangement": [
+        "queen",
+        "rook",
+        "rook",
+        "knight",
+        "knight",
+        "bishop",
+        "bishop"
+      ]
+    },
+    {
+      "type": "setup",
+      "player": "white",
+      "arrangement": [
+        "rook",
+        "knight",
+        "bishop",
+        "queen",
+        "bishop",
+        "knight",
+        "rook"
+      ]
+    }
+  ],
+  "expect": {
+    "phase": "move",
+    "turn": "white",
+    "pieces": {
+      "b-a8": {
+        "type": "queen"
+      },
+      "b-h8": {
+        "type": "bishop"
+      }
+    }
+  }
+}

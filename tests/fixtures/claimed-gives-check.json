@@ -1,0 +1,45 @@
+{
+  "name": "a claimed piece attacks as its claim: the king may not stay in apparent check",
+  "config": {
+    "pieces": [
+      {
+        "id": "w-k",
+        "owner": "white",
+        "type": "king",
+        "square": "e1"
+      },
+      {
+        "id": "b-k",
+        "owner": "black",
+        "type": "king",
+        "square": "h8"
+      },
+      {
+        "id": "b-a8",
+        "owner": "black",
+        "type": "knight",
+        "square": "e5",
+        "claim": "rook",
+        "hasMoved": true
+      }
+    ]
+  },
+  "actions": [],
+  "expect": {
+    "legal": {
+      "player": "white",
+      "includes": [
+        {
+          "from": "e1",
+          "to": "d1"
+        }
+      ],
+      "excludes": [
+        {
+          "from": "e1",
+          "to": "e2"
+        }
+      ]
+    }
+  }
+}

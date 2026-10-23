@@ -1,0 +1,35 @@
+{
+  "name": "stalemate on the apparent board is a draw",
+  "config": {
+    "turn": "black",
+    "pieces": [
+      {
+        "id": "w-k",
+        "owner": "white",
+        "type": "king",
+        "square": "c1"
+      },
+      {
+        "id": "w-q",
+        "owner": "white",
+        "type": "queen",
+        "square": "b6",
+        "faceUp": true
+      },
+      {
+        "id": "b-k",
+        "owner": "black",
+        "type": "king",
+        "square": "a8"
+      }
+    ]
+  },
+  "actions": [],
+  "expect": {
+    "phase": "over",
+    "result": {
+      "winner": null,
+      "reason": "stalemate"
+    }
+  }
+}

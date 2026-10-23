@@ -1,0 +1,66 @@
+{
+  "name": "apparent checkmate with chips and claimed targets opens a showdown",
+  "config": {
+    "pieces": [
+      {
+        "id": "w-k",
+        "owner": "white",
+        "type": "king",
+        "square": "a1"
+      },
+      {
+        "id": "b-k",
+        "owner": "black",
+        "type": "king",
+        "square": "g8"
+      },
+      {
+        "id": "b-pf",
+        "owner": "black",
+        "type": "pawn",
+        "square": "f7"
+      },
+      {
+        "id": "b-pg",
+        "owner": "black",
+        "type": "pawn",
+        "square": "g7"
+      },
+      {
+        "id": "b-ph",
+        "owner": "black",
+        "type": "pawn",
+        "square": "h7"
+      },
+      {
+        "id": "w-d1",
+        "owner": "white",
+        "type": "rook",
+        "square": "d1",
+        "claim": "rook",
+        "hasMoved": true
+      }
+    ]
+  },
+  "actions": [
+    {
+      "type": "move",
+      "player": "white",
+      "from": "d1",
+      "to": "d8",
+      "claim": "rook"
+    },
+    {
+      "type": "pass",
+      "player": "black"
+    }
+  ],
+  "expect": {
+    "phase": "showdown",
+    "turn": "black",
+    "eventsInclude": [
+      "check",
+      "showdownAvailable"
+    ]
+  }
+}

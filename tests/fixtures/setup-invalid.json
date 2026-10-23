@@ -1,0 +1,22 @@
+{
+  "name": "arrangements must use exactly 2R 2N 2B 1Q",
+  "config": {},
+  "actions": [
+    {
+      "type": "setup",
+      "player": "white",
+      "arrangement": [
+        "queen",
+        "queen",
+        "rook",
+        "knight",
+        "knight",
+        "bishop",
+        "bishop"
+      ]
+    }
+  ],
+  "expect": {
+    "error": "Invalid arrangement"
+  }
+}

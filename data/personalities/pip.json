@@ -1,0 +1,85 @@
+{
+  "id": "pip",
+  "name": "Pip",
+  "title": "Circuit opponent 3",
+  "avatar": "🐿️",
+  "color": "#c97b3f",
+  "blurb": "Jittery and suspicious. Pip calls almost everything, so honesty is how you farm chips.",
+  "teaches": "When to play honestly and farm chips.",
+  "chessStrength": 2,
+  "bluffRate": 0.3,
+  "bluffMargin": 50,
+  "callThreshold": -160,
+  "chipCaution": 0.3,
+  "adaptivity": 0.2,
+  "callThinkMs": [
+    250,
+    600
+  ],
+  "tells": [
+    {
+      "kind": "thinkTime",
+      "neutral": [
+        300,
+        700
+      ],
+      "honest": [
+        300,
+        700
+      ],
+      "bluff": [
+        1100,
+        1600
+      ]
+    },
+    {
+      "kind": "dialogue",
+      "chance": 0.7,
+      "honest": [
+        "Easy!",
+        "Zoom!",
+        "There!"
+      ],
+      "bluff": [
+        "You gonna call that? Huh? Huh?",
+        "Bet you think that is fake. Is it? IS it?",
+        "Go on, call it. I dare ya?"
+      ]
+    }
+  ],
+  "lines": {
+    "greet": [
+      "Hi hi hi! I call everything, just so ya know!"
+    ],
+    "call": [
+      "CALL! Called it!"
+    ],
+    "pass": [
+      "Fine. FINE. Pass."
+    ],
+    "caughtLying": [
+      "Aw nuts!"
+    ],
+    "catchesYou": [
+      "Knew it knew it knew it!"
+    ],
+    "wrongCall": [
+      "Okay that one was real. Whatever."
+    ],
+    "confirmed": [
+      "Ha! Real one!"
+    ],
+    "showdown": [
+      "SHOWDOWN SHOWDOWN!"
+    ],
+    "win": [
+      "Yesss! Again again!"
+    ],
+    "lose": [
+      "Rematch? Rematch!"
+    ],
+    "playerQueen": [
+      "A QUEEN? Suuure."
+    ]
+  }
+}

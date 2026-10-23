@@ -1,0 +1,6 @@
+{
+  // Tests and dev tools, run directly by Node (type stripping, no build).
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": { "lib": ["ES2022"], "types": ["node"], "noEmit": true },
+  "include": ["tests/**/*.ts", "tools/**/*.ts"]
+}

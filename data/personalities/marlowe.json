@@ -1,0 +1,96 @@
+{
+  "id": "marlowe",
+  "name": "Marlowe",
+  "title": "Circuit opponent 2",
+  "avatar": "🎭",
+  "color": "#6b5b95",
+  "blurb": "A playwright who keeps his early claims honest to earn your trust, then spends it.",
+  "teaches": "Claim history.",
+  "chessStrength": 2,
+  "bluffRate": 0.85,
+  "bluffMargin": 70,
+  "riskTolerance": 500,
+  "honestFirstClaims": 4,
+  "bluffContext": {
+    "opening": 0.6,
+    "middlegame": 1.2,
+    "endgame": 1.3
+  },
+  "callThreshold": 10,
+  "chipCaution": 1,
+  "adaptivity": 0.3,
+  "callThinkMs": [
+    800,
+    1400
+  ],
+  "tells": [
+    {
+      "kind": "thinkTime",
+      "neutral": [
+        900,
+        1500
+      ],
+      "honest": [
+        900,
+        1500
+      ],
+      "bluff": [
+        900,
+        1500
+      ]
+    },
+    {
+      "kind": "hover",
+      "on": "bluff"
+    },
+    {
+      "kind": "dialogue",
+      "chance": 0.65,
+      "honest": [
+        "Enter, stage left.",
+        "A modest entrance.",
+        "The second act begins."
+      ],
+      "bluff": [
+        "A move so bold, a tale so grand, / no doubt shall stay your trembling hand.",
+        "What you see is what I claim, / and you shall never know my game.",
+        "Believe the part the player plays, / and you shall wander in a daze."
+      ]
+    }
+  ],
+  "lines": {
+    "greet": [
+      "All the board is a stage."
+    ],
+    "call": [
+      "Unmask! I call."
+    ],
+    "pass": [
+      "Play on."
+    ],
+    "caughtLying": [
+      "Exeunt, pursued by a bear."
+    ],
+    "catchesYou": [
+      "A poor player, caught in the act."
+    ],
+    "wrongCall": [
+      "A critic, wrong again."
+    ],
+    "confirmed": [
+      "Every word was true."
+    ],
+    "showdown": [
+      "The final curtain... let us see."
+    ],
+    "win": [
+      "Curtain. Applause."
+    ],
+    "lose": [
+      "A tragedy, in five acts."
+    ],
+    "playerQueen": [
+      "A queen enters. Or a pretender?"
+    ]
+  }
+}

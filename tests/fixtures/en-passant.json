@@ -1,0 +1,57 @@
+{
+  "name": "en passant is standard",
+  "config": {
+    "turn": "black",
+    "pieces": [
+      {
+        "id": "w-k",
+        "owner": "white",
+        "type": "king",
+        "square": "e1"
+      },
+      {
+        "id": "w-pe",
+        "owner": "white",
+        "type": "pawn",
+        "square": "e5",
+        "hasMoved": true
+      },
+      {
+        "id": "b-k",
+        "owner": "black",
+        "type": "king",
+        "square": "h8"
+      },
+      {
+        "id": "b-pd",
+        "owner": "black",
+        "type": "pawn",
+        "square": "d7"
+      }
+    ]
+  },
+  "actions": [
+    {
+      "type": "move",
+      "player": "black",
+      "from": "d7",
+      "to": "d5"
+    },
+    {
+      "type": "move",
+      "player": "white",
+      "from": "e5",
+      "to": "d6"
+    }
+  ],
+  "expect": {
+    "pieces": {
+      "b-pd": {
+        "captured": true
+      },
+      "w-pe": {
+        "square": "d6"
+      }
+    }
+  }
+}

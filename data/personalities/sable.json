@@ -1,0 +1,86 @@
+{
+  "id": "sable",
+  "name": "Sable",
+  "title": "Circuit opponent 4",
+  "avatar": "🦊",
+  "color": "#3a506b",
+  "blurb": "Quiet and precise. Rarely bluffs, but when she does, it is always a queen.",
+  "teaches": "Suspicion of high-value claims.",
+  "chessStrength": 2,
+  "bluffRate": 0.35,
+  "bluffMargin": 90,
+  "bluffClaims": [
+    "queen"
+  ],
+  "callThreshold": 20,
+  "chipCaution": 1.2,
+  "adaptivity": 0.4,
+  "callThinkMs": [
+    1000,
+    1600
+  ],
+  "tells": [
+    {
+      "kind": "thinkTime",
+      "neutral": [
+        1200,
+        1900
+      ],
+      "honest": [
+        1200,
+        1900
+      ],
+      "bluff": [
+        250,
+        450
+      ]
+    },
+    {
+      "kind": "dialogue",
+      "chance": 0.25,
+      "honest": [
+        "...",
+        "Hm."
+      ],
+      "bluff": [
+        "...",
+        "Hm."
+      ]
+    }
+  ],
+  "lines": {
+    "greet": [
+      "..."
+    ],
+    "call": [
+      "No."
+    ],
+    "pass": [
+      "Fine."
+    ],
+    "caughtLying": [
+      "Tch."
+    ],
+    "catchesYou": [
+      "Obvious."
+    ],
+    "wrongCall": [
+      "Hm."
+    ],
+    "confirmed": [
+      "As stated."
+    ],
+    "showdown": [
+      "Show me."
+    ],
+    "win": [
+      "Done."
+    ],
+    "lose": [
+      "Well played."
+    ],
+    "playerQueen": [
+      "A queen. Really."
+    ]
+  }
+}

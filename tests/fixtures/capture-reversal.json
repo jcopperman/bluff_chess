@@ -1,0 +1,64 @@
+{
+  "name": "lie caught on a capture: the captured piece is restored, still face-down",
+  "config": {
+    "pieces": [
+      {
+        "id": "w-k",
+        "owner": "white",
+        "type": "king",
+        "square": "a1"
+      },
+      {
+        "id": "b-k",
+        "owner": "black",
+        "type": "king",
+        "square": "h8"
+      },
+      {
+        "id": "w-b1",
+        "owner": "white",
+        "type": "bishop",
+        "square": "c3",
+        "claim": "knight",
+        "hasMoved": true
+      },
+      {
+        "id": "b-d8",
+        "owner": "black",
+        "type": "queen",
+        "square": "d5"
+      }
+    ]
+  },
+  "actions": [
+    {
+      "type": "move",
+      "player": "white",
+      "from": "c3",
+      "to": "d5",
+      "claim": "knight"
+    },
+    {
+      "type": "call",
+      "player": "black"
+    }
+  ],
+  "expect": {
+    "turn": "black",
+    "phase": "move",
+    "pieces": {
+      "b-d8": {
+        "square": "d5",
+        "captured": false,
+        "faceUp": false
+      },
+      "w-b1": {
+        "captured": true,
+        "removed": true
+      }
+    },
+    "eventsInclude": [
+      "lieCaught"
+    ]
+  }
+}

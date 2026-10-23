@@ -1,0 +1,8 @@
+{ "name": "tuning knob: with claim locking off, a piece may change its claim",
+  "config": { "setups": { "white": ["rook","knight","bishop","queen","bishop","knight","rook"], "black": ["rook","knight","bishop","queen","bishop","knight","rook"] }, "claimLocking": false },
+  "actions": [
+    { "type": "move", "player": "white", "from": "b1", "to": "c3", "claim": "knight" },
+    { "type": "pass", "player": "black" },
+    { "type": "move", "player": "black", "from": "e7", "to": "e5" },
+    { "type": "move", "player": "white", "from": "c3", "to": "b4", "claim": "bishop" } ],
+  "expect": { "phase": "callWindow", "pieces": { "w-b1": { "square": "b4", "claim": "bishop" } } } }

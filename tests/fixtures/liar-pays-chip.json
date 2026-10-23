@@ -1,0 +1,6 @@
+{ "name": "tuning knob: caught liar also pays a chip",
+  "config": { "setups": { "white": ["rook","bishop","knight","queen","bishop","knight","rook"], "black": ["rook","knight","bishop","queen","bishop","knight","rook"] }, "liarPaysChip": true },
+  "actions": [
+    { "type": "move", "player": "white", "from": "b1", "to": "c3", "claim": "knight" },
+    { "type": "call", "player": "black" } ],
+  "expect": { "chips": { "white": 5, "black": 7 } } }

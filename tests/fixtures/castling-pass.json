@@ -1,0 +1,57 @@
+{
+  "name": "an uncalled castling bluff stands, and the corner piece is locked as a rook",
+  "config": {
+    "pieces": [
+      {
+        "id": "w-k",
+        "owner": "white",
+        "type": "king",
+        "square": "e1"
+      },
+      {
+        "id": "w-h1",
+        "owner": "white",
+        "type": "knight",
+        "square": "h1"
+      },
+      {
+        "id": "w-pa",
+        "owner": "white",
+        "type": "pawn",
+        "square": "a2"
+      },
+      {
+        "id": "b-k",
+        "owner": "black",
+        "type": "king",
+        "square": "e8"
+      }
+    ]
+  },
+  "actions": [
+    {
+      "type": "move",
+      "player": "white",
+      "from": "e1",
+      "to": "g1",
+      "claim": "rook"
+    },
+    {
+      "type": "pass",
+      "player": "black"
+    }
+  ],
+  "expect": {
+    "turn": "black",
+    "pieces": {
+      "w-k": {
+        "square": "g1"
+      },
+      "w-h1": {
+        "square": "f1",
+        "claim": "rook",
+        "faceUp": false
+      }
+    }
+  }
+}

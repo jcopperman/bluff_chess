@@ -1,0 +1,90 @@
+{
+  "id": "widow",
+  "name": "The Widow",
+  "title": "Circuit boss",
+  "avatar": "🕷️",
+  "color": "#5c2a3e",
+  "blurb": "Strong chess, measured bluffing, and a long memory. She adapts hard to how you play.",
+  "teaches": "Everything at once. Mind your table image.",
+  "chessStrength": 3,
+  "bluffRate": 0.35,
+  "bluffMargin": 45,
+  "bluffContext": {
+    "opening": 0.7,
+    "behind": 1.6,
+    "ahead": 0.8
+  },
+  "callThreshold": 0,
+  "chipCaution": 1,
+  "adaptivity": 1,
+  "callThinkMs": [
+    1200,
+    2200
+  ],
+  "tells": [
+    {
+      "kind": "thinkTime",
+      "neutral": [
+        1400,
+        2200
+      ],
+      "honest": [
+        2200,
+        3000
+      ],
+      "bluff": [
+        900,
+        1400
+      ]
+    },
+    {
+      "kind": "dialogue",
+      "chance": 0.55,
+      "honest": [
+        "Proceed.",
+        "Your move.",
+        "Mm."
+      ],
+      "bluff": [
+        "You play beautifully, darling.",
+        "Such a lovely game we are having.",
+        "I do enjoy our little chats."
+      ]
+    }
+  ],
+  "lines": {
+    "greet": [
+      "I remember everyone I play."
+    ],
+    "call": [
+      "I think not."
+    ],
+    "pass": [
+      "How generous of me."
+    ],
+    "caughtLying": [
+      "Clever thing."
+    ],
+    "catchesYou": [
+      "I saw that coming a mile away."
+    ],
+    "wrongCall": [
+      "Noted."
+    ],
+    "confirmed": [
+      "Never doubt me."
+    ],
+    "showdown": [
+      "One last dance."
+    ],
+    "win": [
+      "Another one for the collection."
+    ],
+    "lose": [
+      "Impressive. I will remember this."
+    ],
+    "playerQueen": [
+      "A queen, darling? How ambitious."
+    ]
+  }
+}

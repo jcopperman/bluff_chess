@@ -1,0 +1,62 @@
+{
+  "name": "a capture is revealed to both players once the call window closes",
+  "config": {
+    "pieces": [
+      {
+        "id": "w-k",
+        "owner": "white",
+        "type": "king",
+        "square": "a1"
+      },
+      {
+        "id": "b-k",
+        "owner": "black",
+        "type": "king",
+        "square": "h8"
+      },
+      {
+        "id": "w-b1",
+        "owner": "white",
+        "type": "knight",
+        "square": "c3",
+        "claim": "knight",
+        "hasMoved": true
+      },
+      {
+        "id": "b-d8",
+        "owner": "black",
+        "type": "queen",
+        "square": "d5"
+      }
+    ]
+  },
+  "actions": [
+    {
+      "type": "move",
+      "player": "white",
+      "from": "c3",
+      "to": "d5",
+      "claim": "knight"
+    },
+    {
+      "type": "pass",
+      "player": "black"
+    }
+  ],
+  "expect": {
+    "pieces": {
+      "b-d8": {
+        "captured": true,
+        "faceUp": true
+      },
+      "w-b1": {
+        "square": "d5",
+        "faceUp": false
+      }
+    },
+    "eventsInclude": [
+      "captured",
+      "pieceRevealed"
+    ]
+  }
+}

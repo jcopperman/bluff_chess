@@ -1,0 +1,6 @@
+{ "name": "the mover cannot call their own claim",
+  "config": { "setups": { "white": ["rook","knight","bishop","queen","bishop","knight","rook"], "black": ["rook","knight","bishop","queen","bishop","knight","rook"] } },
+  "actions": [
+    { "type": "move", "player": "white", "from": "b1", "to": "c3", "claim": "knight" },
+    { "type": "call", "player": "white" } ],
+  "expect": { "error": "Only the opponent" } }

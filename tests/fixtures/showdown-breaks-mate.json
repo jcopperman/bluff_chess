@@ -1,0 +1,81 @@
+{
+  "name": "bluffed mate: a showdown exposes the lying piece and the mate is broken",
+  "config": {
+    "pieces": [
+      {
+        "id": "w-k",
+        "owner": "white",
+        "type": "king",
+        "square": "a1"
+      },
+      {
+        "id": "b-k",
+        "owner": "black",
+        "type": "king",
+        "square": "g8"
+      },
+      {
+        "id": "b-pf",
+        "owner": "black",
+        "type": "pawn",
+        "square": "f7"
+      },
+      {
+        "id": "b-pg",
+        "owner": "black",
+        "type": "pawn",
+        "square": "g7"
+      },
+      {
+        "id": "b-ph",
+        "owner": "black",
+        "type": "pawn",
+        "square": "h7"
+      },
+      {
+        "id": "w-d1",
+        "owner": "white",
+        "type": "knight",
+        "square": "d1",
+        "claim": "rook",
+        "hasMoved": true
+      }
+    ]
+  },
+  "actions": [
+    {
+      "type": "move",
+      "player": "white",
+      "from": "d1",
+      "to": "d8",
+      "claim": "rook"
+    },
+    {
+      "type": "pass",
+      "player": "black"
+    },
+    {
+      "type": "showdown",
+      "player": "black",
+      "targetPieceId": "w-d1"
+    }
+  ],
+  "expect": {
+    "phase": "move",
+    "turn": "black",
+    "chips": {
+      "white": 6,
+      "black": 6
+    },
+    "pieces": {
+      "w-d1": {
+        "removed": true
+      }
+    },
+    "eventsInclude": [
+      "showdown",
+      "lieCaught",
+      "mateBroken"
+    ]
+  }
+}

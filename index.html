@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bluff Chess</title>
+  <meta name="description" content="Chess where your pieces are hidden, every move is a claim, and your opponent can call your bluff.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♞</text></svg>">
+  <link rel="stylesheet" href="ui/styles.css">
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <button class="brand" data-act="go" data-to="menu"><span class="brand-mark">♞</span> Bluff Chess</button>
+      <nav class="topnav">
+        <button class="btn btn-ghost btn-small" data-act="rules">Rules</button>
+      </nav>
+    </header>
+    <main id="screen"></main>
+    <div id="modal-root"></div>
+  </div>
+  <div id="tooltip" class="tooltip hidden"></div>
+  <script type="module" src="dist/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+{ "name": "moving a face-down piece opens a call window and holds the move as pending",
+  "config": { "setups": { "white": ["rook","knight","bishop","queen","bishop","knight","rook"], "black": ["rook","knight","bishop","queen","bishop","knight","rook"] } },
+  "actions": [ { "type": "move", "player": "white", "from": "g1", "to": "f3", "claim": "knight" } ],
+  "expect": { "phase": "callWindow", "pieces": { "w-g1": { "square": "f3" } },
+    "eventsInclude": ["moved", "claimMade", "callWindowOpened"] } }

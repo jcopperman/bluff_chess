@@ -1,0 +1,90 @@
+{
+  "id": "deacon",
+  "name": "The Deacon",
+  "title": "Circuit opponent 1",
+  "avatar": "⛪",
+  "color": "#8b7d6b",
+  "blurb": "Pious and honest while things go well. Fall behind on material and watch the sermons turn to lies.",
+  "teaches": "Watch the material count.",
+  "chessStrength": 2,
+  "bluffRate": 0.15,
+  "bluffMargin": 40,
+  "bluffContext": {
+    "ahead": 0,
+    "even": 0.4,
+    "behind": 5
+  },
+  "callThreshold": 30,
+  "chipCaution": 1,
+  "adaptivity": 0.2,
+  "callThinkMs": [
+    900,
+    1500
+  ],
+  "tells": [
+    {
+      "kind": "thinkTime",
+      "neutral": [
+        900,
+        1600
+      ],
+      "honest": [
+        900,
+        1600
+      ],
+      "bluff": [
+        1000,
+        1700
+      ]
+    },
+    {
+      "kind": "dialogue",
+      "chance": 0.7,
+      "honest": [
+        "Blessed are the meek.",
+        "Patience is a virtue.",
+        "The path is narrow, but true."
+      ],
+      "bluff": [
+        "Have faith, child.",
+        "Trust in me.",
+        "Believe, and it shall be so."
+      ]
+    }
+  ],
+  "lines": {
+    "greet": [
+      "Let us play with honest hearts."
+    ],
+    "call": [
+      "Thou shalt not bear false witness. I call."
+    ],
+    "pass": [
+      "I will take you at your word."
+    ],
+    "caughtLying": [
+      "Forgive me. I was tempted."
+    ],
+    "catchesYou": [
+      "Deceit is its own punishment."
+    ],
+    "wrongCall": [
+      "I misjudged you. Penance paid."
+    ],
+    "confirmed": [
+      "The truth will out."
+    ],
+    "showdown": [
+      "Let the truth be revealed!"
+    ],
+    "win": [
+      "Go in peace."
+    ],
+    "lose": [
+      "A humbling lesson."
+    ],
+    "playerQueen": [
+      "A queen? We shall see."
+    ]
+  }
+}

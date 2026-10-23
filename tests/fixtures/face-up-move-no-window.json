@@ -1,0 +1,4 @@
+{ "name": "face-up moves skip the call window",
+  "config": { "setups": { "white": ["rook","knight","bishop","queen","bishop","knight","rook"], "black": ["rook","knight","bishop","queen","bishop","knight","rook"] } },
+  "actions": [ { "type": "move", "player": "white", "from": "e2", "to": "e4" } ],
+  "expect": { "phase": "move", "turn": "black", "eventsExclude": ["callWindowOpened"] } }

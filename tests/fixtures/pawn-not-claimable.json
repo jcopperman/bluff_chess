@@ -1,0 +1,37 @@
+{
+  "name": "face-up pieces make no claim",
+  "config": {
+    "setups": {
+      "white": [
+        "rook",
+        "knight",
+        "bishop",
+        "queen",
+        "bishop",
+        "knight",
+        "rook"
+      ],
+      "black": [
+        "rook",
+        "knight",
+        "bishop",
+        "queen",
+        "bishop",
+        "knight",
+        "rook"
+      ]
+    }
+  },
+  "actions": [
+    {
+      "type": "move",
+      "player": "white",
+      "from": "e2",
+      "to": "e4",
+      "claim": "queen"
+    }
+  ],
+  "expect": {
+    "error": "Illegal move"
+  }
+}

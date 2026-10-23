@@ -1,0 +1,6 @@
+{ "name": "a player with 0 chips cannot call",
+  "config": { "setups": { "white": ["rook","knight","bishop","queen","bishop","knight","rook"], "black": ["rook","knight","bishop","queen","bishop","knight","rook"] }, "startingChips": 0 },
+  "actions": [
+    { "type": "move", "player": "white", "from": "b1", "to": "c3", "claim": "knight" },
+    { "type": "call", "player": "black" } ],
+  "expect": { "error": "No chips" } }
