@@ -1,0 +1,93 @@
+{
+  "id": "claims",
+  "title": "Hidden pieces & claims",
+  "audience": "everyone",
+  "blurb": "Face-down cards, claiming a piece type, and claim locking.",
+  "steps": [
+    {
+      "say": "In Bluff Chess your seven back-rank pieces are <b>face-down cards</b>. You can see what each one really is; your opponent only sees a card back. Theirs look like <b>?</b> cards to you. Pawns and kings are always face-up.",
+      "position": {
+        "setups": {
+          "white": [
+            "rook",
+            "knight",
+            "bishop",
+            "queen",
+            "bishop",
+            "knight",
+            "rook"
+          ],
+          "black": [
+            "rook",
+            "knight",
+            "bishop",
+            "queen",
+            "bishop",
+            "knight",
+            "rook"
+          ]
+        }
+      },
+      "expect": "next"
+    },
+    {
+      "say": "Moving a face-down piece is a <b>claim</b>: you announce what it is. Your b1 card really is a knight. Move it to <b>c3</b> and claim <b>Knight</b>.",
+      "expect": [
+        {
+          "from": "b1",
+          "to": "c3",
+          "claim": "knight"
+        }
+      ],
+      "highlight": [
+        "b1",
+        "c3"
+      ],
+      "hint": "Click the b1 card, click c3, then choose Knight.",
+      "success": "The gold seal shows your claim. The Professor could have called it, but he passed.",
+      "reply": [
+        {
+          "type": "pass",
+          "player": "black"
+        },
+        {
+          "type": "move",
+          "player": "black",
+          "from": "e7",
+          "to": "e5"
+        }
+      ]
+    },
+    {
+      "say": "Claims <b>lock</b>: that card is now a Knight for the rest of the game and must keep moving like one. Hop it to <b>d5</b>.",
+      "expect": [
+        {
+          "from": "c3",
+          "to": "d5"
+        }
+      ],
+      "highlight": [
+        "c3",
+        "d5"
+      ],
+      "hint": "Knight move: c3 to d5.",
+      "success": "Good. A locked claim tells your opponent something, so claim with care.",
+      "reply": [
+        {
+          "type": "pass",
+          "player": "black"
+        },
+        {
+          "type": "move",
+          "player": "black",
+          "from": "d7",
+          "to": "d6"
+        }
+      ]
+    },
+    {
+      "say": "Your opponent's claims show as gold seals on their cards, and the <b>claim tracker</b> counts them. If more pieces claim a type than can exist, someone is lying. Next up: catching liars.",
+      "expect": "next"
+    }
+  ]
+}

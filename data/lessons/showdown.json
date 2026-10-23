@@ -1,0 +1,95 @@
+{
+  "id": "showdown",
+  "title": "Showdown",
+  "audience": "everyone",
+  "blurb": "Your last chance when you're checkmated by a possible liar.",
+  "steps": [
+    {
+      "say": "The Professor claims a <b>Rook</b> on d1 for checkmate! Don't call yet: <b>pass</b>, and see what happens.",
+      "position": {
+        "turn": "black",
+        "pieces": [
+          {
+            "id": "w-k",
+            "owner": "white",
+            "type": "king",
+            "square": "g1"
+          },
+          {
+            "id": "w-pf",
+            "owner": "white",
+            "type": "pawn",
+            "square": "f2"
+          },
+          {
+            "id": "w-pg",
+            "owner": "white",
+            "type": "pawn",
+            "square": "g2"
+          },
+          {
+            "id": "w-ph",
+            "owner": "white",
+            "type": "pawn",
+            "square": "h2"
+          },
+          {
+            "id": "b-k",
+            "owner": "black",
+            "type": "king",
+            "square": "a8"
+          },
+          {
+            "id": "b-d8",
+            "owner": "black",
+            "type": "knight",
+            "square": "d7",
+            "claim": "rook",
+            "hasMoved": true
+          },
+          {
+            "id": "b-c8",
+            "owner": "black",
+            "type": "bishop",
+            "square": "b7",
+            "claim": "bishop",
+            "hasMoved": true
+          }
+        ]
+      },
+      "before": [
+        {
+          "type": "move",
+          "player": "black",
+          "from": "d7",
+          "to": "d1",
+          "claim": "rook"
+        }
+      ],
+      "expect": [
+        {
+          "type": "pass"
+        }
+      ],
+      "highlight": [
+        "d1"
+      ],
+      "hint": "Press Pass.",
+      "success": "Checkmate on the apparent board... but you get a showdown."
+    },
+    {
+      "say": "<b>Showdown!</b> Spend a chip to expose any claimed enemy card. If it's lying it's removed, and if that breaks the mate, play on. Expose the \"rook\" on <b>d1</b>.",
+      "expect": [
+        {
+          "type": "showdown",
+          "targetPieceId": "b-d8"
+        }
+      ],
+      "highlight": [
+        "d1"
+      ],
+      "hint": "Click the glowing card on d1.",
+      "success": "A knight in disguise! The mate is broken. You're ready for a real match."
+    }
+  ]
+}

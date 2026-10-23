@@ -24,6 +24,8 @@ npm run typecheck  # strict tsc over the engine/bot, the browser build, and test
 - `tests/fixtures/*.json`: one fixture per rule (claims, locking, call outcomes, reversal with capture, castling claims, apparent check, showdowns, tuning knobs, setup). Each fixture holds a starting config, a list of actions, and the expected state, events, legal moves or error.
 - `tests/engine.test.ts`: runs the fixtures, plus determinism, replay-from-log, random-game fuzzing and view-hiding tests.
 - `tests/bot.test.ts`: fairness (bot decisions are identical whatever the opponent's hidden arrangement), legality across whole bot-vs-bot games, the belief model, showdown choice, tells and table image.
+- `tests/lessons.test.ts`: every lesson can be played start to finish against the real engine, and each one teaches what it says.
+- `tests/coach.test.ts`: illegal-move explanations, the blunder guard, claim risk and call advice.
 
 ## TypeScript setup
 
@@ -37,28 +39,36 @@ npm run typecheck  # strict tsc over the engine/bot, the browser build, and test
 ## Structure
 
 ```
-engine/   pure rules: no DOM, no Math.random, no Date. Runs in browser and Node. Types in engine/types.ts.
-bot/      heuristic bot (belief model, search, bluff/call/showdown policy). Sees only player views.
-data/     bot personalities as JSON (stats, bluff context, tells, dialogue), typed by bot/types.ts.
-ui/       rendering, input, animations, localStorage (records + table image).
-main.ts   wires engine, bot and UI together.
-tools/    dev server.
-dist/     build output (generated, git-ignored).
+engine/        pure rules: no DOM, no Math.random, no Date. Runs in browser and Node. Types in engine/types.ts.
+bot/           heuristic bot (belief model, search, bluff/call/showdown policy). Sees only player views.
+coach/         the in-game coach: illegal-move explanations, blunder guard, claim and call advice. Public info only.
+lessons/       lesson runner logic (matching player actions to scripted steps).
+data/          bot personalities, lessons (data/lessons/*.json) and the codex (data/codex.json).
+ui/            rendering, input, animations, synthesized sound (audio.ts), localStorage.
+ui/art/        SVG chess pieces, character emblems, icons.
+assets/fonts/  Archivo, a variable font (SIL Open Font License, licence alongside).
+main.ts        wires engine, bot, coach, lessons and UI together.
+tools/         dev server.
+dist/          build output (generated, git-ignored).
 ```
+
+The engine, bot, coach and lessons are all type-checked without DOM types (`tsconfig.core.json`).
 
 ## What's implemented
 
-Milestones M1 to M4 from the design doc, plus most of M5:
-
 - **Engine:** the full rules: secret setup, claims and locking, call windows with reversal (including captures and castling), chips, apparent-board check and mate, showdowns, stalemate, threefold repetition, fifty-move rule, and every tuning knob. Adds one action type the doc didn't list, `acceptMate`, so a mated player can decline a showdown.
 - **Bots:** an exact belief model (enumerates every consistent hidden arrangement), alpha-beta search on the apparent board, a personality-driven bluff policy, an EV-based call policy, and showdown targeting. There are five circuit characters plus a tutorial bot, each with consistent tells (think time, dialogue, hovering).
-- **Modes:** The Circuit (unlocks and W/L/D records), Free Play (any unlocked bot, all knobs), and a Tutorial with contextual tips.
-- **UI:** card-back pieces with claim badges, a claim picker that labels honest and bluff, the call window, a claim tracker, a move log with think times, a possible-identities tooltip, pinned guesses (right-click), stamps, flips and the showdown banner, and the post-match reveal (all lies, calls, and what the bot believed at key moments).
-- **Table image:** each bot remembers your bluff rate (overall and per game phase) and how often you call, across matches. Adaptive bots shift their calling to match.
+- **Look and feel:** a printed card game: cream card stock, black ink and one red, laid on a dark table, with flat surfaces and ink rules. The board is drawn like an old chess-book diagram, with hatched dark squares. Hidden pieces are small playing cards with a corner index showing their claim. Opponents are tarot-style emblem cards rather than faces, and they react by tilting, trembling, rocking while they think, or taking a "Caught" stamp. Caught lies and confirmed claims get rubber stamps. Whose turn it is shows on the table itself: a prompt bar under the board turns red with the buttons for any decision you owe (move, call or pass, showdown, coach warning), a red edge marks your side of the board, claims are labelled on their squares, and the claim picker opens on the destination square. A fixed 16:9 stage scales to the window, with a tall layout on phones. Sound effects are synthesized.
+- **For newcomers:**
+  - **First-run questions** about your chess and poker experience recommend a lesson path.
+  - **Seven interactive lessons** run on staged positions: moving, check and mate, claims, calling, bluffing, the apparent board, and showdowns. Wrong moves get a hint instead of a penalty. A practice match against Professor Fumble follows.
+  - **The coach** (on for your first five matches, or toggle it) colours where a hidden card can go by claim type, explains why a move is illegal, guards against blunders, rates each claim's risk, and gives a plain-language read and lean on the opponent's claims.
+  - **The codex** covers rules, pieces (with move diagrams), bluffing terms, and the characters you've met. Key terms in the UI link to it.
+- **Settings:** volume, mute, coach mode, reduced motion (also honours the OS setting), and a progress reset.
 
 ## Not yet
 
-- Bluff Puzzles (design 3.3).
+- Bluff Puzzles (design 3.3). The lesson format (staged position plus scripted steps) is a natural base for them.
 - Phase 2 bot search (ISMCTS) and Web Workers. The Phase 1 bot thinks in well under 100 ms.
 - PvP (design section 8).
 - The player always plays white.

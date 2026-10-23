@@ -1,0 +1,128 @@
+{
+  "id": "bluffing",
+  "title": "Bluffing",
+  "audience": "poker",
+  "blurb": "Lie about a piece to make a move it couldn't really make, and know the risk.",
+  "steps": [
+    {
+      "say": "Your c1 card is a <b>bishop</b>, and bishops can't reach d3. But a <b>knight</b> could. Claim <b>Knight</b>, jump to d3, and grab the rook!",
+      "position": {
+        "pieces": [
+          {
+            "id": "w-k",
+            "owner": "white",
+            "type": "king",
+            "square": "g1"
+          },
+          {
+            "id": "b-k",
+            "owner": "black",
+            "type": "king",
+            "square": "g8"
+          },
+          {
+            "id": "w-c1",
+            "owner": "white",
+            "type": "bishop",
+            "square": "c1"
+          },
+          {
+            "id": "b-r",
+            "owner": "black",
+            "type": "rook",
+            "square": "d3",
+            "faceUp": true
+          },
+          {
+            "id": "w-ph",
+            "owner": "white",
+            "type": "pawn",
+            "square": "h2"
+          }
+        ]
+      },
+      "expect": [
+        {
+          "from": "c1",
+          "to": "d3",
+          "claim": "knight"
+        }
+      ],
+      "highlight": [
+        "c1",
+        "d3"
+      ],
+      "hint": "Click the c1 card, then d3, then pick Knight (marked \"bluff\").",
+      "success": "He passed: the bluff worked and you won a rook! But that card is now a \"knight\" forever, and every move it makes can be called.",
+      "reply": [
+        {
+          "type": "pass",
+          "player": "black"
+        },
+        {
+          "type": "move",
+          "player": "black",
+          "from": "g8",
+          "to": "h8"
+        }
+      ]
+    },
+    {
+      "say": "Same trick, different table. This time watch what happens when the bluff is <b>called</b>.",
+      "position": {
+        "pieces": [
+          {
+            "id": "w-k",
+            "owner": "white",
+            "type": "king",
+            "square": "g1"
+          },
+          {
+            "id": "b-k",
+            "owner": "black",
+            "type": "king",
+            "square": "g8"
+          },
+          {
+            "id": "w-c1",
+            "owner": "white",
+            "type": "bishop",
+            "square": "c1"
+          },
+          {
+            "id": "b-r",
+            "owner": "black",
+            "type": "rook",
+            "square": "d3",
+            "faceUp": true
+          },
+          {
+            "id": "w-ph",
+            "owner": "white",
+            "type": "pawn",
+            "square": "h2"
+          }
+        ]
+      },
+      "expect": [
+        {
+          "from": "c1",
+          "to": "d3",
+          "claim": "knight"
+        }
+      ],
+      "highlight": [
+        "c1",
+        "d3"
+      ],
+      "hint": "Bluff Knight again: c1 to d3.",
+      "success": "Called! The move is undone, your piece is removed, and you lose your turn. Bluff when the prize is worth the risk, and when your opponent is low on chips.",
+      "reply": [
+        {
+          "type": "call",
+          "player": "black"
+        }
+      ]
+    }
+  ]
+}

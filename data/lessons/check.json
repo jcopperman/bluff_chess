@@ -1,0 +1,110 @@
+{
+  "id": "check",
+  "title": "Check & checkmate",
+  "audience": "chess",
+  "blurb": "Attacking the king, and how games are won.",
+  "steps": [
+    {
+      "say": "A king that is attacked is <b>in check</b>, and must escape at once. Give check: move your rook to <b>e2</b>, onto the king's file.",
+      "position": {
+        "pieces": [
+          {
+            "id": "w-k",
+            "owner": "white",
+            "type": "king",
+            "square": "a1"
+          },
+          {
+            "id": "b-k",
+            "owner": "black",
+            "type": "king",
+            "square": "e8"
+          },
+          {
+            "id": "w-r",
+            "owner": "white",
+            "type": "rook",
+            "square": "a2",
+            "faceUp": true
+          }
+        ]
+      },
+      "expect": [
+        {
+          "from": "a2",
+          "to": "e2"
+        }
+      ],
+      "highlight": [
+        "a2",
+        "e2"
+      ],
+      "hint": "Slide the rook along the 2nd rank to e2.",
+      "success": "Check! Black has to step out of the rook's line.",
+      "reply": [
+        {
+          "type": "move",
+          "player": "black",
+          "from": "e8",
+          "to": "d8"
+        }
+      ]
+    },
+    {
+      "say": "<b>Checkmate</b> is check with no escape, and it wins the game. Black's own pawns trap his king. Deliver mate: rook to <b>a8</b>.",
+      "position": {
+        "pieces": [
+          {
+            "id": "w-k",
+            "owner": "white",
+            "type": "king",
+            "square": "a1"
+          },
+          {
+            "id": "b-k",
+            "owner": "black",
+            "type": "king",
+            "square": "g8"
+          },
+          {
+            "id": "w-r",
+            "owner": "white",
+            "type": "rook",
+            "square": "a2",
+            "faceUp": true
+          },
+          {
+            "id": "b-pf",
+            "owner": "black",
+            "type": "pawn",
+            "square": "f7"
+          },
+          {
+            "id": "b-pg",
+            "owner": "black",
+            "type": "pawn",
+            "square": "g7"
+          },
+          {
+            "id": "b-ph",
+            "owner": "black",
+            "type": "pawn",
+            "square": "h7"
+          }
+        ]
+      },
+      "expect": [
+        {
+          "from": "a2",
+          "to": "a8"
+        }
+      ],
+      "highlight": [
+        "a2",
+        "a8"
+      ],
+      "hint": "The king can't escape along the back rank. Rook to a8!",
+      "success": "Checkmate! That's how chess games are won. Now for the bluffing."
+    }
+  ]
+}

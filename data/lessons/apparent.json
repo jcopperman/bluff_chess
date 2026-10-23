@@ -1,0 +1,74 @@
+{
+  "id": "apparent",
+  "title": "The apparent board",
+  "audience": "everyone",
+  "blurb": "Why unclaimed cards are invisible threats, and why a bluffed check still counts.",
+  "steps": [
+    {
+      "say": "Check and checkmate are judged on the <b>apparent board</b>: claims count as if true. An <b>unclaimed</b> card threatens nothing yet. Move your king to <b>e2</b>, right in line with the card on e5.",
+      "position": {
+        "pieces": [
+          {
+            "id": "w-k",
+            "owner": "white",
+            "type": "king",
+            "square": "e1"
+          },
+          {
+            "id": "b-k",
+            "owner": "black",
+            "type": "king",
+            "square": "h8"
+          },
+          {
+            "id": "b-d8",
+            "owner": "black",
+            "type": "bishop",
+            "square": "e5"
+          },
+          {
+            "id": "w-pa",
+            "owner": "white",
+            "type": "pawn",
+            "square": "a2"
+          }
+        ]
+      },
+      "expect": [
+        {
+          "from": "e1",
+          "to": "e2"
+        }
+      ],
+      "highlight": [
+        "e1",
+        "e2",
+        "e5"
+      ],
+      "hint": "Click your king, then e2.",
+      "success": "Safe, for now.",
+      "reply": [
+        {
+          "type": "move",
+          "player": "black",
+          "from": "e5",
+          "to": "e4",
+          "claim": "rook"
+        }
+      ]
+    },
+    {
+      "say": "He claimed <b>Rook</b> and now you're in check! A bluffed check is a real check until someone calls it. Do you believe him? <b>Call!</b>",
+      "expect": [
+        {
+          "type": "call"
+        }
+      ],
+      "highlight": [
+        "e4"
+      ],
+      "hint": "Press Call.",
+      "success": "It was a bishop pretending to be a rook. Claiming early gives a piece power, but it also gives you something to call."
+    }
+  ]
+}

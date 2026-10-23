@@ -1,7 +1,7 @@
 {
-  // Engine and bot: no DOM and no Node types, so the compiler enforces that the
-  // rules and the bot never touch browser or platform APIs.
+  // Engine, bot, coach and lessons: no DOM and no Node types, so the compiler enforces that the
+  // game logic never touches browser or platform APIs.
   "extends": "./tsconfig.base.json",
   "compilerOptions": { "lib": ["ES2022"], "noEmit": true },
-  "include": ["engine/**/*.ts", "bot/**/*.ts"]
+  "include": ["engine/**/*.ts", "bot/**/*.ts", "coach/**/*.ts", "lessons/**/*.ts"]
 }

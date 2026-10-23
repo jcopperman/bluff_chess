@@ -1,11 +1,16 @@
-// HTML builders. Every function here takes a player view (never the full
-// state) plus UI-only data, and returns markup.
+// HTML builders. The look is a printed card game: cream stock, black ink, one
+// red. Game screens take a player view (never the full state, except the
+// post-game reveal) plus UI-only data, and return markup.
 
-import { CLAIMABLE, PIECE_COUNTS, BACK_FILES } from '../engine/index.ts';
-import type { Arrangement, ClaimRecord, ClaimType, Color, GameState, Piece, PieceType, Square } from '../engine/index.ts';
+import { CLAIMABLE, PIECE_COUNTS, BACK_FILES, generateMoves, sqToIdx, idxToSq } from '../engine/index.ts';
+import type { Arrangement, Board, ClaimRecord, ClaimType, Color, GameState, Piece, PieceType, Square } from '../engine/index.ts';
 import type { PersonalityConfig, TypeDist } from '../bot/bot.ts';
-
-export const GLYPH: Readonly<Record<PieceType, string>> = { king: '♚', queen: '♛', rook: '♜', bishop: '♝', knight: '♞', pawn: '♟︎' };
+import type { Advice } from '../coach/advice.ts';
+import type { Lesson, Profile } from '../lessons/lessons.ts';
+import { pieceSVG } from './art/pieces.ts';
+import { emblemSVG, numeral } from './art/emblems.ts';
+import type { Mood } from './art/emblems.ts';
+import { icon } from './art/icons.ts';
 
 export function esc(s: unknown): string {
   return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
@@ -21,11 +26,43 @@ export function originSquare(id: string): Square | null {
   return m ? m[1] : null;
 }
 
-function chips(n: number, owner: Color): string {
+/** A small inline piece icon for text (log, tracker, buttons). */
+export function pieceIcon(t: PieceType, owner: Color = 'white'): string {
+  return `<span class="pi pc-${owner}">${pieceSVG(t)}</span>`;
+}
+
+export function codexLink(entry: string, label: string): string {
+  return `<a class="codex-link" data-act="codex" data-entry="${entry}">${label}</a>`;
+}
+
+/** Codex bodies use data-codex="id" for cross-links; make them clickable. */
+function linkify(html: string): string {
+  return html.replace(/<a data-codex="([\w-]+)">/g, '<a class="codex-link" data-act="codex" data-entry="$1">');
+}
+
+function purse(n: number, owner: Color): string {
   const shown = Math.min(n, 12);
   let s = '';
   for (let i = 0; i < shown; i++) s += `<span class="chip chip-${owner}" style="--i:${i}"></span>`;
-  return `<span class="chip-stack" aria-label="${n} chips">${s}</span><span class="chip-count">${n}</span>`;
+  return `<div class="purse" title="${n} chips"><span class="chip-stack">${s}</span><span class="purse-count">${n}</span><span class="purse-label">chip${n === 1 ? '' : 's'}</span></div>`;
+}
+
+// ---------------------------------------------------------------------------
+// Top bar
+
+export function hudHTML({ title, back, inGame, muted, coachOn }: {
+  title: string; back: string | null; inGame: boolean; muted: boolean; coachOn: boolean;
+}): string {
+  return `<div class="hud-left">
+      ${back ? `<button class="hud-link hud-back" data-act="${back}">${icon('back')}<span>Back</span></button>` : ''}
+      <span class="hud-title">${esc(title)}</span>
+    </div>
+    <nav class="hud-right">
+      <button class="hud-link" data-act="codex" data-entry="overview">Rulebook</button>
+      ${inGame ? `<button class="hud-link" data-act="toggle-coach">Coach <b>${coachOn ? 'on' : 'off'}</b></button>` : ''}
+      <button class="hud-link" data-act="toggle-mute">Sound <b>${muted ? 'off' : 'on'}</b></button>
+      <button class="hud-link" data-act="settings">Settings</button>
+    </nav>`;
 }
 
 // ---------------------------------------------------------------------------
@@ -36,15 +73,16 @@ export interface BoardOptions {
   selected?: Square | null;
   targets?: Set<Square>;
   captureTargets?: Set<Square>;
+  /** Claim types that can reach each target (coach marking). */
+  targetClaims?: Map<Square, ClaimType[]>;
   lastMove?: { from: Square; to: Square } | null;
-  /** Squares the bot is "hovering" (a tell). */
   hover?: Square[];
   guesses?: Record<string, ClaimType>;
-  /** Piece ids to animate flipping face-up. */
   flip?: Set<string>;
   showdownTargets?: Set<Square>;
   checkSquare?: Square | null;
-  /** Game over: show every true identity. */
+  /** Lesson highlights. */
+  hints?: Square[];
   final?: boolean;
 }
 
@@ -58,26 +96,34 @@ export function boardHTML(view: GameState, opts: BoardOptions): string {
     for (let f = 0; f < 8; f++) {
       const sq = 'abcdefgh'[f] + (r + 1);
       const cls = ['sq', (f + r) % 2 === 0 ? 'dark' : 'light'];
+      let marker = '';
       if (opts.selected === sq) cls.push('selected');
-      if (opts.targets?.has(sq)) cls.push(opts.captureTargets?.has(sq) ? 'capture-target' : 'target');
+      if (opts.targets?.has(sq)) {
+        const claims = opts.targetClaims?.get(sq);
+        const capture = opts.captureTargets?.has(sq);
+        cls.push(capture ? 'capture-target' : 'target');
+        if (claims?.length === 1 && !capture) marker = `<span class="tclaim">${pieceSVG(claims[0])}</span>`;
+        else if (!capture) marker = '<span class="tdot"></span>';
+      }
       if (opts.lastMove && (opts.lastMove.from === sq || opts.lastMove.to === sq)) cls.push('last');
       if (pendingSqs.includes(sq)) cls.push('pending');
       if (opts.hover?.includes(sq)) cls.push('bot-hover');
       if (opts.showdownTargets?.has(sq)) cls.push('sd-target');
       if (opts.checkSquare === sq) cls.push('in-check');
+      if (opts.hints?.includes(sq)) cls.push('hint-sq');
       const p = bySq[sq];
       const coordF = r === 0 ? `<span class="coord coord-f">${'abcdefgh'[f]}</span>` : '';
       const coordR = f === 0 ? `<span class="coord coord-r">${r + 1}</span>` : '';
-      html += `<div class="${cls.join(' ')}" data-sq="${sq}">${coordF}${coordR}${p ? pieceHTML(p, opts) : ''}</div>`;
+      html += `<div class="${cls.join(' ')}" data-sq="${sq}">${coordF}${coordR}${p ? pieceHTML(p, opts) : ''}${marker}</div>`;
     }
   }
   return html;
 }
 
-export function pieceHTML(p: Piece, opts: BoardOptions): string {
+export function pieceHTML(p: Piece, opts: Pick<BoardOptions, 'me' | 'flip' | 'guesses' | 'final'>): string {
   const flip = opts.flip?.has(p.id) ? ' flip-in' : '';
   if (p.faceUp && p.type) {
-    return `<div class="pc pc-${p.owner}${flip}" data-piece="${p.id}"><span class="glyph">${GLYPH[p.type]}</span></div>`;
+    return `<div class="pc pc-${p.owner}${flip}" data-piece="${p.id}">${pieceSVG(p.type)}</div>`;
   }
   const mine = p.owner === opts.me;
   const known = p.type && (mine || opts.final) ? p.type : null;
@@ -86,47 +132,51 @@ export function pieceHTML(p: Piece, opts: BoardOptions): string {
   if (mine) cls.push('mine');
   if (opts.final) cls.push('final');
   if (lying) cls.push('liar');
-  let inner = known
-    ? `<span class="true-type">${GLYPH[known]}</span>`
-    : '<span class="card-mark">?</span>';
-  if (p.claim) inner += `<span class="badge${lying ? ' badge-lie' : ''}" title="Claims ${typeName(p.claim)}">${GLYPH[p.claim]}</span>`;
+  let inner = known ? `<span class="card-face pc-${p.owner}">${pieceSVG(known)}</span>` : '<span class="card-mark"></span>';
+  if (p.claim) inner += `<span class="idx${lying ? ' idx-lie' : ''}" title="Claims ${typeName(p.claim)}">${pieceSVG(p.claim)}</span>`;
   const guess = opts.guesses?.[p.id];
-  if (guess && !mine) inner += `<span class="guess" title="Your guess">${GLYPH[guess]}</span>`;
+  if (guess && !mine) inner += `<span class="guess" title="Your guess">${pieceSVG(guess)}</span>`;
   return `<div class="${cls.join(' ')}${flip}" data-piece="${p.id}">${inner}</div>`;
 }
 
 export function capturedTray(view: GameState, owner: Color): string {
   const caps = view.pieces.filter((p) => p.owner === owner && p.captured && p.faceUp && p.type);
-  if (!caps.length) return '<span class="tray-empty">no losses</span>';
-  return caps.map((p) => `<span class="tray-pc pc-${owner}${p.removed ? ' removed' : ''}" title="${typeName(p.type)}${p.removed ? ' (caught lying)' : ''}">${GLYPH[p.type!]}</span>`).join('');
+  return caps.map((p) => `<span class="tray-pc pc-${owner}${p.removed ? ' removed' : ''}" title="${typeName(p.type)}${p.removed ? ' (caught lying)' : ''}">${pieceSVG(p.type!)}</span>`).join('');
 }
 
 // ---------------------------------------------------------------------------
-// Side panels
+// Opponent cards
 
-export interface StripProps {
-  name: string;
-  avatar: string;
-  color: string;
-  chipsN: number;
-  owner: Color;
-  status: string;
-  isTurn: boolean;
-  tray: string;
+export function characterCard(bot: PersonalityConfig, num: number, opts: { mood?: Mood; active?: boolean; small?: boolean } = {}): string {
+  const mood = opts.mood ?? 'neutral';
+  return `<div class="ccard mood-${mood}${opts.active ? ' active' : ''}${opts.small ? ' small' : ''}">
+    <span class="cc-corner cc-tl">${numeral(num)}</span><span class="cc-corner cc-br">${numeral(num)}</span>
+    <div class="cc-emblem">${emblemSVG(bot.id)}</div>
+    <div class="cc-name">${esc(bot.name)}</div>
+    ${mood === 'caught' ? '<span class="cc-stamp">Caught</span>' : ''}
+  </div>`;
 }
 
-export function stripHTML({ name, avatar, color, chipsN, owner, status, isTurn, tray }: StripProps): string {
-  return `
-    <div class="strip-id">
-      <span class="avatar" style="--c:${color}">${avatar}</span>
-      <div><div class="strip-name">${esc(name)}${isTurn ? ' <span class="turn-dot" title="To act"></span>' : ''}</div>
-      <div class="strip-status">${status || ''}</div></div>
-    </div>
-    <div class="strip-tray">${tray}</div>
-    <div class="strip-chips">${chips(chipsN, owner)}</div>`;
+export function cardBack(label = ''): string {
+  return `<div class="ccard back"><span class="cb-label">${label}</span></div>`;
 }
 
-/** "Knights: 3 claimed / 2 possible" for the opponent's pieces. */
+export function oppPanelHTML({ bot, num, mood, chips, tray, thinking, isTurn }: {
+  bot: PersonalityConfig; num: number; mood: Mood; chips: number; tray: string; thinking: boolean; isTurn: boolean;
+}): string {
+  return `${characterCard(bot, num, { mood, active: isTurn })}
+    <div class="seat"><div class="seat-name">${esc(bot.name)}</div><div class="seat-status">${thinking ? '<span class="turn-pill muted">Thinking<span class="dots"></span></span>' : isTurn ? '<span class="turn-pill muted">To act</span>' : ''}</div></div>
+    <div class="seat-row">${purse(chips, 'black')}</div>
+    ${tray ? `<div class="tray"><span class="tray-label">Lost</span>${tray}</div>` : ''}`;
+}
+
+export function mePanelHTML({ chips, tray, isTurn }: { chips: number; tray: string; isTurn: boolean }): string {
+  return `<div class="seat"><div class="seat-name">You</div><div class="seat-status">${isTurn ? '<span class="turn-pill">Your turn</span>' : ''}</div></div>
+    <div class="seat-row">${purse(chips, 'white')}</div>
+    ${tray ? `<div class="tray"><span class="tray-label">Lost</span>${tray}</div>` : ''}`;
+}
+
+/** Opponent claims per type against how many can exist. */
 export function trackerHTML(view: GameState, opp: Color): string {
   const rows = CLAIMABLE.map((t) => {
     let claimed = 0, dead = 0;
@@ -137,14 +187,11 @@ export function trackerHTML(view: GameState, opp: Color): string {
     }
     const possible = PIECE_COUNTS[t] - dead;
     const over = claimed > possible;
-    return `<div class="trk-row${over ? ' over' : ''}">
-      <span class="trk-glyph">${GLYPH[t]}</span><span class="trk-name">${typeName(t)}s</span>
-      <span class="trk-val"><b>${claimed}</b> claimed / ${possible} possible</span>
-      ${over ? '<span class="trk-flag" title="More claims than pieces: someone is lying">LIE!</span>' : ''}
-    </div>`;
+    return `<div class="trk-row${over ? ' over' : ''}">${pieceIcon(t, 'black')}<span>${typeName(t)}</span><span class="trk-val">${claimed}/${possible}</span></div>`;
   }).join('');
   const unclaimed = view.pieces.filter((p) => p.owner === opp && !p.faceUp && !p.claim && !p.captured).length;
-  return `${rows}<div class="trk-foot">${unclaimed} unclaimed hidden piece${unclaimed === 1 ? '' : 's'}</div>`;
+  return `<div class="sheet-head"><span>${codexLink('counting', 'Their claims')}</span><small>claimed / possible</small></div>
+    <div class="trk-rows">${rows}</div><div class="trk-foot">${unclaimed} unclaimed</div>`;
 }
 
 export type LogKind = 'system' | 'move' | 'claim' | 'pass' | 'lie' | 'true' | 'reveal' | 'check' | 'showdown' | 'over';
@@ -156,39 +203,69 @@ export interface LogEntry {
 }
 
 export function logHTML(log: LogEntry[]): string {
-  if (!log.length) return '<div class="log-empty">Moves, claims and calls appear here.</div>';
+  if (!log.length) return '<div class="log-empty">No moves yet.</div>';
   return log.map((e) => `<div class="log-row log-${e.kind}">${e.n ? `<span class="log-n">${e.n}</span>` : ''}<span>${e.html}</span></div>`).join('');
 }
 
 export function tooltipHTML(piece: Piece, dist: TypeDist | undefined, history: ClaimRecord[], guess: ClaimType | undefined): string {
   const rows = CLAIMABLE.filter((t) => dist && dist[t] > 0.001)
     .sort((a, b) => dist![b] - dist![a])
-    .map((t) => `<div class="tt-row"><span>${GLYPH[t]} ${typeName(t)}</span><span class="tt-bar"><i style="width:${Math.round(dist![t] * 100)}%"></i></span><span>${Math.round(dist![t] * 100)}%</span></div>`)
+    .map((t) => `<div class="tt-row">${pieceIcon(t, 'black')}<span>${typeName(t)}</span><span class="tt-bar"><i style="width:${Math.round(dist![t] * 100)}%"></i></span><span>${Math.round(dist![t] * 100)}%</span></div>`)
     .join('');
   const hist = history.length
-    ? history.map((h) => `<div class="tt-hist">Move ${h.fullmove}: claimed ${typeName(h.claim)} (${h.outcome === 'passed' ? 'not called' : h.outcome})</div>`).join('')
-    : '<div class="tt-hist">No claims yet: invisible as a threat.</div>';
-  return `<div class="tt-title">Hidden piece from ${originSquare(piece.id) || '?'}${piece.claim ? ` · claims ${typeName(piece.claim)}` : ''}</div>
-    <div class="tt-sub">Could be (public info):</div>${rows}${hist}
-    <div class="tt-foot">${guess ? `Your guess: ${typeName(guess)} · ` : ''}Right-click to mark a guess</div>`;
+    ? history.map((h) => `<div class="tt-hist">Move ${h.fullmove}: claimed ${typeName(h.claim)}, ${h.outcome === 'passed' ? 'not called' : h.outcome}</div>`).join('')
+    : '<div class="tt-hist">No claim yet, so it threatens nothing.</div>';
+  return `<div class="tt-title">Card from ${originSquare(piece.id) || '?'}${piece.claim ? `, claims ${typeName(piece.claim)}` : ''}</div>
+    <div class="tt-sub">Could be, from public information:</div>${rows}${hist}
+    <div class="tt-foot">${guess ? `Your note: ${typeName(guess)}. ` : ''}Right-click to note a guess.</div>`;
+}
+
+const MARK: Record<Advice['tone'], string> = { info: '☞', good: '✓', warn: '!', danger: '✗' };
+
+export function coachCardHTML(advice: Advice | null, legend: { types: ClaimType[]; multi: boolean } | null): string {
+  let body: string;
+  if (advice) {
+    body = `<div class="coach-title tone-${advice.tone}"><span class="mark">${MARK[advice.tone]}</span>${esc(advice.title)}</div>
+      <ul>${advice.lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>
+      ${advice.pLie != null ? `<div class="meter" title="Chance it's a lie, from public information"><span>Lie</span><span class="meter-bar"><i style="width:${Math.round(advice.pLie * 100)}%"></i></span><b>${Math.round(advice.pLie * 100)}%</b></div>` : ''}`;
+  } else if (legend?.types.length) {
+    body = `<div class="coach-title"><span class="mark">☞</span>Where this card can go</div>
+      <p>An unclaimed card may move as any type. Each mark shows the claim that reaches it${legend.multi ? '; a dot means more than one' : ''}.</p>
+      <div class="legend">${legend.types.map((t) => `<span>${pieceIcon(t)} ${typeName(t)}</span>`).join('')}</div>`;
+  } else {
+    body = '<p class="coach-idle">Select a piece to see its moves. I\'ll flag blunders and help with calls.</p>';
+  }
+  return `<div class="sheet-head"><span>Coach</span></div>${body}`;
 }
 
 // ---------------------------------------------------------------------------
 // Screens
 
-export function menuScreen(): string {
-  return `<section class="menu">
-    <div class="hero">
-      <div class="hero-cards"><span class="pc card card-black"><span class="card-mark">?</span></span><span class="pc pc-white"><span class="glyph">♞</span></span><span class="pc card card-white"><span class="card-mark">?</span><span class="badge">♛</span></span></div>
-      <h1>Bluff Chess</h1>
-      <p class="tagline">Chess where your pieces are hidden, every move is a claim, and your opponent can call your bluff.</p>
+export function titleScreen(): string {
+  return `<section class="title-screen">
+    <div class="title-cards" aria-hidden="true">
+      <span class="tcard t1">${pieceSVG('knight')}</span><span class="tcard t2 backside"></span><span class="tcard t3">${pieceSVG('queen')}</span>
     </div>
-    <div class="menu-buttons">
-      <button class="btn btn-primary btn-big" data-act="go" data-to="circuit">The Circuit</button>
-      <button class="btn btn-big" data-act="go" data-to="free">Free Play</button>
-      <button class="btn btn-big" data-act="tutorial">Tutorial</button>
-      <button class="btn btn-ghost" data-act="rules">How to play</button>
+    <h1 class="wordmark">Bluff <span class="red">Chess</span></h1>
+    <p class="title-tag">Chess with hidden pieces. Every move is a claim, and any claim can be called.</p>
+    <button class="btn btn-red btn-big" data-act="enter">Play</button>
+  </section>`;
+}
+
+export function hubScreen({ nudge }: { nudge: string | null }): string {
+  const card = (act: string, n: string, piece: PieceType, label: string, sub: string) =>
+    `<button class="menu-card" data-act="${act}">
+      <span class="mc-num">${n}</span><span class="mc-art pc-white">${pieceSVG(piece)}</span>
+      <span class="mc-label">${label}</span><span class="mc-sub">${sub}</span></button>`;
+  return `<section class="hub">
+    <h1 class="wordmark small">Bluff <span class="red">Chess</span></h1>
+    <div class="menu-row">
+      ${card('go-circuit', 'I', 'king', 'Circuit', 'Five opponents, in order')}
+      ${card('go-lessons', 'II', 'pawn', 'Lessons', 'Learn the game')}
+      ${card('go-free', 'III', 'knight', 'Free play', 'Any opponent, your rules')}
+      ${card('codex', 'IV', 'rook', 'Rulebook', 'Rules and pieces')}
     </div>
+    ${nudge ? `<p class="nudge">${nudge}</p>` : ''}
   </section>`;
 }
 
@@ -198,28 +275,24 @@ export interface CircuitRecord {
   d: number;
 }
 
-function botCard(bot: PersonalityConfig, rec: CircuitRecord | undefined, locked: boolean, i: number): string {
-  const r = rec || { w: 0, l: 0, d: 0 };
-  return `<button class="bot-card${locked ? ' locked' : ''}" data-act="pick-bot" data-bot="${bot.id}" ${locked ? 'disabled' : ''}>
-    <span class="avatar avatar-lg" style="--c:${bot.color}">${locked ? '🔒' : bot.avatar}</span>
-    <span class="bot-info">
-      <span class="bot-step">Opponent ${i + 1}</span>
-      <span class="bot-name">${esc(bot.name)}</span>
-      <span class="bot-blurb">${locked ? 'Beat the previous opponent to unlock.' : esc(bot.blurb)}</span>
-      ${locked ? '' : `<span class="bot-teaches">Teaches: ${esc(bot.teaches)}</span>`}
-    </span>
-    <span class="bot-record"><b>${r.w}</b>W <b>${r.l}</b>L <b>${r.d}</b>D</span>
-  </button>`;
-}
-
 export function circuitScreen({ roster, bots, records, unlocked }: {
   roster: string[]; bots: Record<string, PersonalityConfig>; records: Record<string, CircuitRecord>; unlocked: Set<string>;
 }): string {
-  return `<section class="panel-screen">
-    <div class="screen-head"><button class="btn btn-ghost" data-act="go" data-to="menu">← Back</button><h2>The Circuit</h2></div>
-    <p class="screen-sub">Work through the roster. Each opponent has a consistent personality and tells. Learn to read them.</p>
-    <div class="bot-list">${roster.map((id, i) => botCard(bots[id], records[id], !unlocked.has(id), i)).join('')}</div>
-  </section>`;
+  const items = roster.map((id, i) => {
+    const b = bots[id];
+    const r = records[id] ?? { w: 0, l: 0, d: 0 };
+    if (!unlocked.has(id)) {
+      return `<div class="opp-slot locked">${cardBack(numeral(i + 1))}<div class="opp-info"><b>Locked</b><small>Beat the previous opponent.</small></div></div>`;
+    }
+    return `<button class="opp-slot" data-act="pick-bot" data-bot="${id}">
+      ${characterCard(b, i + 1)}
+      <div class="opp-info"><b>${esc(b.name)}</b><small>${esc(b.blurb)}</small>
+        <span class="opp-teach">${esc(b.teaches)}</span>
+        <span class="opp-rec">${r.w > 0 ? '<span class="beaten">Beaten</span>' : ''}${r.w}–${r.l}–${r.d}</span></div>
+    </button>`;
+  }).join('');
+  return `<section class="circuit"><header class="page-head"><h2>Circuit</h2><p>Beat each opponent to unlock the next. Each one has habits you can learn.</p></header>
+    <div class="opp-row">${items}</div></section>`;
 }
 
 export interface FreeKnobs {
@@ -231,90 +304,188 @@ export interface FreeKnobs {
   oneShowdown: boolean;
 }
 
-export function freePlayScreen({ choices, bots, knobs }: {
-  choices: string[]; bots: Record<string, PersonalityConfig>; knobs: FreeKnobs;
+export function freePlayScreen({ choices, bots, knobs, numbers }: {
+  choices: string[]; bots: Record<string, PersonalityConfig>; knobs: FreeKnobs; numbers: Record<string, number>;
 }): string {
-  const opt = (id: string) => `<option value="${id}" ${id === knobs.bot ? 'selected' : ''}>${esc(bots[id].name)}</option>`;
+  const who = choices.map((id) => `<button class="pick${id === knobs.bot ? ' on' : ''}" data-act="free-bot" data-bot="${id}">
+      ${characterCard(bots[id], numbers[id], { small: true })}</button>`).join('');
   const chk = (k: keyof FreeKnobs, label: string, help: string) =>
-    `<label class="knob"><input type="checkbox" data-knob="${k}" ${knobs[k] ? 'checked' : ''}><span><b>${label}</b><small>${help}</small></span></label>`;
-  return `<section class="panel-screen">
-    <div class="screen-head"><button class="btn btn-ghost" data-act="go" data-to="menu">← Back</button><h2>Free Play</h2></div>
-    <p class="screen-sub">Any unlocked opponent, your rules.</p>
-    <div class="free-grid">
-      <label class="knob knob-col"><b>Opponent</b><select data-knob="bot">${choices.map(opt).join('')}</select></label>
-      <label class="knob knob-col"><b>Starting chips: <span id="chip-val">${knobs.startingChips}</span></b>
-        <input type="range" min="1" max="12" value="${knobs.startingChips}" data-knob="startingChips"></label>
-      ${chk('claimLocking', 'Claim locking', "A piece's first claim fixes its identity.")}
-      ${chk('liarPaysChip', 'Liar pays a chip', 'A caught liar also pays the caller 1 chip.')}
-      ${chk('chipsOutLoss', 'Chips-out loss', 'Running out of chips loses the game.')}
-      ${chk('oneShowdown', 'One showdown per mate', 'Otherwise unlimited while chips last.')}
-    </div>
-    <button class="btn btn-primary btn-big" data-act="free-start">Arrange pieces →</button>
-  </section>`;
+    `<label class="rule"><input type="checkbox" data-knob="${k}" ${knobs[k] ? 'checked' : ''}><span class="box"></span><span><b>${label}</b><small>${help}</small></span></label>`;
+  return `<section class="free"><header class="page-head"><h2>Free play</h2><p>Pick an opponent and set the rules.</p></header>
+    <div class="free-body">
+      <div class="picks">${who}</div>
+      <div class="sheet rules-sheet">
+        <label class="rule rule-range"><span><b>Starting chips: <span id="chip-val">${knobs.startingChips}</span></b><small>Fewer chips make bluffing cheaper.</small></span>
+          <input type="range" min="1" max="12" value="${knobs.startingChips}" data-knob="startingChips"></label>
+        ${chk('claimLocking', 'Claim locking', "A piece's first claim fixes its identity.")}
+        ${chk('liarPaysChip', 'Liar pays a chip', 'A caught liar also pays the caller 1 chip.')}
+        ${chk('chipsOutLoss', 'Chips-out loss', 'Running out of chips loses the game.')}
+        ${chk('oneShowdown', 'One showdown per mate', 'Otherwise unlimited while chips last.')}
+        <button class="btn btn-red" data-act="free-start">Continue</button>
+      </div>
+    </div></section>`;
 }
 
-export function setupScreen({ arrangement, picked, bot }: { arrangement: Arrangement; picked: number | null; bot: PersonalityConfig }): string {
+const AUDIENCE: Record<Lesson['audience'], string> = { chess: 'Chess', poker: 'Bluffing', everyone: 'Bluff Chess' };
+
+export function lessonsScreen({ lessons, done, isRecommended, profile }: {
+  lessons: Lesson[]; done: Set<string>; isRecommended: (l: Lesson) => boolean; profile: Profile | null;
+}): string {
+  const rows = lessons.map((l, i) => {
+    const rec = isRecommended(l) && !done.has(l.id);
+    return `<button class="toc-row${done.has(l.id) ? ' done' : ''}${isRecommended(l) ? '' : ' optional'}" data-act="start-lesson" data-lesson="${l.id}">
+      <span class="toc-num">${numeral(i + 1)}.</span>
+      <span class="toc-title"><b>${esc(l.title)}</b><small>${esc(l.blurb)}</small></span>
+      <span class="toc-tag">${AUDIENCE[l.audience]}${rec ? ' · <span class="red">suggested</span>' : ''}</span>
+      <span class="toc-check">${done.has(l.id) ? icon('check') : ''}</span>
+    </button>`;
+  }).join('');
+  return `<section class="lessons"><header class="page-head"><h2>Lessons</h2>
+      <p>About a minute each. ${profile ? '' : 'Tell us what you know for suggestions.'} <button class="btn btn-small" data-act="profile-open">${profile ? 'Change experience' : 'Set experience'}</button></p></header>
+    <div class="sheet toc">${rows}
+      <button class="toc-row practice" data-act="practice"><span class="toc-num">—</span>
+        <span class="toc-title"><b>Practice match</b><small>A full game against Professor Fumble, with the coach on.</small></span><span class="toc-tag">Practice</span><span class="toc-check"></span></button>
+    </div></section>`;
+}
+
+export function setupScreen({ arrangement, picked, bot, num }: { arrangement: Arrangement; picked: number | null; bot: PersonalityConfig; num: number }): string {
   const cells = 'abcdefgh'.split('').map((f) => {
-    if (f === 'e') return `<div class="setup-sq fixed"><span class="pc pc-white"><span class="glyph">${GLYPH.king}</span></span><small>e1</small></div>`;
+    if (f === 'e') return `<div class="slot fixed"><span class="pc pc-white">${pieceSVG('king')}</span><small>e1</small></div>`;
     const i = (BACK_FILES as readonly string[]).indexOf(f);
-    const t = arrangement[i];
-    return `<button class="setup-sq${picked === i ? ' picked' : ''}" data-act="setup-swap" data-i="${i}">
-      <span class="pc card card-white mine"><span class="true-type">${GLYPH[t]}</span></span><small>${f}1</small></button>`;
+    return `<button class="slot${picked === i ? ' picked' : ''}" data-act="setup-swap" data-i="${i}">
+      <span class="pc card card-white mine"><span class="card-face pc-white">${pieceSVG(arrangement[i])}</span></span><small>${f}1</small></button>`;
   }).join('');
   const bishopColors = [BACK_FILES[arrangement.indexOf('bishop')], BACK_FILES[arrangement.lastIndexOf('bishop')]]
     .map((f) => ('abcdefgh'.indexOf(f) % 2 === 0 ? 'dark' : 'light'));
-  const sameColor = bishopColors[0] === bishopColors[1];
-  return `<section class="panel-screen setup">
-    <div class="screen-head"><button class="btn btn-ghost" data-act="go" data-to="menu">← Back</button><h2>Secret setup</h2></div>
-    <p class="screen-sub">Arrange your seven back-rank pieces. ${esc(bot.name)} will only ever see card backs. Click two pieces to swap them.</p>
-    <div class="setup-row">${cells}</div>
-    <p class="setup-note">${sameColor ? `Both bishops are on ${bishopColors[0]} squares. Legal, and a little sneaky.` : 'Bishops on opposite colours.'}</p>
-    <div class="setup-actions">
-      <button class="btn" data-act="setup-classic">Classic</button>
-      <button class="btn" data-act="setup-random">Randomize</button>
-      <button class="btn btn-primary btn-big" data-act="setup-start">Start match vs ${esc(bot.name)}</button>
+  return `<section class="setup">
+    <div class="setup-opp">${characterCard(bot, num, { mood: 'thinking' })}<p>${esc(bot.name)} is arranging in secret.</p></div>
+    <div class="setup-main">
+      <h2>Arrange your back rank</h2>
+      <p>Your opponent sees only card backs. Click two cards to swap them.</p>
+      <div class="slots">${cells}</div>
+      <p class="setup-note">${bishopColors[0] === bishopColors[1] ? `Both bishops are on ${bishopColors[0]} squares. That's allowed.` : 'Bishops on opposite colours.'}</p>
+      <div class="setup-actions">
+        <button class="btn" data-act="setup-classic">Classic</button>
+        <button class="btn" data-act="setup-random">Shuffle</button>
+        <button class="btn btn-red" data-act="setup-start">Start</button>
+      </div>
     </div>
   </section>`;
 }
 
-export function gameShell(bot: PersonalityConfig): string {
-  return `<section class="game">
-    <div class="board-col">
-      <div class="strip strip-opp" id="strip-opp"></div>
-      <div class="board-wrap">
-        <div class="board" id="board"></div>
-        <div class="fx-layer" id="fx-layer"></div>
-        <div class="speech hidden" id="speech" style="--c:${bot.color}"></div>
-      </div>
-      <div class="strip strip-me" id="strip-me"></div>
+export function gameShell(mode: string): string {
+  return `<section class="game" data-mode="${mode}">
+    <div class="g-opp"><div id="opp-panel"></div><div class="speech hidden" id="speech"></div></div>
+    <div class="g-board">
+      <div class="board-frame"><div class="board" id="board"></div><div class="board-overlay" id="board-overlay"></div><div class="fx-layer" id="fx-layer"></div></div>
+      <div class="prompt" id="prompt" role="status" aria-live="polite"></div>
     </div>
-    <aside class="side">
-      <div class="action-panel" id="action-panel"></div>
-      <div class="card-box"><h3>Claim tracker <small>${esc(bot.name)}'s pieces</small></h3><div id="tracker"></div></div>
-      <div class="card-box log-box"><h3>Move log</h3><div class="log" id="log"></div></div>
-      <div class="side-foot">
-        <button class="btn btn-ghost" data-act="rules">Rules</button>
-        <button class="btn btn-ghost btn-danger" data-act="resign">Resign</button>
-      </div>
+    <div class="g-me" id="me-panel"></div>
+    <aside class="g-side">
+      <div class="sheet action-panel" id="action-panel"></div>
+      <div class="sheet coach-card" id="coach-card"></div>
+      <div class="sheet record"><div id="tracker"></div><div class="log" id="log"></div></div>
     </aside>
   </section>`;
 }
 
-export function rulesHTML(): string {
-  return `<div class="rules">
-    <h2>How to play</h2>
-    <ol>
-      <li><b>Setup.</b> Standard chess, but your seven back-rank pieces (2 rooks, 2 knights, 2 bishops, queen) are arranged in secret and are <b>face-down</b> to your opponent. Pawns and kings are always face-up.</li>
-      <li><b>Claims.</b> Moving a face-down piece is a <b>claim</b> that it is a rook, knight, bishop or queen. The move only has to be legal for the claimed type. The first claim <b>locks</b>: the piece must keep moving as that type.</li>
-      <li><b>Calling.</b> After a face-down piece moves, the opponent may <b>call</b> (bet 1 chip) or pass.<br>
-        <span class="rule-lie">Lie caught:</span> the move is undone, the liar is removed, the caller keeps their chip and moves next.<br>
-        <span class="rule-true">Claim true:</span> the piece flips face-up, the move stands, and the caller's chip goes to the mover.</li>
-      <li><b>The apparent board.</b> Check and mate use claims as if true. An <b>unclaimed</b> face-down piece blocks lines but threatens nothing. A bluffed check is a real check until someone calls it.</li>
-      <li><b>Showdown.</b> Checkmated? Spend a chip to expose any claimed face-down enemy piece. If it was lying it's removed, and if that breaks the mate, play on.</li>
-      <li><b>Castling</b> counts as the corner piece claiming to be a rook. <b>Captured</b> pieces are revealed. Everything is revealed at the end.</li>
-    </ol>
-    <p class="rules-tip">You start with 6 chips. Run out and you can't call (or showdown). Read the bot's think time and lines: every character has consistent tells.</p>
-    <button class="btn btn-primary" data-act="close-modal">Got it</button>
+// ---------------------------------------------------------------------------
+// Modals
+
+export function profileHTML(profile: Partial<Profile>): string {
+  const q = (k: keyof Profile, label: string, opts: [Profile['chess'], string][]) =>
+    `<div class="pq"><div class="pq-label">${label}</div><div class="pq-opts">${opts.map(([v, text]) =>
+      `<button class="btn${profile[k] === v ? ' btn-ink' : ''}" data-act="profile-set" data-k="${k}" data-v="${v}">${text}</button>`).join('')}</div></div>`;
+  return `<div class="sheet modal-sheet profile">
+    <h2>Before you play</h2>
+    <p>Two questions, so we can suggest where to start.</p>
+    ${q('chess', 'How well do you know chess?', [['new', 'Never played'], ['basic', 'I know the moves'], ['confident', 'I play regularly']])}
+    ${q('poker', 'How well do you know poker and bluffing?', [['new', 'Never played'], ['basic', 'I know the idea'], ['confident', 'Comfortable']])}
+    <div class="modal-actions"><button class="btn btn-red" data-act="profile-done" ${profile.chess && profile.poker ? '' : 'disabled'}>Done</button></div>
+  </div>`;
+}
+
+export function settingsHTML({ volume, muted, coach, reducedMotion }: { volume: number; muted: boolean; coach: 'auto' | 'on' | 'off'; reducedMotion: boolean }): string {
+  const seg = (v: 'auto' | 'on' | 'off', label: string) => `<button class="btn btn-small${coach === v ? ' btn-ink' : ''}" data-act="coach-mode" data-v="${v}">${label}</button>`;
+  return `<div class="sheet modal-sheet settings">
+    <h2>Settings</h2>
+    <label class="set-row"><span>Volume</span><input type="range" min="0" max="100" value="${Math.round(volume * 100)}" data-knob="volume"></label>
+    <label class="set-row"><span>Mute</span><input type="checkbox" data-knob="muted" ${muted ? 'checked' : ''}></label>
+    <div class="set-row"><span>Coach</span><span class="seg">${seg('auto', 'First 5 games')}${seg('on', 'Always')}${seg('off', 'Off')}</span></div>
+    <label class="set-row"><span>Reduce motion</span><input type="checkbox" data-knob="reducedMotion" ${reducedMotion ? 'checked' : ''}></label>
+    <div class="modal-actions"><button class="btn btn-plain danger" data-act="reset-progress">Reset progress</button><button class="btn btn-ink" data-act="close-modal">Done</button></div>
+  </div>`;
+}
+
+export interface CodexEntry {
+  id: string;
+  title: string;
+  body: string;
+  diagram?: PieceType;
+}
+
+export interface CodexData {
+  categories: { id: string; title: string; entries: CodexEntry[] }[];
+}
+
+/** A small board showing where a piece can move. */
+function diagramHTML(t: PieceType): string {
+  const board: Board = new Array(64).fill(null);
+  const from = t === 'pawn' ? sqToIdx('d2') : sqToIdx('d4');
+  board[from] = { id: 'x', color: 'white', type: t, hidden: false, claim: null, hasMoved: false };
+  if (t === 'pawn') {
+    board[sqToIdx('c3')] = { id: 'y', color: 'black', type: 'pawn', hidden: false, claim: null, hasMoved: true };
+    board[sqToIdx('e3')] = { id: 'z', color: 'black', type: 'pawn', hidden: false, claim: null, hasMoved: true };
+  }
+  const targets = new Set(generateMoves(board, 'white', -1, { pseudo: true }).map((m) => idxToSq(m.to)));
+  let html = '';
+  for (let r = 7; r >= 0; r--) {
+    for (let f = 0; f < 8; f++) {
+      const i = r * 8 + f;
+      const c = board[i];
+      const sq = idxToSq(i);
+      html += `<div class="dg-sq ${(f + r) % 2 === 0 ? 'dark' : 'light'}${targets.has(sq) ? (c ? ' dg-cap' : ' dg-dot') : ''}">${c?.type ? `<span class="pc pc-${c.color}">${pieceSVG(c.type)}</span>` : ''}</div>`;
+    }
+  }
+  return `<div class="diagram">${html}</div>`;
+}
+
+export function codexHTML({ codex, entryId, characters }: {
+  codex: CodexData; entryId: string; characters: { bot: PersonalityConfig; num: number; met: boolean }[];
+}): string {
+  const cats = [...codex.categories, {
+    id: 'characters', title: 'Opponents',
+    entries: characters.map(({ bot, met }) => ({ id: `bot-${bot.id}`, title: met ? bot.name : 'Unknown', body: '' })),
+  }];
+  const list = cats.map((c) => `<div class="cx-cat"><div class="cx-cat-title">${esc(c.title)}</div>${c.entries.map((e) =>
+    `<button class="cx-item${e.id === entryId ? ' on' : ''}" data-act="codex" data-entry="${e.id}">${esc(e.title)}</button>`).join('')}</div>`).join('');
+
+  let page: string;
+  const ch = entryId.startsWith('bot-') ? characters.find((c) => `bot-${c.bot.id}` === entryId) : null;
+  if (ch) {
+    page = ch.met
+      ? `<h3>${esc(ch.bot.name)}</h3><div class="cx-card">${characterCard(ch.bot, ch.num, { small: true })}</div>
+         <p>${esc(ch.bot.blurb)}</p><p><b>What they teach:</b> ${esc(ch.bot.teaches)}</p><p class="cx-note">Their habits are for you to find.</p>`
+      : '<h3>Unknown</h3><p>You haven\'t met this opponent yet. Unlock them in the Circuit.</p>';
+  } else {
+    const entry = codex.categories.flatMap((c) => c.entries).find((e) => e.id === entryId) ?? codex.categories[0].entries[0];
+    page = `<h3>${esc(entry.title)}</h3>${entry.diagram ? diagramHTML(entry.diagram) : ''}${linkify(entry.body)}`;
+  }
+  return `<div class="rulebook">
+    <nav class="cx-index"><h2>Rulebook</h2>${list}</nav>
+    <article class="cx-page">${page}<div class="modal-actions"><button class="btn" data-act="close-modal">Close</button></div></article>
+  </div>`;
+}
+
+export function lessonDoneHTML({ lesson, next }: { lesson: Lesson; next: Lesson | null }): string {
+  return `<div class="sheet modal-sheet lesson-done">
+    <span class="done-stamp">Complete</span>
+    <h2>${esc(lesson.title)}</h2>
+    <p>${next ? `Next: ${esc(next.title)}.` : 'That\'s every lesson. Try a practice match, then the Circuit.'}</p>
+    <div class="modal-actions">
+      <button class="btn" data-act="go-lessons">All lessons</button>
+      ${next ? `<button class="btn btn-red" data-act="start-lesson" data-lesson="${next.id}">Next lesson</button>` : '<button class="btn btn-red" data-act="practice">Practice match</button>'}
+    </div>
   </div>`;
 }
 
@@ -359,22 +530,23 @@ function groupClaims(state: GameState, player: Color): ClaimGroup[] {
   return [...groups.values()];
 }
 
-function lieList(groups: ClaimGroup[], emptyText: string): string {
+function lieList(groups: ClaimGroup[], emptyText: string, owner: Color): string {
   const lies = groups.filter((g) => g.piece.type !== g.claim);
   if (!lies.length) return `<div class="rv-empty">${emptyText}</div>`;
   return lies.map((g) => `<div class="rv-lie ${g.outcome.startsWith('never') ? 'got-away' : 'caught'}">
-      <span class="rv-glyphs">${GLYPH[g.piece.type!]}<span class="rv-arrow">→</span>${GLYPH[g.claim]}</span>
-      <span>Move ${g.first}: the ${originSquare(g.piece.id) || ''} ${typeName(g.piece.type)} claimed ${typeName(g.claim)}${g.moves > 1 ? ` (${g.moves} moves)` : ''}<small>${g.outcome}</small></span>
+      <span class="rv-glyphs">${pieceIcon(g.piece.type!, owner)}<span class="rv-arrow">as</span>${pieceIcon(g.claim, owner)}</span>
+      <span>Move ${g.first}: ${originSquare(g.piece.id) || ''} ${typeName(g.piece.type)} claimed ${typeName(g.claim)}${g.moves > 1 ? ` (${g.moves} moves)` : ''}<small>${g.outcome}</small></span>
     </div>`).join('');
 }
 
 function stats(state: GameState, player: Color) {
   const mine = state.claims.filter((c) => c.player === player);
   const theirs = state.claims.filter((c) => c.player !== player && c.outcome !== 'pending');
-  const lies = mine.filter((c) => !c.honest).length;
   const calls = theirs.filter((c) => c.called);
-  const right = calls.filter((c) => !c.honest).length;
-  return { claims: mine.length, lies, caught: mine.filter((c) => c.outcome === 'caught').length, calls: calls.length, right };
+  return {
+    claims: mine.length, lies: mine.filter((c) => !c.honest).length, caught: mine.filter((c) => c.outcome === 'caught').length,
+    calls: calls.length, right: calls.filter((c) => !c.honest).length,
+  };
 }
 
 /** Beliefs worth showing: confident ones and the ones the bot got wrong. */
@@ -392,11 +564,11 @@ function pickSnaps(state: GameState, snaps: BeliefSnap[]) {
     if (seen.has(s.pieceId)) return false;
     seen.add(s.pieceId);
     return true;
-  }).slice(0, 6).sort((a, b) => a.fullmove - b.fullmove);
+  }).slice(0, 5).sort((a, b) => a.fullmove - b.fullmove);
 }
 
-export function revealHTML({ state, bot, snaps, me, newlyUnlocked, resultText }: {
-  state: GameState; bot: PersonalityConfig; snaps: BeliefSnap[]; me: Color; newlyUnlocked: string[]; resultText: string;
+export function revealHTML({ state, bot, num, snaps, me, newlyUnlocked, resultText, won }: {
+  state: GameState; bot: PersonalityConfig; num: number; snaps: BeliefSnap[]; me: Color; newlyUnlocked: string[]; resultText: string; won: boolean | null;
 }): string {
   const opp: Color = me === 'white' ? 'black' : 'white';
   const you = stats(state, me);
@@ -404,42 +576,38 @@ export function revealHTML({ state, bot, snaps, me, newlyUnlocked, resultText }:
   const beliefs = pickSnaps(state, snaps);
   const beliefRows = beliefs.length
     ? beliefs.map((s) => `<div class="rv-belief ${s.right ? 'right' : 'wrong'}">
-        <span class="rv-quote">"Move ${s.fullmove}: I was ${Math.round(s.p * 100)}% sure your ${originSquare(s.pieceId) || ''} piece was a ${typeName(s.best)}."</span>
-        <small>${s.right ? 'Correct.' : `It was a ${typeName(s.piece.type)}.`} You claimed ${typeName(s.claim)}${s.decision ? `; I ${s.decision === 'call' ? 'called' : 'let it go'}` : ''}.</small>
+        <span class="rv-quote">“Move ${s.fullmove}: I was ${Math.round(s.p * 100)}% sure your ${originSquare(s.pieceId) || ''} piece was a ${typeName(s.best)}.”</span>
+        <small>${s.right ? 'Correct.' : `It was a ${typeName(s.piece.type)}.`} You claimed ${typeName(s.claim)}${s.decision ? `; they ${s.decision === 'call' ? 'called' : 'passed'}` : ''}.</small>
       </div>`).join('')
-    : `<div class="rv-empty">You never made a claim for ${esc(bot.name)} to read.</div>`;
+    : `<div class="rv-empty">You made no claims for ${esc(bot.name)} to read.</div>`;
 
-  return `<div class="reveal">
-    <div class="rv-head">
-      <span class="avatar avatar-lg" style="--c:${bot.color}">${bot.avatar}</span>
-      <div><div class="rv-kicker">The reveal</div><h2>${resultText}</h2>
-      ${newlyUnlocked.length ? `<div class="rv-unlock">New opponent unlocked: <b>${newlyUnlocked.map(esc).join(', ')}</b></div>` : ''}</div>
-    </div>
+  return `<div class="sheet modal-sheet reveal">
+    <header class="rv-head">
+      ${characterCard(bot, num, { small: true, mood: won === true ? 'caught' : won === false ? 'triumphant' : 'neutral' })}
+      <div><div class="kicker">Result</div><h2>${resultText}</h2>
+      ${newlyUnlocked.length ? `<p class="rv-unlock">Unlocked: ${newlyUnlocked.map(esc).join(', ')}</p>` : ''}</div>
+    </header>
     <div class="rv-grid">
       <div class="rv-board-col">
         <div class="board board-small">${boardHTML(state, { me, final: true })}</div>
-        <div class="rv-legend"><span class="legend-liar"></span> red cards were lying when the game ended</div>
+        <p class="rv-legend">Cards marked in red were lying when the game ended.</p>
       </div>
       <div class="rv-cols">
-        <div class="rv-col">
-          <h3>Your lies</h3>
-          <div class="rv-stat">${you.claims} claims · ${you.lies} lies · ${you.caught} caught</div>
-          ${lieList(groupClaims(state, me), 'Honest all game.')}
-          <div class="rv-stat">Your calls: ${you.calls}, ${you.right} correct</div>
-        </div>
-        <div class="rv-col">
-          <h3>${esc(bot.name)}'s lies</h3>
-          <div class="rv-stat">${them.claims} claims · ${them.lies} lies · ${them.caught} caught</div>
-          ${lieList(groupClaims(state, opp), 'Not a single lie.')}
-          <div class="rv-stat">${esc(bot.name)}'s calls: ${them.calls}, ${them.right} correct</div>
-        </div>
+        <div><h3>Your lies</h3>
+          <div class="rv-stat">${you.claims} claims, ${you.lies} lies, ${you.caught} caught</div>
+          ${lieList(groupClaims(state, me), 'None. You played it straight.', me)}
+          <div class="rv-stat">Your calls: ${you.calls}, ${you.right} correct</div></div>
+        <div><h3>${esc(bot.name)}'s lies</h3>
+          <div class="rv-stat">${them.claims} claims, ${them.lies} lies, ${them.caught} caught</div>
+          ${lieList(groupClaims(state, opp), 'None.', opp)}
+          <div class="rv-stat">Their calls: ${them.calls}, ${them.right} correct</div></div>
       </div>
     </div>
-    <div class="rv-beliefs"><h3>What ${esc(bot.name)} was thinking</h3>${beliefRows}</div>
-    <div class="rv-actions">
+    <div class="rv-beliefs"><h3>What ${esc(bot.name)} believed</h3>${beliefRows}</div>
+    <div class="modal-actions">
       <button class="btn" data-act="close-modal">View board</button>
-      <button class="btn" data-act="back">Back</button>
-      <button class="btn btn-primary" data-act="rematch">Rematch</button>
+      <button class="btn" data-act="leave">Leave</button>
+      <button class="btn btn-red" data-act="rematch">Rematch</button>
     </div>
   </div>`;
 }

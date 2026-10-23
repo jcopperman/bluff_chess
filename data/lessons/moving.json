@@ -1,0 +1,316 @@
+{
+  "id": "moving",
+  "title": "Moving & capturing",
+  "audience": "chess",
+  "blurb": "How every chess piece moves and captures. Skip this if you already play chess.",
+  "steps": [
+    {
+      "say": "Welcome! Let's start with plain chess. The <b>rook</b> moves in straight lines along ranks and files. Capture the pawn on <b>d7</b> with your rook.",
+      "position": {
+        "pieces": [
+          {
+            "id": "w-k",
+            "owner": "white",
+            "type": "king",
+            "square": "a1"
+          },
+          {
+            "id": "b-k",
+            "owner": "black",
+            "type": "king",
+            "square": "h8"
+          },
+          {
+            "id": "w-r",
+            "owner": "white",
+            "type": "rook",
+            "square": "d4",
+            "faceUp": true
+          },
+          {
+            "id": "b-p",
+            "owner": "black",
+            "type": "pawn",
+            "square": "d7"
+          }
+        ]
+      },
+      "expect": [
+        {
+          "from": "d4",
+          "to": "d7"
+        }
+      ],
+      "highlight": [
+        "d4",
+        "d7"
+      ],
+      "hint": "Click your rook on d4, then click d7.",
+      "success": "Captured! Pieces capture by moving onto an enemy's square."
+    },
+    {
+      "say": "The <b>bishop</b> moves diagonally. Take the knight on <b>g5</b>.",
+      "position": {
+        "pieces": [
+          {
+            "id": "w-k",
+            "owner": "white",
+            "type": "king",
+            "square": "a1"
+          },
+          {
+            "id": "b-k",
+            "owner": "black",
+            "type": "king",
+            "square": "h8"
+          },
+          {
+            "id": "w-b",
+            "owner": "white",
+            "type": "bishop",
+            "square": "c1",
+            "faceUp": true
+          },
+          {
+            "id": "b-n",
+            "owner": "black",
+            "type": "knight",
+            "square": "g5",
+            "faceUp": true
+          }
+        ]
+      },
+      "expect": [
+        {
+          "from": "c1",
+          "to": "g5"
+        }
+      ],
+      "highlight": [
+        "c1",
+        "g5"
+      ],
+      "hint": "Your bishop is on c1. Follow the diagonal up to g5.",
+      "success": "Nice. Bishops stay on one colour of square all game."
+    },
+    {
+      "say": "The <b>knight</b> jumps in an L shape (two squares, then one sideways), even over other pieces. Capture the rook on <b>f6</b>.",
+      "position": {
+        "pieces": [
+          {
+            "id": "w-k",
+            "owner": "white",
+            "type": "king",
+            "square": "a1"
+          },
+          {
+            "id": "b-k",
+            "owner": "black",
+            "type": "king",
+            "square": "h8"
+          },
+          {
+            "id": "w-n",
+            "owner": "white",
+            "type": "knight",
+            "square": "e4",
+            "faceUp": true
+          },
+          {
+            "id": "b-pe",
+            "owner": "black",
+            "type": "pawn",
+            "square": "e5"
+          },
+          {
+            "id": "b-pf",
+            "owner": "black",
+            "type": "pawn",
+            "square": "f5"
+          },
+          {
+            "id": "b-r",
+            "owner": "black",
+            "type": "rook",
+            "square": "f6",
+            "faceUp": true
+          }
+        ]
+      },
+      "expect": [
+        {
+          "from": "e4",
+          "to": "f6"
+        }
+      ],
+      "highlight": [
+        "e4",
+        "f6"
+      ],
+      "hint": "From e4, go two squares up and one to the right.",
+      "success": "The knight is the only piece that can jump."
+    },
+    {
+      "say": "The <b>queen</b> moves like a rook <b>and</b> a bishop. She's your strongest piece. Capture the bishop on <b>h5</b>.",
+      "position": {
+        "pieces": [
+          {
+            "id": "w-k",
+            "owner": "white",
+            "type": "king",
+            "square": "a1"
+          },
+          {
+            "id": "b-k",
+            "owner": "black",
+            "type": "king",
+            "square": "b8"
+          },
+          {
+            "id": "w-q",
+            "owner": "white",
+            "type": "queen",
+            "square": "d1",
+            "faceUp": true
+          },
+          {
+            "id": "b-b",
+            "owner": "black",
+            "type": "bishop",
+            "square": "h5",
+            "faceUp": true
+          }
+        ]
+      },
+      "expect": [
+        {
+          "from": "d1",
+          "to": "h5"
+        }
+      ],
+      "highlight": [
+        "d1",
+        "h5"
+      ],
+      "hint": "Slide the queen diagonally from d1 to h5.",
+      "success": "Queens are worth about nine pawns. Guard yours!"
+    },
+    {
+      "say": "<b>Pawns</b> move straight forward one square (two from their starting square), but capture <b>diagonally</b>. Capture the pawn on <b>d3</b>.",
+      "position": {
+        "pieces": [
+          {
+            "id": "w-k",
+            "owner": "white",
+            "type": "king",
+            "square": "a1"
+          },
+          {
+            "id": "b-k",
+            "owner": "black",
+            "type": "king",
+            "square": "h8"
+          },
+          {
+            "id": "w-p",
+            "owner": "white",
+            "type": "pawn",
+            "square": "e2"
+          },
+          {
+            "id": "b-p",
+            "owner": "black",
+            "type": "pawn",
+            "square": "d3"
+          }
+        ]
+      },
+      "expect": [
+        {
+          "from": "e2",
+          "to": "d3"
+        }
+      ],
+      "highlight": [
+        "e2",
+        "d3"
+      ],
+      "hint": "Pawns capture one square diagonally forward: e2 takes d3.",
+      "success": "Pawns are small but they add up."
+    },
+    {
+      "say": "A pawn that reaches the far side <b>promotes</b> into any piece, usually a queen. Push your pawn to <b>a8</b>.",
+      "position": {
+        "pieces": [
+          {
+            "id": "w-k",
+            "owner": "white",
+            "type": "king",
+            "square": "e1"
+          },
+          {
+            "id": "b-k",
+            "owner": "black",
+            "type": "king",
+            "square": "h6"
+          },
+          {
+            "id": "w-p",
+            "owner": "white",
+            "type": "pawn",
+            "square": "a7",
+            "hasMoved": true
+          }
+        ]
+      },
+      "expect": [
+        {
+          "from": "a7",
+          "to": "a8"
+        }
+      ],
+      "highlight": [
+        "a7",
+        "a8"
+      ],
+      "hint": "Move the pawn on a7 forward one square.",
+      "success": "Promoted! Promoted pieces are always face-up."
+    },
+    {
+      "say": "The <b>king</b> moves one square in any direction, and may never step into check. The black rook guards the d-file. Move your king <b>one square</b>, staying off the d-file.",
+      "position": {
+        "pieces": [
+          {
+            "id": "w-k",
+            "owner": "white",
+            "type": "king",
+            "square": "e4"
+          },
+          {
+            "id": "b-k",
+            "owner": "black",
+            "type": "king",
+            "square": "h8"
+          },
+          {
+            "id": "b-r",
+            "owner": "black",
+            "type": "rook",
+            "square": "d8",
+            "faceUp": true
+          }
+        ]
+      },
+      "expect": [
+        {
+          "from": "e4"
+        }
+      ],
+      "highlight": [
+        "e4"
+      ],
+      "hint": "Click the king on e4 and pick one of the glowing squares.",
+      "success": "That's every piece. Next: check and checkmate."
+    }
+  ]
+}

@@ -1,0 +1,212 @@
+{
+  "id": "calling",
+  "title": "Calling a bluff",
+  "audience": "poker",
+  "blurb": "Chips, calling, and what happens when you're right or wrong.",
+  "steps": [
+    {
+      "say": "The Professor moved a card and claimed <b>Knight</b>. You may <b>call</b> (bet 1 chip) if you think he's lying. He hesitated a long time before that move... <b>Call it!</b>",
+      "position": {
+        "turn": "black",
+        "pieces": [
+          {
+            "id": "w-k",
+            "owner": "white",
+            "type": "king",
+            "square": "e1"
+          },
+          {
+            "id": "b-k",
+            "owner": "black",
+            "type": "king",
+            "square": "e8"
+          },
+          {
+            "id": "w-pd",
+            "owner": "white",
+            "type": "pawn",
+            "square": "d2"
+          },
+          {
+            "id": "w-pe",
+            "owner": "white",
+            "type": "pawn",
+            "square": "e2"
+          },
+          {
+            "id": "b-pd",
+            "owner": "black",
+            "type": "pawn",
+            "square": "d7"
+          },
+          {
+            "id": "b-pe",
+            "owner": "black",
+            "type": "pawn",
+            "square": "e7"
+          },
+          {
+            "id": "b-g8",
+            "owner": "black",
+            "type": "bishop",
+            "square": "g8"
+          }
+        ]
+      },
+      "before": [
+        {
+          "type": "move",
+          "player": "black",
+          "from": "g8",
+          "to": "f6",
+          "claim": "knight"
+        }
+      ],
+      "expect": [
+        {
+          "type": "call"
+        }
+      ],
+      "highlight": [
+        "f6"
+      ],
+      "hint": "Press the red Call button.",
+      "success": "Caught! It was really a bishop. The move is undone, the liar is removed, you keep your chip, and you move next."
+    },
+    {
+      "say": "Another Knight claim. Call this one too, and see what happens when the claim is true.",
+      "position": {
+        "turn": "black",
+        "pieces": [
+          {
+            "id": "w-k",
+            "owner": "white",
+            "type": "king",
+            "square": "e1"
+          },
+          {
+            "id": "b-k",
+            "owner": "black",
+            "type": "king",
+            "square": "e8"
+          },
+          {
+            "id": "w-pd",
+            "owner": "white",
+            "type": "pawn",
+            "square": "d2"
+          },
+          {
+            "id": "w-pe",
+            "owner": "white",
+            "type": "pawn",
+            "square": "e2"
+          },
+          {
+            "id": "b-pd",
+            "owner": "black",
+            "type": "pawn",
+            "square": "d7"
+          },
+          {
+            "id": "b-pe",
+            "owner": "black",
+            "type": "pawn",
+            "square": "e7"
+          },
+          {
+            "id": "b-g8",
+            "owner": "black",
+            "type": "knight",
+            "square": "g8"
+          }
+        ]
+      },
+      "before": [
+        {
+          "type": "move",
+          "player": "black",
+          "from": "g8",
+          "to": "f6",
+          "claim": "knight"
+        }
+      ],
+      "expect": [
+        {
+          "type": "call"
+        }
+      ],
+      "highlight": [
+        "f6"
+      ],
+      "hint": "Press Call.",
+      "success": "Honest! The card flips face-up, the move stands, and your chip goes to him. Chips are your ammunition: spend them on claims you really doubt."
+    },
+    {
+      "say": "When a claim looks honest, just <b>pass</b>: the move stands, and nobody pays anything. The Professor claims Knight again. Pass this time.",
+      "position": {
+        "turn": "black",
+        "pieces": [
+          {
+            "id": "w-k",
+            "owner": "white",
+            "type": "king",
+            "square": "e1"
+          },
+          {
+            "id": "b-k",
+            "owner": "black",
+            "type": "king",
+            "square": "e8"
+          },
+          {
+            "id": "w-pd",
+            "owner": "white",
+            "type": "pawn",
+            "square": "d2"
+          },
+          {
+            "id": "w-pe",
+            "owner": "white",
+            "type": "pawn",
+            "square": "e2"
+          },
+          {
+            "id": "b-pd",
+            "owner": "black",
+            "type": "pawn",
+            "square": "d7"
+          },
+          {
+            "id": "b-pe",
+            "owner": "black",
+            "type": "pawn",
+            "square": "e7"
+          },
+          {
+            "id": "b-g8",
+            "owner": "black",
+            "type": "knight",
+            "square": "g8"
+          }
+        ]
+      },
+      "before": [
+        {
+          "type": "move",
+          "player": "black",
+          "from": "g8",
+          "to": "f6",
+          "claim": "knight"
+        }
+      ],
+      "expect": [
+        {
+          "type": "pass"
+        }
+      ],
+      "hint": "Press Pass.",
+      "success": "In real matches, watch each opponent's habits (their tells) to decide."
+    }
+  ]
+}
