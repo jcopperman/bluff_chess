@@ -1,6 +1,7 @@
 {
-  "name": "bluffed mate: a showdown exposes the lying piece and the mate is broken",
+  "name": "bluffed mate: a showdown exposes the lying piece, the liar pays a chip, and the mate is broken",
   "config": {
+    "startingChips": 6,
     "pieces": [
       {
         "id": "w-k",
@@ -64,8 +65,8 @@
     "phase": "move",
     "turn": "black",
     "chips": {
-      "white": 6,
-      "black": 6
+      "white": 5,
+      "black": 7
     },
     "pieces": {
       "w-d1": {

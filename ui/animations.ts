@@ -22,13 +22,14 @@ function squareRect(boardEl: HTMLElement, sq: string): SquareRect | null {
   return { left: (c.left - b.left) / k, top: (c.top - b.top) / k, size: c.width / k };
 }
 
-export type StampKind = 'lie' | 'true' | 'call';
+export type StampKind = 'lie' | 'true' | 'call' | 'pass';
 
 /** A rubber stamp over a square: "Liar", "True", "Called". */
 export function stamp(fxLayer: Element | null, boardEl: HTMLElement | null, sq: string, text: string, kind: StampKind): void {
   if (!fxLayer || !boardEl) return;
   const r = squareRect(boardEl, sq);
   if (!r) return;
+  fxLayer.querySelectorAll('.stamp').forEach((old) => old.remove());
   const el = document.createElement('div');
   el.className = `stamp stamp-${kind}`;
   el.textContent = text;

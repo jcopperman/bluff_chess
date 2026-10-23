@@ -6,7 +6,7 @@
   "color": "#6b5b95",
   "blurb": "A playwright who keeps his early claims honest to earn your trust, then spends it.",
   "teaches": "Claim history.",
-  "chessStrength": 2,
+  "chessStrength": 1,
   "bluffRate": 0.85,
   "bluffMargin": 70,
   "riskTolerance": 500,
@@ -92,5 +92,6 @@
     "playerQueen": [
       "A queen enters. Or a pretender?"
     ]
-  }
+  },
+  "mistakeRate": 0.1
 }

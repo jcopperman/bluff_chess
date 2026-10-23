@@ -20,6 +20,33 @@ export function getApparentBoard(state: GameState): Board {
   return board;
 }
 
+/**
+ * The apparent board as it would be if the pending claim were called and caught:
+ * the move undone (castling and captures included) and the lying piece removed.
+ */
+export function apparentIfCaught(state: GameState): Board {
+  const board = getApparentBoard(state);
+  const pend = state.pending;
+  if (!pend) return board;
+  const liarAt = board.findIndex((c) => c?.id === pend.pieceId);
+  if (liarAt >= 0) board[liarAt] = null;
+  if (pend.castle) {
+    const k = board[sqToIdx(pend.castle.kingTo)];
+    board[sqToIdx(pend.castle.kingTo)] = null;
+    if (k) board[sqToIdx(pend.castle.kingFrom)] = { ...k, hasMoved: pend.castle.kingPrevHasMoved };
+  }
+  if (pend.capturedId && pend.capturedSquare) {
+    const cap = state.pieces.find((x) => x.id === pend.capturedId);
+    if (cap) {
+      board[sqToIdx(pend.capturedSquare)] = {
+        id: cap.id, color: cap.owner, type: cap.faceUp ? cap.type : cap.claim || null,
+        hidden: !cap.faceUp, claim: cap.claim, hasMoved: cap.hasMoved,
+      };
+    }
+  }
+  return board;
+}
+
 /** Stable key of the apparent position, for repetition. */
 export function positionKey(state: GameState): string {
   const b = getApparentBoard(state);

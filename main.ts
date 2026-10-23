@@ -5,7 +5,7 @@ import * as E from './engine/index.ts';
 import type {
   Action, Arrangement, ClaimType, Color, GameConfig, GameEvent, GameState, MoveAction, Piece, PlayerView, Result, Rng, Square,
 } from './engine/index.ts';
-import { chooseAction, chooseSetup, beliefsFor } from './bot/bot.ts';
+import { chooseAction, chooseSetup, beliefsFor, applyDifficulty } from './bot/bot.ts';
 import type { LineKey, PersonalityConfig, TableImage } from './bot/bot.ts';
 import { computeBeliefs } from './bot/belief.ts';
 import { explainIllegal, blunderCheck, claimAdvice, callAdvice } from './coach/advice.ts';
@@ -29,7 +29,7 @@ declare global {
 
 const ME: Color = 'white';
 const BOT: Color = 'black';
-const { typeName, esc, pieceIcon, codexLink } = R;
+const { typeName, esc, pieceIcon, codexLink, midName } = R;
 
 const $ = (sel: string) => document.querySelector<HTMLElement>(sel);
 function el(sel: string): HTMLElement {
@@ -117,7 +117,7 @@ const app: App = {
   codex: { categories: [] },
   data: Store.load(),
   screen: 'title',
-  free: { bot: '', startingChips: 6, claimLocking: true, liarPaysChip: false, chipsOutLoss: false, oneShowdown: false },
+  free: { bot: '', startingChips: 4, claimLocking: true, liarPaysChip: true, chipsOutLoss: true, oneShowdown: false },
   setup: null,
   lastArrangement: null,
   match: null,
@@ -225,7 +225,7 @@ function show(screen: Exclude<Screen, 'game'>): void {
   else if (screen === 'hub') {
     root.innerHTML = R.hubScreen({ nudge: hubNudge() });
     if (!app.data.profile) openProfile();
-  } else if (screen === 'circuit') root.innerHTML = R.circuitScreen({ roster: app.roster, bots: app.bots, records: app.data.records, unlocked: unlocked() });
+  } else if (screen === 'circuit') root.innerHTML = R.circuitScreen({ roster: app.roster, bots: app.bots, records: app.data.records, unlocked: unlocked(), difficulty: app.data.settings.difficulty });
   else if (screen === 'free') {
     const choices = [...unlocked(), app.tutorialId];
     if (!choices.includes(app.free.bot)) app.free.bot = choices[0];
@@ -438,7 +438,7 @@ async function botAct(): Promise<void> {
   renderGame();
   const v = E.getPlayerView(m.state, BOT);
   const t0 = performance.now();
-  const d = chooseAction(v, m.bot, m.memory, m.rng);
+  const d = chooseAction(v, applyDifficulty(m.bot, app.data.settings.difficulty), m.memory, m.rng);
   const elapsed = performance.now() - t0;
   if (!d) {
     m.busy = m.thinking = false;
@@ -470,6 +470,10 @@ async function botAct(): Promise<void> {
     Sound.play('call');
     FX.stamp($('#fx-layer'), $('#board'), v.pending.to, 'Called', 'call');
     await sleep(650);
+  } else if (d.action.type === 'pass' && v.pending) {
+    Sound.play('step');
+    FX.stamp($('#fx-layer'), $('#board'), v.pending.to, 'Pass', 'pass');
+    await sleep(450);
   }
   m.busy = false;
   dispatch(d.action);
@@ -556,7 +560,7 @@ function handleEvents(events: GameEvent[], before: GameState): void {
         Sound.play(ev.capturedId ? 'capture' : 'move');
         const p = bv.pieces.find((x) => x.id === ev.pieceId);
         const cap = ev.capturedId ? bv.pieces.find((x) => x.id === ev.capturedId) : undefined;
-        const n = `${before.fullmove}${ev.player === 'white' ? '.' : '…'}`;
+        const n = m.mode === 'lesson' ? '' : `${before.fullmove}${ev.player === 'white' ? '.' : '…'}`;
         let text: string;
         if (ev.castle) {
           text = `${who(ev.player)} castled ${ev.castle === 'K' ? 'kingside' : 'queenside'}`;
@@ -588,18 +592,22 @@ function handleEvents(events: GameEvent[], before: GameState): void {
         break;
       case 'lieCaught': {
         const caller = who(ev.caller);
-        log(`↳ ${ev.showdown ? 'Showdown' : `${caller} ${ev.caller === ME ? 'call' : 'calls'}`}: <b>a lie.</b> The ${typeName(ev.pieceType)} claiming ${typeName(ev.claim)} is removed${ev.restoredId ? ' and the capture is undone' : ''}.`, 'lie');
+        log(`↳ ${ev.showdown ? 'Showdown' : `${caller} ${ev.caller === ME ? 'call' : 'calls'}`}: <b>a lie.</b> The ${typeName(ev.pieceType)} claiming ${typeName(ev.claim)} is removed${ev.restoredId ? ' and the capture is undone' : ''}.${ev.paid ? ` Chip to ${ev.caller === ME ? 'you' : esc(midName(m.bot.name))}.` : ''}${ev.stillInCheck ? ` ${ev.liar === ME ? 'You are' : `${esc(m.bot.name)} is`} back in check and must answer it.` : ''}`, 'lie');
         fx(() => {
           Sound.play('lie');
           FX.stamp($('#fx-layer'), $('#board'), ev.square, 'Liar', 'lie');
           if (!app.data.settings.reducedMotion) FX.shake($('#board'));
+          if (ev.paid) {
+            setTimeout(() => Sound.play('coin'), 250);
+            FX.chipFly($(ev.liar === ME ? '#me-panel .purse' : '#opp-panel .purse'), $(ev.liar === ME ? '#opp-panel .purse' : '#me-panel .purse'));
+          }
         });
         say(pickLine(ev.liar === BOT ? 'caughtLying' : 'catchesYou'));
         setMood(ev.liar === BOT ? 'caught' : 'smug');
         break;
       }
       case 'claimConfirmed': {
-        log(`↳ ${ev.showdown ? 'Showdown' : `${who(ev.caller)} ${ev.caller === ME ? 'call' : 'calls'}`}: it really is a <b>${typeName(ev.pieceType)}</b>. Chip to ${ev.mover === ME ? 'you' : who(ev.mover)}.`, 'true');
+        log(`↳ ${ev.showdown ? 'Showdown' : `${who(ev.caller)} ${ev.caller === ME ? 'call' : 'calls'}`}: it really is a <b>${typeName(ev.pieceType)}</b>. Chip to ${ev.mover === ME ? 'you' : esc(midName(m.bot.name))}.`, 'true');
         m.flip.add(ev.pieceId);
         fx(() => {
           Sound.play('flip');
@@ -634,7 +642,7 @@ function handleEvents(events: GameEvent[], before: GameState): void {
         break;
       case 'gameOver':
         log(resultText(ev), 'over');
-        setMood(ev.winner === BOT ? 'triumphant' : ev.winner === ME ? 'caught' : 'neutral', 60000);
+        setMood(ev.winner === BOT ? 'triumphant' : ev.winner === ME ? 'beaten' : 'neutral', 60000);
         break;
       default:
         break;
@@ -649,6 +657,7 @@ const REASONS: Record<Result['reason'], string> = {
 
 function resultText(r: Result): string {
   if (!r.winner) return `Draw by ${REASONS[r.reason]}.`;
+  if (r.reason === 'chips') return r.winner === ME ? `You win: ${esc(midName(match().bot.name))} went bust.` : `You went bust. ${esc(match().bot.name)} wins.`;
   return `${r.winner === ME ? 'You win' : `${esc(match().bot.name)} wins`} by ${REASONS[r.reason]}.`;
 }
 
@@ -683,7 +692,7 @@ function renderOpp(): void {
   const v = view();
   panel.innerHTML = R.oppPanelHTML({
     bot: m.bot, num: botNumber(m.botId), mood: m.thinking ? 'thinking' : m.mood, chips: v.chips[BOT],
-    tray: R.capturedTray(v, BOT), thinking: m.thinking, isTurn: E.getActor(v) === BOT,
+    tray: R.capturedTray(v, BOT), thinking: m.thinking, isTurn: E.getActor(v) === BOT && !(m.lesson && m.lesson.phase !== 'playing'),
   });
 }
 
@@ -740,12 +749,17 @@ function renderGame(): void {
   renderOpp();
   el('#me-panel').innerHTML = R.mePanelHTML({ chips: v.chips[ME], tray: R.capturedTray(v, ME), isTurn: actor === ME });
   renderPrompt(v, actor);
-  el('#board-overlay').innerHTML = overlayHTML(v);
+  // Only replace the overlay when it changes, so the claim flag animates in once.
+  const overlay = el('#board-overlay'), overlayNow = overlayHTML(v);
+  if (overlay.dataset.html !== overlayNow) { overlay.dataset.html = overlayNow; overlay.innerHTML = overlayNow; }
   el('#action-panel').innerHTML = infoPanelHTML(v);
   const coach = el('#coach-card');
   coach.classList.toggle('hidden', !coachOn());
   if (coachOn()) coach.innerHTML = R.coachCardHTML(coachAdvice(v), legend);
-  el('#tracker').innerHTML = R.trackerHTML(v, BOT);
+  const hasCards = v.pieces.some((p) => p.owner === BOT && (!p.faceUp || p.claim));
+  const tracker = el('#tracker');
+  tracker.classList.toggle('hidden', !hasCards);
+  tracker.innerHTML = hasCards ? R.trackerHTML(v, BOT) : '';
   const logEl = el('#log');
   logEl.innerHTML = R.logHTML(m.log);
   logEl.scrollTop = logEl.scrollHeight;
@@ -795,7 +809,7 @@ function promptFor(v: PlayerView, actor: Color | null): Prompt {
 
   if (m.guard) {
     return {
-      tone: 'act', key: 'guard', title: 'Are you sure?', sub: esc(m.guard.advice.lines.join(' ')),
+      tone: 'act', key: 'guard', title: 'Are you sure?', sub: `${esc(m.guard.advice.lines.join(' '))} Click the board to choose again.`,
       buttons: '<button class="btn" data-act="guard-cancel">Take it back</button><button class="btn btn-ink" data-act="guard-confirm">Move anyway</button>',
     };
   }
@@ -820,7 +834,7 @@ function promptFor(v: PlayerView, actor: Color | null): Prompt {
     if (v.pending.mover === BOT) {
       return {
         tone: 'act', key: `call-${v.pending.pieceId}-${v.fullmove}`, title: 'Call or pass?', sub: `${name} claims ${claimTag(v.pending.claim!)}.`,
-        buttons: `<button class="btn btn-ink" data-act="call" ${v.chips[ME] > 0 ? '' : 'disabled'}>Call <small>1 chip · C</small></button>
+        buttons: `<button class="btn btn-ink" data-act="call" ${v.chips[ME] > 0 ? '' : 'disabled'}>Call <small>${v.config.chipsOutLoss && v.chips[ME] === 1 ? 'last chip' : '1 chip'} · C</small></button>
           <button class="btn" data-act="pass">Pass <small>P</small></button>`,
       };
     }
@@ -866,10 +880,15 @@ function renderPrompt(v: PlayerView, actor: Color | null): void {
   const bar = el('#prompt');
   const html = `<div class="prompt-text"><b>${p.title}</b>${p.sub ? `<span>${p.sub}</span>` : ''}</div>${p.buttons ? `<div class="prompt-actions">${p.buttons}</div>` : ''}`;
   if (bar.dataset.key !== p.key) {
+    // New content rises in; a change of tone wipes the new colour across. When the
+    // opponent has just acted, wait for their piece to land before asking anything.
+    const prevTone = bar.dataset.tone;
+    const late = prevTone === 'wait' && p.tone === 'act';
     bar.dataset.key = p.key;
-    bar.className = `prompt prompt-${p.tone} prompt-enter`;
+    bar.dataset.tone = p.tone;
+    bar.className = `prompt prompt-${p.tone} prompt-enter${prevTone !== p.tone ? ' prompt-tone-in' : ''}${late ? ' prompt-late' : ''}`;
   } else {
-    bar.className = `prompt prompt-${p.tone}`;
+    bar.className = bar.className.replace(/prompt-(act|wait|done)/, `prompt-${p.tone}`);
   }
   if (bar.innerHTML !== html) bar.innerHTML = html;
 
@@ -1012,8 +1031,14 @@ function leaveGame(): void {
 
 function onSquare(sq: Square): void {
   const m = app.match;
-  if (!m || app.screen !== 'game' || m.busy || m.guard) return;
+  if (!m || app.screen !== 'game' || m.busy) return;
   if (m.lesson && m.lesson.phase !== 'playing') return;
+  // Clicking the board while the coach's warning is up means "take it back":
+  // dismiss the warning and handle the click, so the board never feels frozen.
+  if (m.guard) {
+    m.guard = null;
+    m.selected = null;
+  }
   const v = view();
   const actor = E.getActor(v);
   if (actor !== ME) return;
@@ -1125,7 +1150,14 @@ function playerDecision(type: 'call' | 'pass'): void {
       } else playerAct({ type: 'call', player: ME });
     }, 550 * Math.max(SPEED, 0.3));
   } else {
-    playerAct({ type: 'pass', player: ME });
+    if (m.lesson && !lessonAccepts({ type: 'pass', player: ME })) return;
+    m.busy = true;
+    Sound.play('step');
+    FX.stamp($('#fx-layer'), $('#board'), v.pending.to, 'Pass', 'pass');
+    setTimeout(() => {
+      m.busy = false;
+      playerAct({ type: 'pass', player: ME });
+    }, 380 * Math.max(SPEED, 0.3));
   }
 }
 
@@ -1150,6 +1182,12 @@ const handlers: InputHandlers = {
         app.data.settings.coach = coachOn() ? 'off' : 'on';
         save();
         return app.screen === 'game' ? renderGame() : renderHud();
+      case 'difficulty':
+        app.data.settings.difficulty = ds.v as Store.Settings['difficulty'];
+        save();
+        openSettings();
+        if (app.screen === 'circuit') show('circuit');
+        return;
       case 'coach-mode':
         app.data.settings.coach = ds.v as Store.Settings['coach'];
         save();
@@ -1277,6 +1315,7 @@ const handlers: InputHandlers = {
       if (app.match) {
         app.match.selected = null;
         app.match.choice = null;
+        app.match.guard = null;
         renderGame();
       }
     }

@@ -74,7 +74,7 @@
       "highlight": [
         "d1"
       ],
-      "hint": "Press Pass.",
+      "hint": "Press Pass in the bar under the board.",
       "success": "Checkmate on the apparent board... but you get a showdown."
     },
     {
@@ -88,7 +88,7 @@
       "highlight": [
         "d1"
       ],
-      "hint": "Click the glowing card on d1.",
+      "hint": "Click the card on d1 (it has a dashed red outline).",
       "success": "A knight in disguise! The mate is broken. You're ready for a real match."
     }
   ]

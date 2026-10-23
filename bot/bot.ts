@@ -2,7 +2,7 @@
 // never the opponent's hidden ones.
 
 import {
-  getApparentBoard, generateMoves, makeMove, opponent, sqToIdx, idxToSq, inCheck,
+  getApparentBoard, apparentIfCaught, generateMoves, makeMove, opponent, sqToIdx, idxToSq, inCheck,
   randomArrangement, PIECE_COUNTS,
 } from '../engine/index.ts';
 import type {
@@ -11,13 +11,15 @@ import type {
 import { computeBeliefs, lieProbability } from './belief.ts';
 import { VALUES, MATE, material, search, qsearch } from './evaluate.ts';
 import type {
-  Beliefs, Decision, GamePhase, LineKey, Personality, PersonalityConfig, Standing, TableImage, ThinkRange, TypeDist,
+  Beliefs, Decision, Difficulty, GamePhase, LineKey, Personality, PersonalityConfig, Standing, TableImage, ThinkRange, TypeDist,
 } from './types.ts';
 
 export type * from './types.ts';
 
 const DEFAULTS: Omit<Personality, 'id' | 'name' | 'title' | 'avatar' | 'color' | 'blurb' | 'teaches'> = {
   chessStrength: 2,
+  mistakeRate: 0,
+  mistakeWindow: 400,
   bluffRate: 0.3,
   bluffContext: {},
   bluffMargin: 30,
@@ -34,6 +36,24 @@ const DEFAULTS: Omit<Personality, 'id' | 'name' | 'title' | 'avatar' | 'color' |
 /** Fill personality defaults. */
 export function withDefaults(personality: PersonalityConfig): Personality {
   return { ...DEFAULTS, ...personality, bluffContext: { ...(personality.bluffContext || {}) } };
+}
+
+/**
+ * Adjust a personality for the player's chosen difficulty. Character (bluffing
+ * style, tells) is untouched; only chess strength, mistakes and calling change.
+ */
+export function applyDifficulty(personality: PersonalityConfig, level: Difficulty): Personality {
+  const p = withDefaults(personality);
+  if (level === 'easier') {
+    return {
+      ...p, chessStrength: Math.max(1, p.chessStrength - 1), mistakeRate: Math.min(0.6, p.mistakeRate + 0.2),
+      mistakeWindow: Math.max(p.mistakeWindow, 700), callThreshold: p.callThreshold + 80, adaptivity: p.adaptivity / 2,
+    };
+  }
+  if (level === 'harder') {
+    return { ...p, chessStrength: Math.min(3, p.chessStrength + 1), mistakeRate: Math.max(0, p.mistakeRate - 0.15), callThreshold: p.callThreshold - 20 };
+  }
+  return p;
 }
 
 // ---------------------------------------------------------------------------
@@ -199,12 +219,14 @@ function chooseMove(view: PlayerView, p: Personality, memory: Partial<TableImage
   }
 
   const oppChips = view.chips[opp];
+  const liarCost = view.config.liarPaysChip ? chipLoss(view, me, p.chipCaution) : 0;
   const caughtCache: Record<number, number> = {};
   const caughtScore = (pieceIdx: number) => {
     if (!(pieceIdx in caughtCache)) {
       const b = sBoard.slice();
       b[pieceIdx] = null;
-      caughtCache[pieceIdx] = -qsearch(b, opp, -MATE - 1, MATE + 1, ctx);
+      // A caught liar left in check moves again instead of forfeiting the turn.
+      caughtCache[pieceIdx] = inCheck(b, me) ? qsearch(b, me, -MATE - 1, MATE + 1, ctx) : -qsearch(b, opp, -MATE - 1, MATE + 1, ctx);
     }
     return caughtCache[pieceIdx];
   };
@@ -212,8 +234,15 @@ function chooseMove(view: PlayerView, p: Personality, memory: Partial<TableImage
   const scored: ScoredMove[] = moves.map((m) => {
     const after = makeMove(board, m);
     const sAfter = toSearchBoard(after, me, trueType, beliefs);
-    let score = -search(sAfter, opp, depth - 1, -MATE - 1, MATE + 1, m.double ? (m.from + m.to) / 2 : -1, ctx);
-    score += rng.range(-noise, noise);
+    let score: number;
+    // The search finds mates by "capturing the king", which can't tell mate from
+    // stalemate. Check for real at the root: no legal reply is mate only in check.
+    if (generateMoves(after, opp, m.double ? (m.from + m.to) / 2 : -1, { claimLocking: view.config.claimLocking }).length === 0) {
+      score = inCheck(after, opp) ? MATE : 0;
+    } else {
+      score = -search(sAfter, opp, depth - 1, -MATE - 1, MATE + 1, m.double ? (m.from + m.to) / 2 : -1, ctx);
+      score += rng.range(-noise, noise);
+    }
 
     const pieceIdx = m.castle ? m.castle.rookFrom : m.from;
     const cell = board[pieceIdx]!;
@@ -228,8 +257,12 @@ function chooseMove(view: PlayerView, p: Personality, memory: Partial<TableImage
       if (inCheck(after, opp)) pCall *= 1.3;
       if (cell.claim !== m.claim && publicCount[m.claim] + 1 > PIECE_COUNTS[m.claim]) pCall = 0.97;
       pCall = Math.min(pCall, 0.97);
-      if (honest) ev = score + pCall * 40;
-      else ev = (1 - pCall) * score + pCall * caughtScore(pieceIdx);
+      // Nobody sensible calls with their last chip, so an honest claim won't bait a
+      // bust, and a lie is less likely to be called.
+      const lastChip = oppChips <= 1 && view.config.chipsOutLoss;
+      if (lastChip) pCall *= 0.3;
+      if (honest) ev = score + (lastChip ? 0 : pCall * chipGain(view, opp));
+      else ev = (1 - pCall) * score + pCall * (caughtScore(pieceIdx) - liarCost);
     }
     return { m, score, ev, callable, honest, pCall, cell };
   });
@@ -251,7 +284,8 @@ function chooseMove(view: PlayerView, p: Personality, memory: Partial<TableImage
   const ownClaims = view.claims.filter((c) => c.player === me).length;
   const bluffOptions = ownClaims < p.honestFirstClaims ? [] :
     scored.filter((s) => !s.honest && s.m.claim && p.bluffClaims.includes(s.m.claim));
-  const H = bestBy(scored.filter((s) => s.honest), 'ev');
+  const honest = scored.filter((s) => s.honest);
+  const H = bestBy(honest, 'ev');
   const B = bestBy(bluffOptions, 'score');
 
   const phase = gamePhase(view, board);
@@ -263,10 +297,18 @@ function chooseMove(view: PlayerView, p: Personality, memory: Partial<TableImage
   // A bluff is on the table when the lie costs little position (bluffMargin)
   // and the risk of being called is tolerable; personality and context decide
   // how often the bot takes it. Lies that buy a big edge are twice as tempting.
-  let pick = H ?? B;
+  // If every legal move is a lie this personality won't normally tell, it still has to move.
+  let pick = H ?? B ?? bestBy(scored, 'ev');
   if (H && B && B.score >= H.score - p.bluffMargin && B.ev >= H.ev - p.riskTolerance) {
     const tempting = B.score > H.score + 150 ? 2 : 1;
     if (rng.chance(Math.min(0.95, bluffProb * tempting))) pick = B;
+  }
+  // Mistakes: sometimes settle for another reasonable honest move instead of the best.
+  // "Reasonable" (mistakeWindow) still allows dropping material, which is what
+  // makes the early opponents beatable.
+  if (pick === H && H && p.mistakeRate > 0 && rng.chance(p.mistakeRate)) {
+    const alternatives = honest.filter((s) => s !== H && s.ev >= H.ev - p.mistakeWindow).sort((a, b) => b.ev - a.ev).slice(0, 5);
+    if (alternatives.length) pick = rng.pick(alternatives);
   }
   // A legal move always exists in the move phase (otherwise the game is over).
   const chosen = pick!;
@@ -277,6 +319,26 @@ function chooseMove(view: PlayerView, p: Personality, memory: Partial<TableImage
   if (m.promo) action.promotion = m.promo;
   const tells = applyTells(p, rng, { callable: chosen.callable, bluff: !chosen.honest, from: action.from }, view);
   return { action, ...tells, debug: { bluff: !chosen.honest, ev: Math.round(chosen.ev), phase, standing, nodes: ctx.nodes } };
+}
+
+// ---------------------------------------------------------------------------
+// Chip stakes
+
+/** Score of busting: as bad as being mated, but kept inside the search's range. */
+const BUST = 4000;
+
+/** What it costs `color` to pay one chip; the last chip is the game when busting is on. */
+function chipLoss(view: PlayerView, color: 'white' | 'black', caution: number): number {
+  const chips = view.chips[color];
+  if (view.config.chipsOutLoss && chips <= 1) return BUST;
+  const scarcity = chips <= 2 ? 2 : chips <= 3 ? 1.5 : 1;
+  return 110 * caution * scarcity;
+}
+
+/** What it is worth to take one chip from `from`; their last chip wins the game. */
+function chipGain(view: PlayerView, from: 'white' | 'black'): number {
+  if (view.config.chipsOutLoss && view.chips[from] <= 1) return BUST;
+  return view.chips[from] <= 2 ? 120 : 70;
 }
 
 // ---------------------------------------------------------------------------
@@ -298,28 +360,17 @@ function chooseCall(view: PlayerView, p: Personality, memory: Partial<TableImage
   const board = getApparentBoard(view);
 
   // The position if the lie is caught: the liar is gone, any capture is undone.
-  const rb = board.slice();
-  rb[sqToIdx(pend.to)] = null;
-  if (pend.castle) {
-    const k = rb[sqToIdx(pend.castle.kingTo)]!;
-    rb[sqToIdx(pend.castle.kingTo)] = null;
-    rb[sqToIdx(pend.castle.kingFrom)] = { ...k, hasMoved: pend.castle.kingPrevHasMoved };
-  }
-  if (pend.capturedId && pend.capturedSquare) {
-    const cap = view.pieces.find((x) => x.id === pend.capturedId)!;
-    rb[sqToIdx(pend.capturedSquare)] = {
-      id: cap.id, color: cap.owner, type: cap.faceUp ? cap.type : cap.claim || null,
-      hidden: !cap.faceUp, claim: cap.claim, hasMoved: cap.hasMoved,
-    };
-  }
+  // Normally we move next; if the liar is left in check, they must move again.
+  const opp = opponent(me);
+  const rb = apparentIfCaught(view);
   const ctx = { nodes: 0, maxNodes: 60000 };
   const ifPass = search(toSearchBoard(board, me, trueType, beliefs), me, 1, -MATE - 1, MATE + 1, -1, ctx);
-  const ifLie = search(toSearchBoard(rb, me, trueType, beliefs), me, 1, -MATE - 1, MATE + 1, -1, ctx);
-  const gain = Math.min(3000, Math.max(0, ifLie - ifPass)) + 40;
-
-  const chips = view.chips[me];
-  const scarcity = chips <= 1 ? 2.5 : chips <= 3 ? 1.5 : 1;
-  const cost = 110 * p.chipCaution * scarcity;
+  const rbs = toSearchBoard(rb, me, trueType, beliefs);
+  const ifLie = !inCheck(rb, opp) ? search(rbs, me, 1, -MATE - 1, MATE + 1, -1, ctx)
+    : generateMoves(rb, opp, -1, { claimLocking: view.config.claimLocking }).length === 0 ? MATE
+      : -search(rbs, opp, 1, -MATE - 1, MATE + 1, -1, ctx);
+  const gain = Math.min(3000, Math.max(0, ifLie - ifPass)) + 40 + (view.config.liarPaysChip ? chipGain(view, opp) : 0);
+  const cost = chipLoss(view, me, p.chipCaution);
   const ev = pLie * gain - (1 - pLie) * cost;
   const adaptShift = -p.adaptivity * (model.bluffRate - 0.25) * 300;
   const threshold = p.callThreshold + adaptShift + rng.range(-15, 15);

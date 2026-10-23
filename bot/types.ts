@@ -15,6 +15,8 @@ export type LineKey =
   | 'wrongCall' | 'confirmed' | 'showdown' | 'playerQueen';
 
 export type GamePhase = 'opening' | 'middlegame' | 'endgame';
+/** A player-chosen difficulty applied on top of each personality. */
+export type Difficulty = 'easier' | 'normal' | 'harder';
 export type Standing = 'ahead' | 'even' | 'behind';
 
 export interface Personality {
@@ -27,6 +29,10 @@ export interface Personality {
   teaches: string;
   /** 1-3: search depth and evaluation noise. */
   chessStrength: number;
+  /** 0-1: chance per move of settling for another reasonable move instead of the best. */
+  mistakeRate: number;
+  /** How much worse (centipawns) a mistaken move may be than the best one. */
+  mistakeWindow: number;
   /** Base probability of taking an available bluff. */
   bluffRate: number;
   /** Multipliers on bluffRate by game phase and material standing. */

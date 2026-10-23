@@ -1,7 +1,7 @@
 {
   "id": "tutor",
   "name": "Professor Fumble",
-  "title": "Tutorial opponent",
+  "title": "Practice opponent",
   "avatar": "🎓",
   "color": "#7a9e7e",
   "blurb": "A cheerful lecturer who bluffs constantly and is terrible at hiding it.",
@@ -81,5 +81,7 @@
     "playerQueen": [
       "A queen? Ooh, is it though?"
     ]
-  }
+  },
+  "mistakeRate": 0.55,
+  "mistakeWindow": 700
 }

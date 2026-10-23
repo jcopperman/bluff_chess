@@ -163,6 +163,10 @@ export type GameEvent =
   | {
       type: 'lieCaught'; pieceId: string; pieceType: PieceType; claim: ClaimType; square: Square;
       liar: Color; caller: Color; from?: Square; restoredId?: string | null; showdown?: boolean;
+      /** The liar paid the caller a chip. */
+      paid?: boolean;
+      /** Undoing the lie left the liar in check, so they must move again (or are mated). */
+      stillInCheck?: boolean;
     }
   | {
       type: 'claimConfirmed'; pieceId: string; pieceType: PieceType; square: Square;

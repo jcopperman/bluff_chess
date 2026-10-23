@@ -29,7 +29,7 @@ The first release is **player vs bot**. Bots are a roster of distinct characters
 - **Pawns and the king are always face-up.** King starts on its normal square (e1 / e8).
 - Each player **secretly arranges** their other seven back-rank pieces (2 rooks, 2 knights, 2 bishops, 1 queen) across the seven remaining back-rank squares. These are **face-down** to the opponent.
 - Bishops may end up on the same colour. That's a legitimate strategic choice.
-- Each player starts with **6 chips** (tuning knob).
+- Each player starts with **4 chips** (tuning knob).
 
 ### 2.2 Claims
 
@@ -46,13 +46,14 @@ The first release is **player vs bot**. Bots are a roster of distinct characters
 - **If the claim was a lie:**
   - the move is reversed (including restoring any captured piece),
   - the lying piece is removed from the board,
-  - the caller keeps their chip,
-  - the liar's turn is forfeited and play passes to the caller.
+  - the liar pays the caller 1 chip,
+  - the liar's turn is forfeited and play passes to the caller, unless undoing the move leaves the liar in check: then the liar must move again to answer it, and with no legal answer it is checkmate (showdown rules apply). A check is never left standing on the other player's move.
 - **If the claim was true:**
   - the piece flips face-up permanently,
   - the move stands,
-  - the caller's chip goes to the mover.
-- A player with 0 chips cannot call. (Running out of chips is not a loss in v0.1; see tuning knobs.)
+  - the caller pays the mover 1 chip.
+- Every call is a two-way bet: whoever was wrong pays.
+- **Bust:** a player who runs out of chips loses immediately. (Changed after playtesting: with free calls and no bust, nobody ever ran low and chips didn't matter.)
 
 ### 2.4 Captures, promotion, special moves
 
@@ -81,24 +82,24 @@ Rules:
 When a player is in apparent checkmate (after the mating move's call window has closed), they may declare a **showdown**:
 
 - Spend 1 chip to name any opponent face-down piece that has a claim.
-- If that piece is lying, it is removed and the position is re-evaluated. If the mate is broken, play continues with the defender to move.
-- If the piece is honest, it flips face-up and the chip goes to the opponent.
+- If that piece is lying, it is removed, its owner pays the defender 1 chip, and the position is re-evaluated. If the mate is broken, play continues with the defender to move.
+- If the piece is honest, it flips face-up and the defender pays the opponent 1 chip.
 - The defender may keep calling showdowns while they have chips and remain mated.
 
 This is the dramatic last-chance moment and should be presented as such.
 
 ### 2.7 End of game
 
-- Checkmate (after any showdowns) wins. Stalemate on the apparent board is a draw. Threefold repetition and the 50-move rule apply as in chess (low priority for v0.1).
+- Checkmate (after any showdowns) wins, and so does busting your opponent (taking their last chip). Stalemate on the apparent board is a draw. Threefold repetition and the 50-move rule apply as in chess (low priority for v0.1).
 - At the end of every match, **all pieces are revealed**, followed by the post-match reveal (section 4.5).
 
 ### 2.8 Tuning knobs
 
 | Knob | Default | Notes |
 |---|---|---|
-| Starting chips | 6 | Too many: everything gets called. Too few: bluffing is free. |
-| Chips-out loss | Off | Optional second win path, very poker-flavoured. |
-| Lie caught penalty | Piece removed + turn forfeited | Could add: liar also pays 1 chip. |
+| Starting chips | 4 | Tuned by simulation: about 7% of games end in a bust and about 40% reach someone's last chip. |
+| Chips-out loss (bust) | On | Makes chips matter; off restores the original rules. |
+| Lie caught penalty | Piece removed + turn forfeited + liar pays 1 chip | "Liars pay" off: the caller just keeps their chip. |
 | Claim locking | On | Off makes lies easier to maintain and deduction weaker. |
 | Showdowns per mate | Unlimited (while chips last) | Could cap at 1. |
 | Call window timer | None vs bots | Needed later for PvP. |
@@ -273,10 +274,10 @@ Events (for UI and logs): `moved`, `claimMade`, `callWindowOpened`, `lieCaught`,
       "hasMoved": false
     }
   ],
-  "chips": { "white": 6, "black": 6 },
+  "chips": { "white": 4, "black": 4 },
   "pending": null,
   "history": [],
-  "config": { "startingChips": 6, "claimLocking": true }
+  "config": { "startingChips": 4, "claimLocking": true }
 }
 ```
 
@@ -372,8 +373,7 @@ Not in scope now, but the architecture above is designed for it.
 
 ## 9. Open questions
 
-- Is 6 chips right? Playtest 4–8.
-- Should a caught liar also pay a chip?
+- Is 4 chips right with human players? The simulation says so, but playtest 3–5.
 - Should unclaimed face-down pieces have any defensive presence on the apparent board, or is "invisible until claimed" the right tension?
 - Should the king ever be placeable elsewhere on the back rank during secret setup?
 - Unlimited showdowns, or one per game?

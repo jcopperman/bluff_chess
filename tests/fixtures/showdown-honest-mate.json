@@ -1,6 +1,7 @@
 {
   "name": "an honest showdown flips the piece, pays the chip, and the mate stands",
   "config": {
+    "startingChips": 6,
     "pieces": [
       {
         "id": "w-k",

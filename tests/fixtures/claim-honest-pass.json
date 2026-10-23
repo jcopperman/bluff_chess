@@ -1,8 +1,57 @@
-{ "name": "honest claim, opponent passes: move stands, claim locks, piece stays face-down",
-  "config": { "setups": { "white": ["rook","knight","bishop","queen","bishop","knight","rook"], "black": ["rook","knight","bishop","queen","bishop","knight","rook"] } },
+{
+  "name": "honest claim, opponent passes: move stands, claim locks, piece stays face-down",
+  "config": {
+    "startingChips": 6,
+    "setups": {
+      "white": [
+        "rook",
+        "knight",
+        "bishop",
+        "queen",
+        "bishop",
+        "knight",
+        "rook"
+      ],
+      "black": [
+        "rook",
+        "knight",
+        "bishop",
+        "queen",
+        "bishop",
+        "knight",
+        "rook"
+      ]
+    }
+  },
   "actions": [
-    { "type": "move", "player": "white", "from": "b1", "to": "c3", "claim": "knight" },
-    { "type": "pass", "player": "black" } ],
-  "expect": { "phase": "move", "turn": "black", "chips": { "white": 6, "black": 6 },
-    "pieces": { "w-b1": { "square": "c3", "faceUp": false, "claim": "knight" } },
-    "eventsInclude": ["passed"] } }
+    {
+      "type": "move",
+      "player": "white",
+      "from": "b1",
+      "to": "c3",
+      "claim": "knight"
+    },
+    {
+      "type": "pass",
+      "player": "black"
+    }
+  ],
+  "expect": {
+    "phase": "move",
+    "turn": "black",
+    "chips": {
+      "white": 6,
+      "black": 6
+    },
+    "pieces": {
+      "w-b1": {
+        "square": "c3",
+        "faceUp": false,
+        "claim": "knight"
+      }
+    },
+    "eventsInclude": [
+      "passed"
+    ]
+  }
+}

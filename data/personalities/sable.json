@@ -82,5 +82,6 @@
     "playerQueen": [
       "A queen. Really."
     ]
-  }
+  },
+  "mistakeRate": 0.32
 }

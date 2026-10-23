@@ -4,7 +4,7 @@
 
 import { CLAIMABLE, PIECE_COUNTS, BACK_FILES, generateMoves, sqToIdx, idxToSq } from '../engine/index.ts';
 import type { Arrangement, Board, ClaimRecord, ClaimType, Color, GameState, Piece, PieceType, Square } from '../engine/index.ts';
-import type { PersonalityConfig, TypeDist } from '../bot/bot.ts';
+import type { Difficulty, PersonalityConfig, TypeDist } from '../bot/bot.ts';
 import type { Advice } from '../coach/advice.ts';
 import type { Lesson, Profile } from '../lessons/lessons.ts';
 import { pieceSVG } from './art/pieces.ts';
@@ -31,6 +31,11 @@ export function pieceIcon(t: PieceType, owner: Color = 'white'): string {
   return `<span class="pi pc-${owner}">${pieceSVG(t)}</span>`;
 }
 
+/** A name as it reads mid-sentence: "Chip to the Deacon", not "Chip to The Deacon". */
+export function midName(name: string): string {
+  return name.replace(/^The /, 'the ');
+}
+
 export function codexLink(entry: string, label: string): string {
   return `<a class="codex-link" data-act="codex" data-entry="${entry}">${label}</a>`;
 }
@@ -44,7 +49,8 @@ function purse(n: number, owner: Color): string {
   const shown = Math.min(n, 12);
   let s = '';
   for (let i = 0; i < shown; i++) s += `<span class="chip chip-${owner}" style="--i:${i}"></span>`;
-  return `<div class="purse" title="${n} chips"><span class="chip-stack">${s}</span><span class="purse-count">${n}</span><span class="purse-label">chip${n === 1 ? '' : 's'}</span></div>`;
+  const last = n === 1;
+  return `<div class="purse${last ? ' purse-last' : ''}" title="${last ? 'Last chip: one more payment busts' : `${n} chips`}"><span class="chip-stack">${s}</span><span class="purse-count">${n}</span><span class="purse-label">${last ? 'last chip' : `chip${n === 1 ? '' : 's'}`}</span></div>`;
 }
 
 // ---------------------------------------------------------------------------
@@ -153,7 +159,7 @@ export function characterCard(bot: PersonalityConfig, num: number, opts: { mood?
     <span class="cc-corner cc-tl">${numeral(num)}</span><span class="cc-corner cc-br">${numeral(num)}</span>
     <div class="cc-emblem">${emblemSVG(bot.id)}</div>
     <div class="cc-name">${esc(bot.name)}</div>
-    ${mood === 'caught' ? '<span class="cc-stamp">Caught</span>' : ''}
+    ${mood === 'caught' ? '<span class="cc-stamp">Caught</span>' : mood === 'beaten' ? '<span class="cc-stamp beaten">Beaten</span>' : ''}
   </div>`;
 }
 
@@ -190,7 +196,7 @@ export function trackerHTML(view: GameState, opp: Color): string {
     return `<div class="trk-row${over ? ' over' : ''}">${pieceIcon(t, 'black')}<span>${typeName(t)}</span><span class="trk-val">${claimed}/${possible}</span></div>`;
   }).join('');
   const unclaimed = view.pieces.filter((p) => p.owner === opp && !p.faceUp && !p.claim && !p.captured).length;
-  return `<div class="sheet-head"><span>${codexLink('counting', 'Their claims')}</span><small>claimed / possible</small></div>
+  return `<div class="sheet-head"><span>${codexLink('counting', 'Claim tracker')}</span><small>their claims / possible</small></div>
     <div class="trk-rows">${rows}</div><div class="trk-foot">${unclaimed} unclaimed</div>`;
 }
 
@@ -247,7 +253,7 @@ export function titleScreen(): string {
       <span class="tcard t1">${pieceSVG('knight')}</span><span class="tcard t2 backside"></span><span class="tcard t3">${pieceSVG('queen')}</span>
     </div>
     <h1 class="wordmark">Bluff <span class="red">Chess</span></h1>
-    <p class="title-tag">Chess with hidden pieces. Every move is a claim, and any claim can be called.</p>
+    <p class="title-tag">Chess with hidden pieces. Move one and you claim what it is. Your opponent can call your bluff.</p>
     <button class="btn btn-red btn-big" data-act="enter">Play</button>
   </section>`;
 }
@@ -262,7 +268,7 @@ export function hubScreen({ nudge }: { nudge: string | null }): string {
     <div class="menu-row">
       ${card('go-circuit', 'I', 'king', 'Circuit', 'Five opponents, in order')}
       ${card('go-lessons', 'II', 'pawn', 'Lessons', 'Learn the game')}
-      ${card('go-free', 'III', 'knight', 'Free play', 'Any opponent, your rules')}
+      ${card('go-free', 'III', 'knight', 'Free play', 'Your rules, any unlocked opponent')}
       ${card('codex', 'IV', 'rook', 'Rulebook', 'Rules and pieces')}
     </div>
     ${nudge ? `<p class="nudge">${nudge}</p>` : ''}
@@ -275,8 +281,8 @@ export interface CircuitRecord {
   d: number;
 }
 
-export function circuitScreen({ roster, bots, records, unlocked }: {
-  roster: string[]; bots: Record<string, PersonalityConfig>; records: Record<string, CircuitRecord>; unlocked: Set<string>;
+export function circuitScreen({ roster, bots, records, unlocked, difficulty }: {
+  roster: string[]; bots: Record<string, PersonalityConfig>; records: Record<string, CircuitRecord>; unlocked: Set<string>; difficulty: Difficulty;
 }): string {
   const items = roster.map((id, i) => {
     const b = bots[id];
@@ -288,10 +294,11 @@ export function circuitScreen({ roster, bots, records, unlocked }: {
       ${characterCard(b, i + 1)}
       <div class="opp-info"><b>${esc(b.name)}</b><small>${esc(b.blurb)}</small>
         <span class="opp-teach">${esc(b.teaches)}</span>
-        <span class="opp-rec">${r.w > 0 ? '<span class="beaten">Beaten</span>' : ''}${r.w}–${r.l}–${r.d}</span></div>
+        <span class="opp-rec">${r.w > 0 ? '<span class="rec-beaten">Beaten</span>' : ''}${r.w}–${r.l}–${r.d}</span></div>
     </button>`;
   }).join('');
-  return `<section class="circuit"><header class="page-head"><h2>Circuit</h2><p>Beat each opponent to unlock the next. Each one has habits you can learn.</p></header>
+  return `<section class="circuit"><header class="page-head"><h2>Circuit</h2><p>Beat each opponent to unlock the next. Each one has habits you can learn.</p>
+      <p class="difficulty-line">Difficulty: <b>${DIFFICULTY_LABEL[difficulty]}</b> <button class="btn btn-small" data-act="settings">Change</button></p></header>
     <div class="opp-row">${items}</div></section>`;
 }
 
@@ -315,11 +322,11 @@ export function freePlayScreen({ choices, bots, knobs, numbers }: {
     <div class="free-body">
       <div class="picks">${who}</div>
       <div class="sheet rules-sheet">
-        <label class="rule rule-range"><span><b>Starting chips: <span id="chip-val">${knobs.startingChips}</span></b><small>Fewer chips make bluffing cheaper.</small></span>
+        <label class="rule rule-range"><span><b>Starting chips: <span id="chip-val">${knobs.startingChips}</span></b><small>Fewer chips make every call riskier, so bluffs are safer.</small></span>
           <input type="range" min="1" max="12" value="${knobs.startingChips}" data-knob="startingChips"></label>
         ${chk('claimLocking', 'Claim locking', "A piece's first claim fixes its identity.")}
-        ${chk('liarPaysChip', 'Liar pays a chip', 'A caught liar also pays the caller 1 chip.')}
-        ${chk('chipsOutLoss', 'Chips-out loss', 'Running out of chips loses the game.')}
+        ${chk('liarPaysChip', 'Liars pay', 'A caught liar pays the caller 1 chip. Off: only wrong calls cost chips.')}
+        ${chk('chipsOutLoss', 'Bust at zero chips', 'Running out of chips loses the game.')}
         ${chk('oneShowdown', 'One showdown per mate', 'Otherwise unlimited while chips last.')}
         <button class="btn btn-red" data-act="free-start">Continue</button>
       </div>
@@ -336,7 +343,7 @@ export function lessonsScreen({ lessons, done, isRecommended, profile }: {
     return `<button class="toc-row${done.has(l.id) ? ' done' : ''}${isRecommended(l) ? '' : ' optional'}" data-act="start-lesson" data-lesson="${l.id}">
       <span class="toc-num">${numeral(i + 1)}.</span>
       <span class="toc-title"><b>${esc(l.title)}</b><small>${esc(l.blurb)}</small></span>
-      <span class="toc-tag">${AUDIENCE[l.audience]}${rec ? ' · <span class="red">suggested</span>' : ''}</span>
+      <span class="toc-tag">${AUDIENCE[l.audience]}${done.has(l.id) ? ' · <span class="red">done</span>' : rec ? ' · <span class="red">suggested</span>' : ''}</span>
       <span class="toc-check">${done.has(l.id) ? icon('check') : ''}</span>
     </button>`;
   }).join('');
@@ -405,10 +412,16 @@ export function profileHTML(profile: Partial<Profile>): string {
   </div>`;
 }
 
-export function settingsHTML({ volume, muted, coach, reducedMotion }: { volume: number; muted: boolean; coach: 'auto' | 'on' | 'off'; reducedMotion: boolean }): string {
+export const DIFFICULTY_LABEL: Record<Difficulty, string> = { easier: 'Easier', normal: 'Normal', harder: 'Harder' };
+
+export function settingsHTML({ volume, muted, coach, difficulty, reducedMotion }: {
+  volume: number; muted: boolean; coach: 'auto' | 'on' | 'off'; difficulty: Difficulty; reducedMotion: boolean;
+}): string {
   const seg = (v: 'auto' | 'on' | 'off', label: string) => `<button class="btn btn-small${coach === v ? ' btn-ink' : ''}" data-act="coach-mode" data-v="${v}">${label}</button>`;
+  const diff = (v: Difficulty) => `<button class="btn btn-small${difficulty === v ? ' btn-ink' : ''}" data-act="difficulty" data-v="${v}">${DIFFICULTY_LABEL[v]}</button>`;
   return `<div class="sheet modal-sheet settings">
     <h2>Settings</h2>
+    <div class="set-row"><span>Difficulty<small>Opponents keep their style; easier ones blunder more and call less.</small></span><span class="seg">${diff('easier')}${diff('normal')}${diff('harder')}</span></div>
     <label class="set-row"><span>Volume</span><input type="range" min="0" max="100" value="${Math.round(volume * 100)}" data-knob="volume"></label>
     <label class="set-row"><span>Mute</span><input type="checkbox" data-knob="muted" ${muted ? 'checked' : ''}></label>
     <div class="set-row"><span>Coach</span><span class="seg">${seg('auto', 'First 5 games')}${seg('on', 'Always')}${seg('off', 'Off')}</span></div>
@@ -549,6 +562,11 @@ function stats(state: GameState, player: Color) {
   };
 }
 
+/** "1 claim", "2 claims". */
+function count(n: number, word: string): string {
+  return `${n} ${word}${n === 1 ? '' : 's'}`;
+}
+
 /** Beliefs worth showing: confident ones and the ones the bot got wrong. */
 function pickSnaps(state: GameState, snaps: BeliefSnap[]) {
   const scored = snaps.map((s) => {
@@ -579,11 +597,11 @@ export function revealHTML({ state, bot, num, snaps, me, newlyUnlocked, resultTe
         <span class="rv-quote">“Move ${s.fullmove}: I was ${Math.round(s.p * 100)}% sure your ${originSquare(s.pieceId) || ''} piece was a ${typeName(s.best)}.”</span>
         <small>${s.right ? 'Correct.' : `It was a ${typeName(s.piece.type)}.`} You claimed ${typeName(s.claim)}${s.decision ? `; they ${s.decision === 'call' ? 'called' : 'passed'}` : ''}.</small>
       </div>`).join('')
-    : `<div class="rv-empty">You made no claims for ${esc(bot.name)} to read.</div>`;
+    : `<div class="rv-empty">You made no claims for ${esc(midName(bot.name))} to read.</div>`;
 
   return `<div class="sheet modal-sheet reveal">
     <header class="rv-head">
-      ${characterCard(bot, num, { small: true, mood: won === true ? 'caught' : won === false ? 'triumphant' : 'neutral' })}
+      ${characterCard(bot, num, { small: true, mood: won === true ? 'beaten' : won === false ? 'triumphant' : 'neutral' })}
       <div><div class="kicker">Result</div><h2>${resultText}</h2>
       ${newlyUnlocked.length ? `<p class="rv-unlock">Unlocked: ${newlyUnlocked.map(esc).join(', ')}</p>` : ''}</div>
     </header>
@@ -594,16 +612,16 @@ export function revealHTML({ state, bot, num, snaps, me, newlyUnlocked, resultTe
       </div>
       <div class="rv-cols">
         <div><h3>Your lies</h3>
-          <div class="rv-stat">${you.claims} claims, ${you.lies} lies, ${you.caught} caught</div>
-          ${lieList(groupClaims(state, me), 'None. You played it straight.', me)}
-          <div class="rv-stat">Your calls: ${you.calls}, ${you.right} correct</div></div>
+          <div class="rv-stat">${count(you.claims, 'claim')}, ${count(you.lies, 'lie')}, ${you.caught} caught</div>
+          ${lieList(groupClaims(state, me), you.claims ? 'None. You played it straight.' : 'You made no claims.', me)}
+          <div class="rv-stat">You called ${count(you.calls, 'time')}, ${you.right} correctly</div></div>
         <div><h3>${esc(bot.name)}'s lies</h3>
-          <div class="rv-stat">${them.claims} claims, ${them.lies} lies, ${them.caught} caught</div>
-          ${lieList(groupClaims(state, opp), 'None.', opp)}
-          <div class="rv-stat">Their calls: ${them.calls}, ${them.right} correct</div></div>
+          <div class="rv-stat">${count(them.claims, 'claim')}, ${count(them.lies, 'lie')}, ${them.caught} caught</div>
+          ${lieList(groupClaims(state, opp), them.claims ? 'None.' : 'They made no claims.', opp)}
+          <div class="rv-stat">They called ${count(them.calls, 'time')}, ${them.right} correctly</div></div>
       </div>
     </div>
-    <div class="rv-beliefs"><h3>What ${esc(bot.name)} believed</h3>${beliefRows}</div>
+    <div class="rv-beliefs"><h3>What ${esc(midName(bot.name))} believed</h3>${beliefRows}</div>
     <div class="modal-actions">
       <button class="btn" data-act="close-modal">View board</button>
       <button class="btn" data-act="leave">Leave</button>

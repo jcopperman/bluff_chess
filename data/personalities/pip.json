@@ -4,8 +4,8 @@
   "title": "Circuit opponent 3",
   "avatar": "🐿️",
   "color": "#c97b3f",
-  "blurb": "Jittery and suspicious. Pip calls almost everything, so honesty is how you farm chips.",
-  "teaches": "When to play honestly and farm chips.",
+  "blurb": "Jittery and suspicious. Pip calls almost everything, so honest moves win you chips.",
+  "teaches": "When to play honestly.",
   "chessStrength": 2,
   "bluffRate": 0.3,
   "bluffMargin": 50,
@@ -81,5 +81,6 @@
     "playerQueen": [
       "A QUEEN? Suuure."
     ]
-  }
+  },
+  "mistakeRate": 0.3
 }

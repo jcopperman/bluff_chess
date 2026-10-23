@@ -34,16 +34,38 @@ function positional(c: Cell, idx: number): number {
   }
 }
 
+/**
+ * Mop-up: when one side is far ahead and the other has little left, reward
+ * driving the losing king to the edge and bringing the winning king closer.
+ * Without this, a winning side shuffles aimlessly and drifts into a draw.
+ * Returns the bonus for `color` (negative if `color` is the one being mopped up).
+ */
+function mopUp(board: Board, color: Color, mine: number, theirs: number): number {
+  const ahead = mine - theirs;
+  if (Math.abs(ahead) < 400 || Math.min(mine, theirs) > 500) return 0;
+  const winner: Color = ahead > 0 ? color : color === 'white' ? 'black' : 'white';
+  const loser: Color = winner === 'white' ? 'black' : 'white';
+  const wk = board.findIndex((c) => c?.color === winner && c.type === 'king');
+  const lk = board.findIndex((c) => c?.color === loser && c.type === 'king');
+  if (wk < 0 || lk < 0) return 0;
+  const lf = lk & 7, lr = lk >> 3;
+  const edge = Math.max(3 - lf, lf - 4) + Math.max(3 - lr, lr - 4);
+  const kingGap = Math.abs((wk & 7) - lf) + Math.abs((wk >> 3) - lr);
+  const bonus = edge * 12 + (14 - kingGap) * 5;
+  return winner === color ? bonus : -bonus;
+}
+
 /** Score from `color`'s point of view, in centipawns. */
 export function evaluate(board: Board, color: Color): number {
-  let s = 0;
+  let s = 0, mine = 0, theirs = 0;
   for (let i = 0; i < 64; i++) {
     const c = board[i];
     if (!c) continue;
-    const v = cellValue(c) + positional(c, i);
-    s += c.color === color ? v : -v;
+    const value = cellValue(c);
+    const v = value + positional(c, i);
+    if (c.color === color) { s += v; mine += value; } else { s -= v; theirs += value; }
   }
-  return s;
+  return s + mopUp(board, color, mine, theirs);
 }
 
 /** Sum of piece values for `color` (kings excluded). */

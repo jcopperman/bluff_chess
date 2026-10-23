@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import {
   createGame, applyAction, getLegalActions, getPlayerView, getActor, createRng, randomArrangement, CLASSIC_ARRANGEMENT,
 } from '../engine/index.ts';
-import type { Action, Arrangement, GameState, PlayerView } from '../engine/index.ts';
+import type { Action, Arrangement, ClaimType, GameState, PlayerView } from '../engine/index.ts';
 import { chooseAction } from '../bot/bot.ts';
 import type { Decision, PersonalityConfig, TableImage } from '../bot/bot.ts';
 import { computeBeliefs } from '../bot/belief.ts';
@@ -116,4 +116,45 @@ test('table image: a bot that remembers a habitual liar calls more', () => {
   const honest: Partial<TableImage> = { claims: 40, lies: 0, callOpps: 10, calls: 2, phases };
   const pLie = (mem: Partial<TableImage>) => decide(view, widow, mem, 5).debug!.pLie!;
   assert.ok(pLie(liar) > pLie(honest) + 0.2);
+});
+
+test('a bot still moves when every legal move is a lie it would not normally tell', () => {
+  // Black's only mobile piece is a hidden bishop boxed in on b8, so every move is a bluff.
+  const s = createGame({
+    turn: 'black',
+    pieces: [
+      { id: 'w-k', owner: 'white', type: 'king', square: 'e1' },
+      { id: 'w-pa', owner: 'white', type: 'pawn', square: 'a6', hasMoved: true },
+      { id: 'w-pc', owner: 'white', type: 'pawn', square: 'c6', hasMoved: true },
+      { id: 'b-k', owner: 'black', type: 'king', square: 'a8' },
+      { id: 'b-pa', owner: 'black', type: 'pawn', square: 'a7' },
+      { id: 'b-pc', owner: 'black', type: 'pawn', square: 'c7' },
+      { id: 'b-b8', owner: 'black', type: 'bishop', square: 'b8' },
+    ],
+  });
+  const view = getPlayerView(s, 'black');
+  assert.ok(getLegalActions(s, 'black').every((a) => a.type !== 'move' || a.claim && a.claim !== 'bishop'));
+  for (const bluffClaims of [[], ['queen']] as ClaimType[][]) {
+    const d = decide(view, { ...load('sable'), bluffClaims }, {}, 1);
+    assert.equal(d.action.type, 'move');
+  }
+});
+
+test('calls: a bot calls a claim whose lie would leave its opponent mated', () => {
+  let s = createGame({
+    turn: 'white',
+    pieces: [
+      { id: 'w-k', owner: 'white', type: 'king', square: 'e1' },
+      { id: 'w-r', owner: 'white', type: 'rook', square: 'a1', faceUp: true },
+      { id: 'b-k', owner: 'black', type: 'king', square: 'h8' },
+      { id: 'b-pg', owner: 'black', type: 'pawn', square: 'g7' },
+      { id: 'b-ph', owner: 'black', type: 'pawn', square: 'h7' },
+      { id: 'b-c8', owner: 'black', type: 'rook', square: 'c8' },
+    ],
+  });
+  s = applyAction(s, { type: 'move', player: 'white', from: 'a1', to: 'a8' }).state;
+  s = applyAction(s, { type: 'move', player: 'black', from: 'c8', to: 'a8', claim: 'rook' }).state;
+  for (const seed of [1, 2, 3]) {
+    assert.equal(decide(getPlayerView(s, 'white'), load('deacon'), {}, seed).action.type, 'call');
+  }
 });

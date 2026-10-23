@@ -1,0 +1,51 @@
+{
+  "name": "with chips-out loss off, play continues at zero chips",
+  "config": {
+    "startingChips": 6,
+    "setups": {
+      "white": [
+        "rook",
+        "knight",
+        "bishop",
+        "queen",
+        "bishop",
+        "knight",
+        "rook"
+      ],
+      "black": [
+        "rook",
+        "knight",
+        "bishop",
+        "queen",
+        "bishop",
+        "knight",
+        "rook"
+      ]
+    },
+    "chips": {
+      "black": 1
+    },
+    "chipsOutLoss": false
+  },
+  "actions": [
+    {
+      "type": "move",
+      "player": "white",
+      "from": "b1",
+      "to": "c3",
+      "claim": "knight"
+    },
+    {
+      "type": "call",
+      "player": "black"
+    }
+  ],
+  "expect": {
+    "phase": "move",
+    "turn": "black",
+    "chips": {
+      "white": 7,
+      "black": 0
+    }
+  }
+}

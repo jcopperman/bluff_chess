@@ -6,7 +6,7 @@
   "color": "#5c2a3e",
   "blurb": "Strong chess, measured bluffing, and a long memory. She adapts hard to how you play.",
   "teaches": "Everything at once. Mind your table image.",
-  "chessStrength": 3,
+  "chessStrength": 2,
   "bluffRate": 0.35,
   "bluffMargin": 45,
   "bluffContext": {
@@ -86,5 +86,6 @@
     "playerQueen": [
       "A queen, darling? How ambitious."
     ]
-  }
+  },
+  "mistakeRate": 0.16
 }

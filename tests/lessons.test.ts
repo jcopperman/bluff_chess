@@ -43,7 +43,10 @@ test('lesson outcomes teach what they claim to', () => {
   const byId = (id: string) => lessons.find((l) => l.id === id)!;
   const calling = byId('calling');
   assert.equal(afterSteps(calling, 1).pieces.find((p) => p.id === 'b-g8')!.removed, true);
-  assert.equal(afterSteps(calling, 2).chips.white, 5);
+  // Catching the lie wins a chip; the wrong call (a fresh position) costs one.
+  const start = startStep(null, calling.steps[0]).chips.white;
+  assert.equal(afterSteps(calling, 1).chips.white, start + 1);
+  assert.equal(afterSteps(calling, 2).chips.white, start - 1);
   const bluff = byId('bluffing');
   assert.equal(afterSteps(bluff, 1).pieces.find((p) => p.id === 'b-r')!.captured, true);
   assert.equal(afterSteps(bluff, 2).pieces.find((p) => p.id === 'w-c1')!.removed, true);

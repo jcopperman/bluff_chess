@@ -1,0 +1,71 @@
+{
+  "name": "a lie that escaped checkmate is caught: the check is back and it is checkmate at once",
+  "config": {
+    "turn": "white",
+    "pieces": [
+      {
+        "id": "w-k",
+        "owner": "white",
+        "type": "king",
+        "square": "e1"
+      },
+      {
+        "id": "w-r",
+        "owner": "white",
+        "type": "rook",
+        "square": "a1",
+        "faceUp": true
+      },
+      {
+        "id": "b-k",
+        "owner": "black",
+        "type": "king",
+        "square": "h8"
+      },
+      {
+        "id": "b-pg",
+        "owner": "black",
+        "type": "pawn",
+        "square": "g7"
+      },
+      {
+        "id": "b-c8",
+        "owner": "black",
+        "type": "bishop",
+        "square": "c8"
+      },
+      {
+        "id": "b-ph",
+        "owner": "black",
+        "type": "pawn",
+        "square": "h7"
+      }
+    ]
+  },
+  "actions": [
+    {
+      "type": "move",
+      "player": "white",
+      "from": "a1",
+      "to": "a8"
+    },
+    {
+      "type": "move",
+      "player": "black",
+      "from": "c8",
+      "to": "a8",
+      "claim": "rook"
+    },
+    {
+      "type": "call",
+      "player": "white"
+    }
+  ],
+  "expect": {
+    "phase": "over",
+    "result": {
+      "winner": "white",
+      "reason": "checkmate"
+    }
+  }
+}

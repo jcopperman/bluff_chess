@@ -43,7 +43,8 @@
         "claim": "rook",
         "hasMoved": true
       }
-    ]
+    ],
+    "chipsOutLoss": false
   },
   "actions": [
     {

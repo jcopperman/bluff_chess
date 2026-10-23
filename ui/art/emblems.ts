@@ -2,7 +2,7 @@
 // ink (currentColor) with a red accent (--red). No faces: characters react
 // through the card itself (see .card-mood-* in styles.css).
 
-export type Mood = 'neutral' | 'smug' | 'nervous' | 'caught' | 'triumphant' | 'thinking';
+export type Mood = 'neutral' | 'smug' | 'nervous' | 'caught' | 'beaten' | 'triumphant' | 'thinking';
 
 const P = 'var(--paper)';
 const R = 'var(--red)';

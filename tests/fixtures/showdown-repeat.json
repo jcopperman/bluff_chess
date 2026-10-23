@@ -1,6 +1,7 @@
 {
   "name": "the defender may keep calling showdowns while mated and holding chips",
   "config": {
+    "startingChips": 6,
     "pieces": [
       {
         "id": "w-k",

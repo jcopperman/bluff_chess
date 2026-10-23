@@ -6,7 +6,7 @@
   "color": "#8b7d6b",
   "blurb": "Pious and honest while things go well. Fall behind on material and watch the sermons turn to lies.",
   "teaches": "Watch the material count.",
-  "chessStrength": 2,
+  "chessStrength": 1,
   "bluffRate": 0.15,
   "bluffMargin": 40,
   "bluffContext": {
@@ -86,5 +86,6 @@
     "playerQueen": [
       "A queen? We shall see."
     ]
-  }
+  },
+  "mistakeRate": 0.45
 }

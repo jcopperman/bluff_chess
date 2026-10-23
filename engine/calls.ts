@@ -1,6 +1,7 @@
 // Call window resolution: call, pass, and finalizing a held move.
 
-import { opponent } from './moves.ts';
+import { inCheck, opponent } from './moves.ts';
+import { getApparentBoard } from './view.ts';
 import { must, pieceById, updateStatus } from './state.ts';
 import type { CallAction, Color, GameEvent, GameState, PassAction, Pending } from './types.ts';
 
@@ -83,15 +84,19 @@ export function applyCall(state: GameState, action: CallAction, events: GameEven
   piece.captured = true;
   piece.faceUp = true;
   piece.removed = true;
-  if (state.config.liarPaysChip && state.chips[mover] > 0) {
+  const paid = state.config.liarPaysChip && state.chips[mover] > 0;
+  if (paid) {
     state.chips[mover] -= 1;
     state.chips[caller] += 1;
   }
   entry.outcome = 'caught';
-  events.push({ type: 'lieCaught', pieceId: piece.id, pieceType, claim, square: liarSquare, from: pend.from, liar: mover, caller, restoredId: pend.capturedId });
+  state.pending = null;
+  // The liar normally forfeits the turn, but a check must be answered: if undoing the
+  // lie leaves the liar in check, they move again, and with no answer it's checkmate.
+  const stillInCheck = inCheck(getApparentBoard(state), mover);
+  events.push({ type: 'lieCaught', pieceId: piece.id, pieceType, claim, square: liarSquare, from: pend.from, liar: mover, caller, restoredId: pend.capturedId, paid, stillInCheck });
   events.push({ type: 'pieceRevealed', pieceId: piece.id, pieceType });
 
-  state.pending = null;
-  state.turn = caller;
+  state.turn = stillInCheck ? mover : caller;
   updateStatus(state, events);
 }

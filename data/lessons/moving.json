@@ -5,7 +5,7 @@
   "blurb": "How every chess piece moves and captures. Skip this if you already play chess.",
   "steps": [
     {
-      "say": "Welcome! Let's start with plain chess. The <b>rook</b> moves in straight lines along ranks and files. Capture the pawn on <b>d7</b> with your rook.",
+      "say": "Welcome! Let's start with plain chess. The <b>rook</b> moves any distance in a straight line: up, down, left or right. Capture the pawn on <b>d7</b> with your rook.",
       "position": {
         "pieces": [
           {
@@ -277,7 +277,7 @@
       "success": "Promoted! Promoted pieces are always face-up."
     },
     {
-      "say": "The <b>king</b> moves one square in any direction, and may never step into check. The black rook guards the d-file. Move your king <b>one square</b>, staying off the d-file.",
+      "say": "The <b>king</b> moves one square in any direction, and may never move into check. The black rook guards the whole d column. Move your king <b>one square</b>, staying off the d column.",
       "position": {
         "pieces": [
           {
@@ -309,7 +309,7 @@
       "highlight": [
         "e4"
       ],
-      "hint": "Click the king on e4 and pick one of the glowing squares.",
+      "hint": "Click the king on e4, then one of the marked squares.",
       "success": "That's every piece. Next: check and checkmate."
     }
   ]

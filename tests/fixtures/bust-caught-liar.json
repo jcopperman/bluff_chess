@@ -1,0 +1,53 @@
+{
+  "name": "a caught liar paying their last chip busts",
+  "config": {
+    "startingChips": 6,
+    "setups": {
+      "white": [
+        "rook",
+        "bishop",
+        "knight",
+        "queen",
+        "bishop",
+        "knight",
+        "rook"
+      ],
+      "black": [
+        "rook",
+        "knight",
+        "bishop",
+        "queen",
+        "bishop",
+        "knight",
+        "rook"
+      ]
+    },
+    "chips": {
+      "white": 1
+    }
+  },
+  "actions": [
+    {
+      "type": "move",
+      "player": "white",
+      "from": "b1",
+      "to": "c3",
+      "claim": "knight"
+    },
+    {
+      "type": "call",
+      "player": "black"
+    }
+  ],
+  "expect": {
+    "phase": "over",
+    "result": {
+      "winner": "black",
+      "reason": "chips"
+    },
+    "chips": {
+      "white": 0,
+      "black": 7
+    }
+  }
+}

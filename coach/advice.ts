@@ -2,7 +2,7 @@
 // public information: the same rule the bots follow.
 
 import {
-  getApparentBoard, generateMoves, makeMove, opponent, sqToIdx, idxToSq, inCheck, PIECE_COUNTS,
+  getApparentBoard, apparentIfCaught, generateMoves, makeMove, opponent, sqToIdx, idxToSq, inCheck, PIECE_COUNTS,
 } from '../engine/index.ts';
 import type { Board, ClaimType, Color, Move, MoveAction, PieceType, PlayerView, Square } from '../engine/index.ts';
 import { computeBeliefs } from '../bot/belief.ts';
@@ -25,8 +25,8 @@ const NAME = (t: PieceType) => t[0].toUpperCase() + t.slice(1);
 
 const MOVE_RULE: Record<PieceType, string> = {
   king: 'The king moves one square in any direction.',
-  queen: 'The queen moves any distance in a straight line or diagonal, but can\'t jump over pieces.',
-  rook: 'A rook moves any distance along a rank or file (straight lines), but can\'t jump over pieces.',
+  queen: 'The queen moves any distance up, down, sideways or diagonally, but can\'t jump over pieces.',
+  rook: 'A rook moves any distance up, down or sideways, but can\'t jump over pieces.',
   bishop: 'A bishop moves any distance diagonally, but can\'t jump over pieces.',
   knight: 'A knight jumps in an L shape: two squares one way, then one square sideways. It can jump over pieces.',
   pawn: 'A pawn moves one square forward (two from its starting square) and captures one square diagonally forward.',
@@ -96,18 +96,18 @@ export function explainIllegal(view: PlayerView, from: Square, to: Square): stri
   if (cell.hidden) {
     if (cell.claim && locking) {
       const why = geometryFits(cell.claim, fi, ti) && lineBlocked(board, fi, ti) ? ' Something is blocking the path.' : '';
-      return `This piece is locked as a ${NAME(cell.claim)}, so it can only move like one.${why} ${MOVE_RULE[cell.claim]}`;
+      return `This card is locked as a ${cell.claim}, so it can only move like one.${why} ${MOVE_RULE[cell.claim]}`;
     }
     const blocked = (['rook', 'bishop', 'queen'] as ClaimType[]).some((t) => geometryFits(t, fi, ti)) && lineBlocked(board, fi, ti);
     return blocked
       ? 'Something is blocking the path.'
-      : `No piece type can reach that square from here.${real ? ` (It's really a ${NAME(real)}, but a hidden piece may claim to be a rook, knight, bishop or queen.)` : ''}`;
+      : `No piece type can reach that square from here. (A hidden card may claim to be a rook, knight, bishop or queen${real ? `; yours is really a ${real}` : ''}.)`;
   }
   const t = cell.type!;
   if (t !== 'knight' && t !== 'pawn' && geometryFits(t, fi, ti) && lineBlocked(board, fi, ti)) {
     return `Something is blocking the path. ${MOVE_RULE[t]}`;
   }
-  return `A ${NAME(t)} can't move like that. ${MOVE_RULE[t]}`;
+  return `A ${t} can't move like that. ${MOVE_RULE[t]}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -167,7 +167,7 @@ export function blunderCheck(view: PlayerView, action: MoveAction): Advice | nul
   return {
     tone: 'warn',
     title: 'Careful!',
-    lines: [`Your ${NAME(worst.type)} on ${worst.square} can be taken ${how}.`],
+    lines: [`Your ${worst.type} on ${worst.square} can be taken ${how}.`],
   };
 }
 
@@ -194,19 +194,27 @@ export function claimAdvice(view: PlayerView, action: MoveAction, opponentName: 
   const piece = view.pieces.find((p) => p.id === cell?.id);
   const claim = (action.claim ?? 'rook') as ClaimType;
   const real = piece?.type ?? null;
+  const mid = opponentName.replace(/^The /, 'the ');
   const firstClaim = !piece?.claim;
   const lines: string[] = [];
 
+  const oppChips = view.chips[opp];
+  const bust = view.config.chipsOutLoss;
   if (real === claim) {
-    lines.push(`Honest. If ${opponentName} calls, the ${NAME(claim)} flips face-up and you win their chip.`);
+    lines.push(`Honest. If ${mid} calls, the ${claim} flips face-up and you win their chip.`);
+    if (bust && oppChips === 1) lines.push(`It's their last chip, so a call would lose them the game. Don't expect one.`);
     if (firstClaim) lines.push(`This locks the piece as a ${NAME(claim)} for the rest of the game.`);
     return { tone: 'good', title: 'Honest claim', lines };
   }
 
-  const oppChips = view.chips[opp];
   const count = publicClaimCount(view, me, claim, piece?.id) + 1;
   let tone: AdviceTone = 'warn';
-  lines.push(`Bluff: it's really a ${real ? NAME(real) : 'different piece'}. If ${opponentName} calls, the move is undone, the piece is removed, and you lose your turn.`);
+  const pays = view.config.liarPaysChip;
+  lines.push(`Bluff: it's really a ${real ?? 'different piece'}. If ${mid} calls, the move is undone, the piece is removed${pays ? ', you pay them a chip' : ''} and you lose your turn.`);
+  if (pays && bust && view.chips[me] === 1 && oppChips > 0) {
+    tone = 'danger';
+    lines.push('You have one chip left. Get caught and you bust, which loses the game.');
+  }
   if (count > PIECE_COUNTS[claim]) {
     tone = 'danger';
     lines.push(`${opponentName} can prove this is a lie: that would be ${count} ${NAME(claim)} claims, and only ${PIECE_COUNTS[claim]} exist.`);
@@ -233,6 +241,7 @@ export function callAdvice(view: PlayerView, opponentName: string, thinkHistory:
   const pend = view.pending;
   if (!pend || pend.mover !== opp || !pend.claim) return null;
   const claim = pend.claim;
+  const mid = opponentName.replace(/^The /, 'the ');
   const piece = view.pieces.find((p) => p.id === pend.pieceId);
   if (!piece) return null;
   const beliefs = computeBeliefs(view);
@@ -251,7 +260,7 @@ export function callAdvice(view: PlayerView, opponentName: string, thinkHistory:
   if (pend.capturedId) {
     const cap = view.pieces.find((p) => p.id === pend.capturedId);
     if (cap?.type) {
-      lines.push(`If it's a lie, your captured ${NAME(cap.type)} comes back.`);
+      lines.push(`If it's a lie, your captured ${cap.type} comes back.`);
       stakes += VALUE[cap.type] / 300;
     }
   }
@@ -262,6 +271,14 @@ export function callAdvice(view: PlayerView, opponentName: string, thinkHistory:
       ? 'If you pass, you\'re checkmated (you would still get a showdown).'
       : 'It puts you in check.');
     stakes += noMoves ? 4 : 1;
+  }
+  const caughtBoard = apparentIfCaught(view);
+  if (inCheck(caughtBoard, opp)) {
+    const mated = generateMoves(caughtBoard, opp, -1, { claimLocking: view.config.claimLocking }).length === 0;
+    lines.push(mated
+      ? `If it's a lie, undoing it leaves ${mid} in check with no way out: checkmate.`
+      : `If it's a lie, undoing it leaves ${mid} in check, and they must move again.`);
+    stakes += mated ? 4 : 1;
   }
 
   const caught = view.claims.filter((c) => c.player === opp && c.outcome === 'caught').length;
@@ -275,13 +292,25 @@ export function callAdvice(view: PlayerView, opponentName: string, thinkHistory:
   }
 
   const chips = view.chips[me];
+  const bust = view.config.chipsOutLoss;
+  let winsGame = false;
+  if (view.config.liarPaysChip && chips > 0) {
+    if (bust && view.chips[opp] === 1) {
+      lines.push(`${opponentName} is on their last chip. Catch a lie and they bust: you win the game.`);
+      winsGame = true;
+    } else lines.push(`Catch a lie and ${mid} pays you a chip.`);
+  }
   if (chips <= 0) lines.push('You have no chips, so you can only pass.');
-  else lines.push(`You have ${chips} chip${chips === 1 ? '' : 's'}. A wrong call hands one to ${opponentName}.`);
+  else if (bust && chips === 1) lines.push(`This is your last chip. A wrong call hands it to ${mid} and you bust, which loses the game.`);
+  else lines.push(`You have ${chips} chip${chips === 1 ? '' : 's'}. A wrong call hands one to ${mid}.`);
 
   let lean: 'call' | 'pass';
   if (chips <= 0) lean = 'pass';
   else if (certain && pLie > 0.95) lean = 'call';
-  else if (chips <= 1) lean = pLie > 0.6 || stakes >= 4 ? 'call' : 'pass';
+  // Last chip against last chip: whoever is wrong loses, so it's a straight coin flip on the lie.
+  else if (chips <= 1 && bust && winsGame) lean = pLie > 0.5 ? 'call' : 'pass';
+  else if (chips <= 1) lean = pLie > (bust ? 0.8 : 0.6) || stakes >= 4 ? 'call' : 'pass';
+  else if (winsGame) lean = pLie > 0.15 ? 'call' : 'pass';
   else lean = pLie > 0.45 || (pLie > 0.2 && stakes >= 1) ? 'call' : 'pass';
 
   const tone: AdviceTone = lean === 'call' ? 'warn' : 'info';

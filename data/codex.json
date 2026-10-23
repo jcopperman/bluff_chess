@@ -7,22 +7,22 @@
         {
           "id": "overview",
           "title": "How the game works",
-          "body": "<p>Bluff Chess is chess with hidden pieces. Your seven back-rank pieces (two rooks, two knights, two bishops and a queen) are arranged in secret and lie <b>face-down</b>. Pawns and kings are always face-up.</p><p>Every time you move a face-down piece you <a data-codex=\"claim\">claim</a> what it is. Your opponent can <a data-codex=\"call\">call</a> your bluff by betting a <a data-codex=\"chips\">chip</a>. Win by <a data-codex=\"checkmate\">checkmate</a>, judged on the <a data-codex=\"apparent\">apparent board</a>.</p>"
+          "body": "<p>Bluff Chess is chess with hidden pieces. Your seven back-rank pieces (two rooks, two knights, two bishops and a queen) are arranged in secret and lie <b>face-down</b>. Pawns and kings are always face-up.</p><p>Every time you move a face-down piece you <a data-codex=\"claim\">claim</a> what it is. Your opponent can <a data-codex=\"call\">call</a> your bluff by betting a <a data-codex=\"chips\">chip</a>: whoever is wrong pays the other a chip. Win by <a data-codex=\"checkmate\">checkmate</a>, judged on the <a data-codex=\"apparent\">apparent board</a>, or by taking your opponent's last chip.</p>"
         },
         {
           "id": "claim",
           "title": "Claims",
-          "body": "<p>Moving a face-down piece is a <b>claim</b> that it is a rook, knight, bishop or queen. The move only has to be legal for the type you claim, whatever the piece really is.</p><p><b>Claims lock.</b> A piece's first claim fixes its identity: every later move must be legal for that type. A claimed piece shows a gold seal.</p><p>Claiming the true type is <b>honest</b>. Claiming anything else is a <a data-codex=\"bluff\">bluff</a>.</p>"
+          "body": "<p>Moving a face-down piece is a <b>claim</b> that it is a rook, knight, bishop or queen. The move only has to be legal for the type you claim, whatever the piece really is.</p><p><b>Claims lock.</b> A piece's first claim fixes its identity: every later move must be legal for that type. A claimed card shows its claim in a badge in the card's top corner.</p><p>Claiming the true type is <b>honest</b>. Claiming anything else is a <a data-codex=\"bluff\">bluff</a>.</p>"
         },
         {
           "id": "call",
           "title": "Calling",
-          "body": "<p>After a face-down piece moves, the opponent may <b>call</b> (bet 1 chip) or <b>pass</b>.</p><p><b>If it was a lie:</b> the move is undone (any capture comes back), the lying piece is removed, the caller keeps their chip, and the caller moves next.</p><p><b>If it was true:</b> the piece flips face-up for good, the move stands, and the caller's chip goes to the mover.</p><p>Moves by face-up pieces can't be called.</p>"
+          "body": "<p>After a face-down piece moves, the opponent may <b>call</b> (bet 1 chip) or <b>pass</b>.</p><p><b>If it was a lie:</b> the move is undone (any capture comes back), the lying piece is removed, the liar pays the caller a chip, and the caller moves next. One exception: if undoing the lie leaves the liar in check, the liar must move again to answer it, and if they can't, it's checkmate.</p><p><b>If it was true:</b> the piece flips face-up for good, the move stands, and the caller pays the mover a chip.</p><p>Either way, whoever was wrong pays. A player who pays their last chip <a data-codex=\"chips\">busts</a> and loses.</p><p>Moves by face-up pieces can't be called.</p>"
         },
         {
           "id": "chips",
           "title": "Chips",
-          "body": "<p>Each player starts with 6 chips. A chip is spent to <a data-codex=\"call\">call</a> or to call a <a data-codex=\"showdown\">showdown</a>. Calling an honest claim gives your chip to your opponent.</p><p>With no chips you can't call at all, so your opponent can bluff freely. Running low on chips makes your bluffs safer, and makes theirs safer too.</p>"
+          "body": "<p>Each player starts with 4 chips. Every <a data-codex=\"call\">call</a> or <a data-codex=\"showdown\">showdown</a> is a bet of 1 chip: catch a liar and they pay you a chip; call an honest claim and you pay them.</p><p><b>Bust:</b> if you run out of chips, you lose the game on the spot.</p><p>On your last chip, a wrong call loses the game, so you can barely afford to call, and your opponent can bluff more freely. Getting caught bluffing on your last chip loses too. Keep an eye on both purses.</p>"
         },
         {
           "id": "apparent",
@@ -32,7 +32,7 @@
         {
           "id": "showdown",
           "title": "Showdown",
-          "body": "<p>If you're checkmated on the apparent board, you may call a <b>showdown</b>: spend 1 chip to expose any claimed face-down enemy piece.</p><p>If it was lying it's removed. If that breaks the mate, play continues. If it was honest it flips face-up and your chip goes to your opponent. You can keep calling showdowns while you have chips and remain mated.</p>"
+          "body": "<p>If you're checkmated on the apparent board, you may call a <b>showdown</b>: spend 1 chip to expose any claimed face-down enemy piece.</p><p>If it was lying it's removed and its owner pays you a chip. If that breaks the mate, play continues. If it was honest it flips face-up and you pay your opponent a chip. You can keep calling showdowns while you have chips and remain mated.</p>"
         },
         {
           "id": "castling",
@@ -50,22 +50,68 @@
       "id": "pieces",
       "title": "The Pieces",
       "entries": [
-        { "id": "king", "title": "King", "diagram": "king", "body": "<p>Moves one square in any direction. It can never move into check. It is always face-up, and protecting it is the whole game.</p>" },
-        { "id": "queen", "title": "Queen", "diagram": "queen", "body": "<p>Moves any distance in a straight line or diagonal. The strongest piece, worth about nine pawns. There is only one, so a second queen claim is a provable lie.</p>" },
-        { "id": "rook", "title": "Rook", "diagram": "rook", "body": "<p>Moves any distance along a rank or file. Worth about five pawns. Castling is a rook claim by the corner piece.</p>" },
-        { "id": "bishop", "title": "Bishop", "diagram": "bishop", "body": "<p>Moves any distance diagonally. Worth about three pawns. In Bluff Chess both bishops may start on the same colour.</p>" },
-        { "id": "knight", "title": "Knight", "diagram": "knight", "body": "<p>Jumps in an L shape: two squares one way and one square sideways. The only piece that jumps over others. Worth about three pawns.</p>" },
-        { "id": "pawn", "title": "Pawn", "diagram": "pawn", "body": "<p>Moves one square forward (two from its starting square) and captures one square diagonally forward. A pawn reaching the far side <b>promotes</b> to a face-up queen, rook, bishop or knight. En passant applies.</p>" }
+        {
+          "id": "king",
+          "title": "King",
+          "diagram": "king",
+          "body": "<p>Moves one square in any direction. It can never move into check. It is always face-up, and protecting it is the whole game.</p>"
+        },
+        {
+          "id": "queen",
+          "title": "Queen",
+          "diagram": "queen",
+          "body": "<p>Moves any distance in a straight line or diagonal. The strongest piece, worth about nine pawns. There is only one, so a second queen claim is a provable lie.</p>"
+        },
+        {
+          "id": "rook",
+          "title": "Rook",
+          "diagram": "rook",
+          "body": "<p>Moves any distance along a rank or file. Worth about five pawns. Castling is a rook claim by the corner piece.</p>"
+        },
+        {
+          "id": "bishop",
+          "title": "Bishop",
+          "diagram": "bishop",
+          "body": "<p>Moves any distance diagonally. Worth about three pawns. In Bluff Chess both bishops may start on the same colour.</p>"
+        },
+        {
+          "id": "knight",
+          "title": "Knight",
+          "diagram": "knight",
+          "body": "<p>Jumps in an L shape: two squares one way and one square sideways. The only piece that jumps over others. Worth about three pawns.</p>"
+        },
+        {
+          "id": "pawn",
+          "title": "Pawn",
+          "diagram": "pawn",
+          "body": "<p>Moves one square forward (two from its starting square) and captures one square diagonally forward. A pawn reaching the far side <b>promotes</b> to a face-up queen, rook, bishop or knight. En passant applies.</p>"
+        }
       ]
     },
     {
       "id": "reading",
       "title": "Bluffing & Reading",
       "entries": [
-        { "id": "bluff", "title": "Bluffing", "body": "<p>A <b>bluff</b> is a false claim: moving a piece as a type it isn't. It lets a piece make a move it couldn't really make, at the risk of losing it.</p><p>Good bluffs win something worth the risk, come when your opponent is low on chips, and match what they already believe. Remember that a bluffing piece stays locked to its fake type, and every later move can be called.</p>" },
-        { "id": "tell", "title": "Tells", "body": "<p>A <b>tell</b> is a habit that gives away when an opponent is bluffing. Every character here has consistent tells: how long they think, what they say, where they look. Some are reversed. Watch, remember, and exploit them.</p>" },
-        { "id": "counting", "title": "Counting claims", "body": "<p>There are exactly two rooks, two knights, two bishops and one queen per side. The claim tracker counts how many enemy pieces claim each type. If more claim a type than can exist, someone is lying, and calling one of them is a strong bet.</p>" },
-        { "id": "image", "title": "Table image", "body": "<p>Your opponents remember you. Bluff constantly and they'll call more; play honestly for a while and a big lie may slip through. Adaptive characters like the Widow react to your history across matches.</p>" }
+        {
+          "id": "bluff",
+          "title": "Bluffing",
+          "body": "<p>A <b>bluff</b> is a false claim: moving a piece as a type it isn't. It lets a piece make a move it couldn't really make, at the risk of losing it.</p><p>A caught bluff costs the piece, your turn and a chip. Good bluffs win something worth the risk, come when your opponent is low on chips, and match what they already believe. Remember that a bluffing piece stays locked to its fake type, and every later move can be called.</p>"
+        },
+        {
+          "id": "tell",
+          "title": "Tells",
+          "body": "<p>A <b>tell</b> is a habit that gives away when an opponent is bluffing. Every character here has consistent tells: how long they think, what they say, which square they eye first. Some are reversed. Watch, remember, and exploit them.</p>"
+        },
+        {
+          "id": "counting",
+          "title": "Counting claims",
+          "body": "<p>There are exactly two rooks, two knights, two bishops and one queen per side. The claim tracker beside the board counts how many of your opponent's cards claim each type. If more claim a type than can exist, someone is lying, and calling one of them is a strong bet.</p>"
+        },
+        {
+          "id": "image",
+          "title": "Table image",
+          "body": "<p>Your opponents remember you. Bluff constantly and they'll call more; play honestly for a while and a big lie may slip through. Adaptive characters like the Widow react to your history across matches.</p>"
+        }
       ]
     }
   ]

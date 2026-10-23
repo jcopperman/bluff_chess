@@ -5,7 +5,7 @@
   "blurb": "Face-down cards, claiming a piece type, and claim locking.",
   "steps": [
     {
-      "say": "In Bluff Chess your seven back-rank pieces are <b>face-down cards</b>. You can see what each one really is; your opponent only sees a card back. Theirs look like <b>?</b> cards to you. Pawns and kings are always face-up.",
+      "say": "In Bluff Chess your seven back-rank pieces are <b>face-down cards</b>. You can see what each one really is; your opponent sees only a card back. Their cards show only a red back to you. Pawns and kings are always face-up.",
       "position": {
         "setups": {
           "white": [
@@ -44,7 +44,7 @@
         "c3"
       ],
       "hint": "Click the b1 card, click c3, then choose Knight.",
-      "success": "The gold seal shows your claim. The Professor could have called it, but he passed.",
+      "success": "The badge in the card's corner shows your claim. The Professor could have called it, but he passed.",
       "reply": [
         {
           "type": "pass",
@@ -59,18 +59,16 @@
       ]
     },
     {
-      "say": "Claims <b>lock</b>: that card is now a Knight for the rest of the game and must keep moving like one. Hop it to <b>d5</b>.",
+      "say": "Claims <b>lock</b>: that card is now a Knight for the rest of the game and must keep moving like one. Move it again: any knight move.",
       "expect": [
         {
-          "from": "c3",
-          "to": "d5"
+          "from": "c3"
         }
       ],
       "highlight": [
-        "c3",
-        "d5"
+        "c3"
       ],
-      "hint": "Knight move: c3 to d5.",
+      "hint": "Click the card on c3. It can only move like a knight now.",
       "success": "Good. A locked claim tells your opponent something, so claim with care.",
       "reply": [
         {
@@ -86,7 +84,7 @@
       ]
     },
     {
-      "say": "Your opponent's claims show as gold seals on their cards, and the <b>claim tracker</b> counts them. If more pieces claim a type than can exist, someone is lying. Next up: catching liars.",
+      "say": "Your opponent's claims show the same way, as a badge in the corner of their cards. The <b>claim tracker</b> beside the board counts them. If more cards claim a type than can exist, someone is lying. Next: catching liars.",
       "expect": "next"
     }
   ]

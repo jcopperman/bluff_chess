@@ -1,8 +1,61 @@
-{ "name": "lie caught: move reversed, liar removed, caller keeps chip, turn passes to caller",
-  "config": { "setups": { "white": ["rook","bishop","knight","queen","bishop","knight","rook"], "black": ["rook","knight","bishop","queen","bishop","knight","rook"] } },
+{
+  "name": "lie caught: move reversed, liar removed and pays the caller a chip, turn passes to caller",
+  "config": {
+    "startingChips": 6,
+    "setups": {
+      "white": [
+        "rook",
+        "bishop",
+        "knight",
+        "queen",
+        "bishop",
+        "knight",
+        "rook"
+      ],
+      "black": [
+        "rook",
+        "knight",
+        "bishop",
+        "queen",
+        "bishop",
+        "knight",
+        "rook"
+      ]
+    }
+  },
   "actions": [
-    { "type": "move", "player": "white", "from": "b1", "to": "c3", "claim": "knight" },
-    { "type": "call", "player": "black" } ],
-  "expect": { "phase": "move", "turn": "black", "chips": { "white": 6, "black": 6 },
-    "pieces": { "w-b1": { "square": null, "captured": true, "removed": true, "faceUp": true, "type": "bishop" } },
-    "eventsInclude": ["called", "lieCaught", "pieceRevealed"] } }
+    {
+      "type": "move",
+      "player": "white",
+      "from": "b1",
+      "to": "c3",
+      "claim": "knight"
+    },
+    {
+      "type": "call",
+      "player": "black"
+    }
+  ],
+  "expect": {
+    "phase": "move",
+    "turn": "black",
+    "chips": {
+      "white": 5,
+      "black": 7
+    },
+    "pieces": {
+      "w-b1": {
+        "square": null,
+        "captured": true,
+        "removed": true,
+        "faceUp": true,
+        "type": "bishop"
+      }
+    },
+    "eventsInclude": [
+      "called",
+      "lieCaught",
+      "pieceRevealed"
+    ]
+  }
+}

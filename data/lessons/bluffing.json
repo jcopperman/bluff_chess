@@ -52,7 +52,7 @@
         "c1",
         "d3"
       ],
-      "hint": "Click the c1 card, then d3, then pick Knight (marked \"bluff\").",
+      "hint": "Click the c1 card, then d3, then pick Knight. It's marked Bluff.",
       "success": "He passed: the bluff worked and you won a rook! But that card is now a \"knight\" forever, and every move it makes can be called.",
       "reply": [
         {
@@ -116,7 +116,7 @@
         "d3"
       ],
       "hint": "Bluff Knight again: c1 to d3.",
-      "success": "Called! The move is undone, your piece is removed, and you lose your turn. Bluff when the prize is worth the risk, and when your opponent is low on chips.",
+      "success": "Called! The move is undone, your piece is removed, you pay a chip, and you lose your turn. Bluff when the prize is worth the risk, and when your opponent is low on chips.",
       "reply": [
         {
           "type": "call",

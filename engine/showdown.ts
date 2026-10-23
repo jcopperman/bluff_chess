@@ -37,7 +37,13 @@ export function applyShowdown(state: GameState, action: ShowdownAction, events: 
     piece.captured = true;
     piece.faceUp = true;
     piece.removed = true;
-    events.push({ type: 'lieCaught', pieceId: piece.id, pieceType, claim, square, liar: opp, caller: player, showdown: true });
+    // Same stakes as a call: an exposed liar pays the caller a chip.
+    const paid = state.config.liarPaysChip && state.chips[opp] > 0;
+    if (paid) {
+      state.chips[opp] -= 1;
+      state.chips[player] += 1;
+    }
+    events.push({ type: 'lieCaught', pieceId: piece.id, pieceType, claim, square, liar: opp, caller: player, showdown: true, paid });
   }
   events.push({ type: 'pieceRevealed', pieceId: piece.id, pieceType });
   updateStatus(state, events, { afterShowdown: true });

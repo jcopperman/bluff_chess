@@ -2,7 +2,7 @@
 // bot's table-image memory of the player, lesson progress and settings.
 
 import type { Color, GameState } from '../engine/index.ts';
-import type { GamePhase, TableImage } from '../bot/bot.ts';
+import type { Difficulty, GamePhase, TableImage } from '../bot/bot.ts';
 import type { Profile } from '../lessons/lessons.ts';
 import type { CircuitRecord } from './render.ts';
 
@@ -13,6 +13,7 @@ export interface Settings {
   muted: boolean;
   /** 'auto' = on for the first few matches. */
   coach: 'auto' | 'on' | 'off';
+  difficulty: Difficulty;
   reducedMotion: boolean;
 }
 
@@ -28,7 +29,7 @@ export interface SaveData {
 export function blank(): SaveData {
   return {
     records: {}, memory: {}, profile: null, lessonsDone: [], matchesPlayed: 0,
-    settings: { volume: 0.6, muted: false, coach: 'auto', reducedMotion: false },
+    settings: { volume: 0.6, muted: false, coach: 'auto', difficulty: 'normal', reducedMotion: false },
   };
 }
 

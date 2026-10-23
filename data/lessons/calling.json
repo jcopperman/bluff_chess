@@ -70,8 +70,8 @@
       "highlight": [
         "f6"
       ],
-      "hint": "Press the red Call button.",
-      "success": "Caught! It was really a bishop. The move is undone, the liar is removed, you keep your chip, and you move next."
+      "hint": "Press Call in the bar under the board, or the C key.",
+      "success": "Caught! It was really a bishop. The move is undone, the liar is removed, he pays you a chip, and you move next."
     },
     {
       "say": "Another Knight claim. Call this one too, and see what happens when the claim is true.",
@@ -139,8 +139,8 @@
       "highlight": [
         "f6"
       ],
-      "hint": "Press Call.",
-      "success": "Honest! The card flips face-up, the move stands, and your chip goes to him. Chips are your ammunition: spend them on claims you really doubt."
+      "hint": "Press Call again.",
+      "success": "Honest! The card flips face-up, the move stands, and you pay him a chip. Whoever is wrong pays. Run out of chips and you bust, which loses the game, so call the claims you really doubt."
     },
     {
       "say": "When a claim looks honest, just <b>pass</b>: the move stands, and nobody pays anything. The Professor claims Knight again. Pass this time.",
@@ -205,7 +205,7 @@
           "type": "pass"
         }
       ],
-      "hint": "Press Pass.",
+      "hint": "Press Pass in the bar under the board, or the P key.",
       "success": "In real matches, watch each opponent's habits (their tells) to decide."
     }
   ]
