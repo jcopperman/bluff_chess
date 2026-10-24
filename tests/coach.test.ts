@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, applyAction, getPlayerView, CLASSIC_ARRANGEMENT } from '../engine/index.ts';
 import type { Arrangement, PieceInit } from '../engine/index.ts';
-import { explainIllegal, blunderCheck, claimAdvice, callAdvice } from '../coach/advice.ts';
+import { explainIllegal, whyStuck, blunderCheck, claimAdvice, callAdvice } from '../coach/advice.ts';
 
 const P = (id: string, owner: 'white' | 'black', type: PieceInit['type'], square: string, extra: Partial<PieceInit> = {}): PieceInit =>
   ({ id, owner, type, square, ...extra });
@@ -87,4 +87,21 @@ test('callAdvice: catching a lie that escaped mate is checkmate', () => {
   const advice = callAdvice(getPlayerView(s, 'white'), 'Pip');
   assert.ok(advice!.lines.some((l) => /checkmate/.test(l)));
   assert.equal(advice!.lean, 'call');
+});
+
+test('whyStuck: pinned, blocked, and in check', () => {
+  const base = [P('w-k', 'white', 'king', 'e1'), P('b-k', 'black', 'king', 'h8'), P('w-pd', 'white', 'pawn', 'd2')];
+  // A card claiming bishop on b4 pins the d2 pawn to the king.
+  const pinned = whyStuck(getPlayerView(createGame({ pieces: [...base, P('b-c8', 'black', 'knight', 'b4', { claim: 'bishop', hasMoved: true })] }), 'white'), 'd2')!;
+  assert.equal(pinned.title, 'Pinned');
+  assert.match(pinned.text, /card claiming bishop on b4/);
+  assert.deepEqual(pinned.squares, ['b4']);
+
+  const blocked = whyStuck(getPlayerView(createGame({ pieces: [...base, P('b-pd', 'black', 'pawn', 'd3')] }), 'white'), 'd2')!;
+  assert.equal(blocked.title, 'Pawn is blocked');
+
+  const checked = whyStuck(getPlayerView(createGame({ pieces: [...base, P('b-r', 'black', 'rook', 'e8', { faceUp: true })] }), 'white'), 'd2')!;
+  assert.match(checked.text, /rook on e8/);
+
+  assert.equal(whyStuck(getPlayerView(createGame({ pieces: base }), 'white'), 'd2'), null);
 });

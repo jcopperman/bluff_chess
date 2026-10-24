@@ -512,6 +512,8 @@ h1, h2, h3 { margin: 0; font-weight: 400; }
 .prompt-text { display: flex; align-items: baseline; gap: 16px; min-width: 0; flex-wrap: wrap; row-gap: 0; }
 .prompt-text > b { font: 700 condensed 30px/1.1 var(--head); text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; }
 .prompt-text span { font-size: 18px; }
+.prompt-small .prompt-text > b { font-size: 24px; }
+.prompt-small .prompt-text span { font-size: 16px; line-height: 1.25; }
 .prompt-done .prompt-text > b { white-space: normal; font-size: 24px; }
 .prompt-wait .prompt-text > b::after { content: '…'; display: inline-block; width: 1em; overflow: hidden; vertical-align: bottom; animation: dots 1.2s steps(4) infinite; }
 .prompt-text span .claim-tag { font-weight: 700; }

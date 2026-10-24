@@ -67,6 +67,51 @@ function geometryFits(t: PieceType, from: number, to: number): boolean {
 }
 
 /** Why can't the selected piece go there? null if the move is legal. */
+/** How a piece reads in a sentence: "the bishop on b4", or "the card claiming bishop on b4". */
+function describeAt(board: Board, idx: number): string {
+  const c = board[idx]!;
+  return `the ${c.hidden ? `card claiming ${c.type}` : c.type} on ${idxToSq(idx)}`;
+}
+
+/**
+ * Why one of your pieces has no legal moves: boxed in, pinned to the king, or unable
+ * to answer a check. Short enough for the prompt bar. `squares` are the pieces
+ * responsible, for highlighting.
+ */
+export function whyStuck(view: PlayerView, from: Square): { title: string; text: string; squares: Square[] } | null {
+  const me = view.viewer, opp = opponent(me);
+  const board = getApparentBoard(view);
+  const fi = sqToIdx(from);
+  const cell = board[fi];
+  if (!cell || cell.color !== me) return null;
+  const opts = { claimLocking: view.config.claimLocking };
+  const mine = (ms: Move[]) => ms.filter((m) => m.from === fi);
+  if (mine(generateMoves(board, me, epIdx(view), opts)).length) return null;
+  const what = cell.hidden ? 'card' : cell.type!;
+  const enemies: number[] = [];
+  board.forEach((c, i) => { if (c && c.color === opp) enemies.push(i); });
+
+  if (inCheck(board, me)) {
+    // Checkers: enemies whose removal ends the check.
+    const checkers = enemies.filter((i) => { const b = board.slice(); b[i] = null; return !inCheck(b, me); });
+    const by = checkers.length === 1 ? ` from ${describeAt(board, checkers[0])}` : '';
+    return { title: "You're in check", text: `Your ${what} can't block the check${by} or capture the attacker.`, squares: checkers.map(idxToSq) };
+  }
+  if (!mine(generateMoves(board, me, epIdx(view), { ...opts, pseudo: true })).length) {
+    return cell.type === 'pawn'
+      ? { title: 'Pawn is blocked', text: "A piece stands in front of it, and there's nothing to capture diagonally.", squares: [] }
+      : { title: 'Boxed in', text: `Your own pieces cover every square your ${what} could reach.`, squares: [] };
+  }
+  // Pinned: lifting the piece off the board exposes the king. Find who would give check.
+  const lifted = board.slice();
+  lifted[fi] = null;
+  const pinner = enemies.find((i) => { const b = lifted.slice(); b[i] = null; return inCheck(lifted, me) && !inCheck(b, me); });
+  if (pinner !== undefined) {
+    return { title: 'Pinned', text: `Moving your ${what} would expose your king to ${describeAt(board, pinner)}.`, squares: [idxToSq(pinner)] };
+  }
+  return { title: 'No legal moves', text: `Every move your ${what} could make would leave your king in check.`, squares: [] };
+}
+
 export function explainIllegal(view: PlayerView, from: Square, to: Square): string | null {
   const me = view.viewer;
   const board = getApparentBoard(view);

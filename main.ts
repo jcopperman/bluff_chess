@@ -8,7 +8,7 @@ import type {
 import { chooseAction, chooseSetup, beliefsFor, applyDifficulty } from './bot/bot.ts';
 import type { LineKey, PersonalityConfig, TableImage } from './bot/bot.ts';
 import { computeBeliefs } from './bot/belief.ts';
-import { explainIllegal, blunderCheck, claimAdvice, callAdvice } from './coach/advice.ts';
+import { explainIllegal, whyStuck, blunderCheck, claimAdvice, callAdvice } from './coach/advice.ts';
 import type { Advice } from './coach/advice.ts';
 import { matchesExpect, startStep, applyAll, recommended } from './lessons/lessons.ts';
 import type { Lesson, Profile } from './lessons/lessons.ts';
@@ -80,6 +80,8 @@ interface Match {
   guard: { action: MoveAction; advice: Advice } | null;
   /** Transient coach note (e.g. why a move is illegal). */
   note: Advice | null;
+  /** Why the last click did nothing; shown in the prompt bar even with the coach off. */
+  stuck: { title: string; text: string; squares: Square[] } | null;
   hover: Square[];
   flip: Set<string>;
   pendingFx: (() => void)[];
@@ -283,7 +285,7 @@ function newMatch(mode: Mode, botId: string, config: GameConfig, state: GameStat
   return {
     mode, botId, bot: app.bots[botId], config, seed, rng, state,
     memory: app.data.memory[botId] || Store.blankMemory(),
-    log: [], snaps: [], guesses: {}, selected: null, choice: null, guard: null, note: null, hover: [], flip: new Set(), pendingFx: [],
+    log: [], snaps: [], guesses: {}, selected: null, choice: null, guard: null, note: null, stuck: null, hover: [], flip: new Set(), pendingFx: [],
     lastMove: null, busy: false, thinking: false, lastThinkMs: null, botThinks: [], mood: 'neutral', over: false,
     newlyUnlocked: [], lesson: null,
   };
@@ -741,7 +743,7 @@ function renderGame(): void {
   boardEl.innerHTML = R.boardHTML(v, {
     me: ME, selected: m.selected, targets, captureTargets, targetClaims: coachOn() ? targetClaims : undefined,
     lastMove: m.lastMove, hover: m.hover, guesses: m.guesses, flip: m.flip, showdownTargets, checkSquare,
-    hints: step && m.lesson?.phase === 'playing' ? step.highlight : undefined, final: v.phase === 'over',
+    hints: step && m.lesson?.phase === 'playing' ? step.highlight : m.stuck?.squares, final: v.phase === 'over',
   });
   if (before) FX.slidePieces(boardEl, before);
   m.flip.clear();
@@ -793,6 +795,8 @@ type PromptTone = 'act' | 'wait' | 'done';
 
 interface Prompt {
   tone: PromptTone;
+  /** Longer explanatory text, set smaller so it fits the bar. */
+  small?: boolean;
   /** Identifies the situation; the bar animates in when it changes. */
   key: string;
   title: string;
@@ -856,6 +860,7 @@ function promptFor(v: PlayerView, actor: Color | null): Prompt {
         buttons: '<button class="btn" data-act="cancel-choice">Cancel</button>',
       };
     }
+    if (m.stuck) return { tone: 'act', key: `move-${v.fullmove}`, title: esc(m.stuck.title), sub: esc(m.stuck.text), small: true };
     const check = E.inCheck(E.getApparentBoard(v), ME);
     return { tone: 'act', key: `move-${v.fullmove}`, title: check ? 'Your move: check!' : 'Your move', sub: moveHint(v) };
   }
@@ -890,6 +895,7 @@ function renderPrompt(v: PlayerView, actor: Color | null): void {
   } else {
     bar.className = bar.className.replace(/prompt-(act|wait|done)/, `prompt-${p.tone}`);
   }
+  bar.classList.toggle('prompt-small', !!p.small);
   if (bar.innerHTML !== html) bar.innerHTML = html;
 
   const frame = el('.board-frame');
@@ -1039,6 +1045,7 @@ function onSquare(sq: Square): void {
     m.guard = null;
     m.selected = null;
   }
+  m.stuck = null;
   const v = view();
   const actor = E.getActor(v);
   if (actor !== ME) return;
@@ -1065,7 +1072,7 @@ function onSquare(sq: Square): void {
     }
     if (!(p && p.owner === ME)) {
       // Not a legal destination: explain why.
-      if (coachOn()) m.note = { tone: 'info', title: 'Can\'t move there', lines: [explainIllegal(v, m.selected, sq) ?? 'That move isn\'t allowed.'] };
+      m.stuck = { title: 'Can\'t move there', text: explainIllegal(v, m.selected, sq) ?? 'That move isn\'t allowed.', squares: [] };
       Sound.play('error');
       return renderGame();
     }
@@ -1077,7 +1084,7 @@ function onSquare(sq: Square): void {
       Sound.play('select');
     } else {
       m.selected = null;
-      if (coachOn()) m.note = { tone: 'info', title: 'No legal moves', lines: [E.inCheck(E.getApparentBoard(v), ME) ? 'That piece can\'t help: you\'re in check, so you must deal with the check first.' : 'That piece has no legal moves right now.'] };
+      m.stuck = whyStuck(v, sq) ?? { title: 'No legal moves', text: 'That piece can\'t move right now.', squares: [] };
       Sound.play('error');
     }
   } else {
