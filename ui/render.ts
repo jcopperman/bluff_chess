@@ -259,9 +259,9 @@ export function titleScreen(): string {
 }
 
 export function hubScreen({ nudge }: { nudge: string | null }): string {
-  const card = (act: string, n: string, piece: PieceType, label: string, sub: string) =>
-    `<button class="menu-card" data-act="${act}">
-      <span class="mc-num">${n}</span><span class="mc-art pc-white">${pieceSVG(piece)}</span>
+  const card = (act: string, n: string, piece: PieceType, label: string, sub: string, soon = false) =>
+    `<button class="menu-card${soon ? ' menu-soon' : ''}"${soon ? ' disabled aria-disabled="true"' : ` data-act="${act}"`}>
+      ${soon ? '<span class="mc-soon">Coming soon</span>' : ''}<span class="mc-num">${n}</span><span class="mc-art pc-white">${pieceSVG(piece)}</span>
       <span class="mc-label">${label}</span><span class="mc-sub">${sub}</span></button>`;
   return `<section class="hub">
     <h1 class="wordmark small">Bluff <span class="red">Chess</span></h1>
@@ -269,7 +269,8 @@ export function hubScreen({ nudge }: { nudge: string | null }): string {
       ${card('go-circuit', 'I', 'king', 'Circuit', 'Five opponents, in order')}
       ${card('go-lessons', 'II', 'pawn', 'Lessons', 'Learn the game')}
       ${card('go-free', 'III', 'knight', 'Free play', 'Your rules, any unlocked opponent')}
-      ${card('codex', 'IV', 'rook', 'Rulebook', 'Rules and pieces')}
+      ${card('go-pvp', 'IV', 'queen', 'PvP', 'Play a friend', true)}
+      ${card('codex', 'V', 'rook', 'Rulebook', 'Rules and pieces')}
     </div>
     ${nudge ? `<p class="nudge">${nudge}</p>` : ''}
   </section>`;

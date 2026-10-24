@@ -97,11 +97,18 @@ h1, h2, h3 { margin: 0; font-weight: 400; }
 
 /* ---------- hub ---------- */
 .hub { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 42px; }
-.menu-row { display: flex; gap: 34px; }
+.menu-row { display: flex; gap: 28px; }
 .menu-card { width: 250px; height: 360px; display: grid; grid-template-rows: auto 1fr auto auto; justify-items: center; padding: 22px 18px 24px; cursor: pointer; border: 0; border-radius: 4px;
   background: var(--paper); color: var(--ink); box-shadow: var(--frame), 0 3px 0 rgba(0,0,0,0.45); transition: transform 0.15s ease-out; }
 .menu-card:hover { transform: translateY(-8px); }
 .menu-card:hover .mc-label { color: var(--red); }
+.menu-card { position: relative; }
+.menu-soon { cursor: default; }
+.menu-soon:hover { transform: none; }
+.menu-soon:hover .mc-label { color: inherit; }
+.menu-soon .mc-num, .menu-soon .mc-art, .menu-soon .mc-label, .menu-soon .mc-sub { opacity: 0.4; }
+.mc-soon { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-12deg); white-space: nowrap; padding: 4px 14px;
+  font: 700 condensed 24px var(--head); text-transform: uppercase; letter-spacing: 0.04em; color: var(--red); border: 3px solid var(--red); background: var(--paper); }
 .mc-num { font: 700 condensed 22px var(--head); text-transform: uppercase; color: var(--ink-2); }
 .mc-art { width: 130px; height: 130px; align-self: center; }
 .mc-art .piece-svg { width: 100%; height: 100%; }
@@ -557,6 +564,7 @@ h1, h2, h3 { margin: 0; font-weight: 400; }
 .opp-row { flex-wrap: wrap; row-gap: 30px; }
 .toc { max-width: 100%; }
 [data-layout=portrait] .menu-row { display: grid; grid-template-columns: repeat(2, 250px); gap: 30px; }
+[data-layout=portrait] .menu-row > :last-child { grid-column: 1 / -1; justify-self: center; }
 [data-layout=portrait] .modal-wide { width: 100%; }
 [data-layout=portrait] .cx-index { columns: 2; column-gap: 30px; max-height: none; border-right: 0; border-bottom: 1px solid var(--ink); }
 [data-layout=portrait] .cx-index h2 { column-span: all; }
