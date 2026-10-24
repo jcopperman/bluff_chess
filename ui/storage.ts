@@ -15,6 +15,10 @@ export interface Settings {
   coach: 'auto' | 'on' | 'off';
   difficulty: Difficulty;
   reducedMotion: boolean;
+  /** Which side to play against bots. */
+  seat: Color | 'random';
+  /** Name shown to online opponents. */
+  playerName: string;
 }
 
 export interface SaveData {
@@ -22,14 +26,15 @@ export interface SaveData {
   memory: Record<string, TableImage>;
   profile: Profile | null;
   lessonsDone: string[];
+  puzzlesDone: string[];
   matchesPlayed: number;
   settings: Settings;
 }
 
 export function blank(): SaveData {
   return {
-    records: {}, memory: {}, profile: null, lessonsDone: [], matchesPlayed: 0,
-    settings: { volume: 0.6, muted: false, coach: 'auto', difficulty: 'normal', reducedMotion: false },
+    records: {}, memory: {}, profile: null, lessonsDone: [], puzzlesDone: [], matchesPlayed: 0,
+    settings: { volume: 0.6, muted: false, coach: 'auto', difficulty: 'normal', reducedMotion: false, seat: 'white', playerName: '' },
   };
 }
 

@@ -49,8 +49,12 @@ export function apparentIfCaught(state: GameState): Board {
 
 /** Stable key of the apparent position, for repetition. */
 export function positionKey(state: GameState): string {
-  const b = getApparentBoard(state);
-  let key = state.turn[0] + (state.ep || '-');
+  return boardKey(getApparentBoard(state), state.turn, state.ep);
+}
+
+/** Repetition key of an apparent board with `turn` to move. */
+export function boardKey(b: Board, turn: Color, ep: string | null): string {
+  let key = turn[0] + (ep || '-');
   for (let i = 0; i < 64; i++) {
     const c = b[i];
     if (c) key += idxToSq(i) + c.color[0] + (c.type ? c.type[0] + c.type[1] : '??') + (c.hasMoved ? '' : '*');
@@ -80,5 +84,25 @@ export function getPlayerView(state: GameState, player: Color): PlayerView {
   for (const a of v.history) {
     if (a.type === 'setup' && a.player !== player) delete a.arrangement;
   }
+  return v;
+}
+
+/**
+ * What a spectator sees: both sides' hidden identities stripped. Used for
+ * anything shown to both players at once (the shared log in pass-and-play).
+ */
+export function getPublicView(state: GameState): PlayerView {
+  const v = getPlayerView(state, 'white');
+  if (state.revealed) return v;
+  const hiddenIds = new Set<string>();
+  for (const p of v.pieces) {
+    if (!p.faceUp) {
+      p.type = null;
+      hiddenIds.add(p.id);
+    }
+  }
+  if (v.pending) delete v.pending.honest;
+  for (const c of v.claims) if (hiddenIds.has(c.pieceId)) delete c.honest;
+  for (const a of v.history) if (a.type === 'setup') delete a.arrangement;
   return v;
 }

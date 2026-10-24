@@ -1,0 +1,25 @@
+{
+  "id": "showdown",
+  "title": "Pick your showdown",
+  "blurb": "Checkmated by two claims. Only one of them can be true.",
+  "say": "You're checkmated on the apparent board by two claimed cards. You have <b>one chip</b>: enough for one showdown. Expose a lying card and the mate breaks. Expose an honest one and you lose. Which card?",
+  "position": {
+    "chips": { "white": 1, "black": 3 },
+    "pieces": [
+      { "id": "w-k", "owner": "white", "type": "king", "square": "h1" },
+      { "id": "w-pa", "owner": "white", "type": "pawn", "square": "a4" },
+      { "id": "b-k", "owner": "black", "type": "king", "square": "e8" },
+      { "id": "b-a8", "owner": "black", "type": "rook", "square": null, "faceUp": true, "captured": true },
+      { "id": "b-h8", "owner": "black", "type": "rook", "square": null, "faceUp": true, "captured": true },
+      { "id": "b-d8", "owner": "black", "type": "queen", "square": "f3", "claim": "queen", "hasMoved": true },
+      { "id": "b-c8", "owner": "black", "type": "bishop", "square": "a1", "claim": "rook", "hasMoved": true },
+      { "id": "b-pa", "owner": "black", "type": "pawn", "square": "a5" },
+      { "id": "b-pg", "owner": "black", "type": "pawn", "square": "g3", "hasMoved": true }
+    ]
+  },
+  "goal": { "type": "breakMate" },
+  "opponent": "marlowe",
+  "solution": [{ "type": "showdown", "player": "white", "targetPieceId": "b-c8" }],
+  "explain": "Both of Black's rooks are in the lost pile, so the card on a1 <b>can't be a rook</b>. Exposing it removes it, and your king escapes to g1. The card on f3 could well be the queen it claims.",
+  "hint": "Count Black's rooks."
+}

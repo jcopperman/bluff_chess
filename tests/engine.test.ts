@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import {
-  createGame, applyAction, getLegalActions, getPlayerView, getApparentBoard, getActor,
+  createGame, applyAction, getLegalActions, getPlayerView, getPublicView, getApparentBoard, getActor,
   inCheck, createRng, randomArrangement, CLASSIC_ARRANGEMENT,
 } from '../engine/index.ts';
 import type { Action, Arrangement, Color, GameConfig, GameEvent, GameState, Piece, Result, Square } from '../engine/index.ts';
@@ -143,4 +143,16 @@ test('everything is revealed when the game is over', () => {
   state = applyAction(state, { type: 'resign', player: 'black' }).state;
   const view = getPlayerView(state, 'white');
   assert.ok(view.pieces.every((p) => p.type));
+});
+
+test('public view: neither side\'s hidden cards, claim honesty or arrangement', () => {
+  // b1 is really a bishop, so the knight claim is a lie.
+  let s = createGame({ setups: { white: ['rook', 'bishop', 'knight', 'queen', 'bishop', 'knight', 'rook'], black: [...CLASSIC_ARRANGEMENT] } });
+  s = applyAction(s, { type: 'move', player: 'white', from: 'b1', to: 'c3', claim: 'knight' }).state;
+  const v = getPublicView(s);
+  assert.ok(v.pieces.filter((p) => !p.faceUp).every((p) => p.type === null));
+  assert.equal(v.pending?.honest, undefined);
+  assert.ok(v.claims.every((c) => c.honest === undefined));
+  assert.ok(v.history.every((a) => a.type !== 'setup' || !a.arrangement));
+  assert.equal(getApparentBoard(v).filter(Boolean).length, getApparentBoard(s).filter(Boolean).length);
 });

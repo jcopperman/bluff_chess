@@ -3,7 +3,7 @@
 
 import {
   getApparentBoard, apparentIfCaught, generateMoves, makeMove, opponent, sqToIdx, idxToSq, inCheck,
-  randomArrangement, PIECE_COUNTS,
+  randomArrangement, boardKey, PIECE_COUNTS,
 } from '../engine/index.ts';
 import type {
   Action, Arrangement, Board, Cell, ClaimType, Color, Move, MoveAction, PieceType, PlayerView, Rng, Square,
@@ -52,6 +52,10 @@ export function applyDifficulty(personality: PersonalityConfig, level: Difficult
   }
   if (level === 'harder') {
     return { ...p, chessStrength: Math.min(3, p.chessStrength + 1), mistakeRate: Math.max(0, p.mistakeRate - 0.15), callThreshold: p.callThreshold - 20 };
+  }
+  if (level === 'expert') {
+    // Strength 4 switches on the determinized search below.
+    return { ...p, chessStrength: 4, mistakeRate: 0, callThreshold: p.callThreshold - 20 };
   }
   return p;
 }
@@ -207,7 +211,7 @@ function chooseMove(view: PlayerView, p: Personality, memory: Partial<TableImage
   const sBoard = toSearchBoard(board, me, trueType, beliefs);
 
   const depth = p.chessStrength >= 2 ? 2 : 1;
-  const noise = ({ 1: 70, 2: 20, 3: 6 } as Record<number, number>)[p.chessStrength] ?? 20;
+  const noise = ({ 1: 70, 2: 20, 3: 6, 4: 0 } as Record<number, number>)[p.chessStrength] ?? 20;
   const ctx = { nodes: 0, maxNodes: 120000 };
 
   // Public claim counts of our own pieces, to spot claims the opponent could prove false.
@@ -267,8 +271,10 @@ function chooseMove(view: PlayerView, p: Personality, memory: Partial<TableImage
     return { m, score, ev, callable, honest, pCall, cell };
   });
 
-  // Strong bots look one ply deeper at their best candidates.
-  if (p.chessStrength >= 3) {
+  // Expert bots search their best candidates across sampled hidden arrangements;
+  // strong bots look one ply deeper at them.
+  if (p.chessStrength >= 4) refineByDeterminization(view, board, scored, beliefs, trueType, rng);
+  else if (p.chessStrength >= 3) {
     const top = scored.slice().sort((a, b) => b.score - a.score).slice(0, 8);
     for (const s of top) {
       const sAfter = toSearchBoard(makeMove(board, s.m), me, trueType, beliefs);
@@ -319,6 +325,84 @@ function chooseMove(view: PlayerView, p: Personality, memory: Partial<TableImage
   if (m.promo) action.promotion = m.promo;
   const tells = applyTells(p, rng, { callable: chosen.callable, bluff: !chosen.honest, from: action.from }, view);
   return { action, ...tells, debug: { bluff: !chosen.honest, ev: Math.round(chosen.ev), phase, standing, nodes: ctx.nodes } };
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2: determinized search (expert difficulty)
+//
+// The Phase 1 search treats each unclaimed enemy card as a piece that may move
+// as any type, which makes it cautious around every card. Here we sample
+// concrete identities for the hidden cards from the belief model, search each
+// sampled world a ply deeper with perfect information, and average. Hidden
+// information is only ever sampled from public beliefs, never read.
+
+const WORLDS = 6;
+const CANDIDATES = 6;
+const WORLD_DEPTH = 3;
+const WORLD_NODES = 12000;
+
+/** One concrete assignment of true types to the opponent's hidden cards, consistent with the counts. */
+export function sampleWorld(beliefs: Beliefs, rng: Rng): Record<string, ClaimType> {
+  const left = { ...beliefs.remaining };
+  const out: Record<string, ClaimType> = {};
+  for (const id of rng.shuffle(beliefs.hiddenIds)) {
+    const dist = beliefs.probs[id];
+    const options = (['rook', 'knight', 'bishop', 'queen'] as ClaimType[]).filter((t) => left[t] > 0);
+    if (!options.length) continue;
+    const weights = options.map((t) => (dist ? dist[t] : 1) + 1e-6);
+    let r = rng.next() * weights.reduce((a, b) => a + b, 0);
+    let pick = options[options.length - 1];
+    for (let i = 0; i < options.length; i++) {
+      r -= weights[i];
+      if (r <= 0) { pick = options[i]; break; }
+    }
+    out[id] = pick;
+    left[pick]--;
+  }
+  return out;
+}
+
+/** The search board for one sampled world: enemy cards move as their claim, or their sampled type when unclaimed. */
+function worldBoard(board: Board, me: Color, trueType: TrueTypes, world: Record<string, ClaimType>, beliefs: Beliefs): Board {
+  return toSearchBoard(board, me, trueType, beliefs).map((c) => {
+    if (!c || c.color === me || !c.hidden) return c;
+    const t = world[c.id];
+    if (!t) return c;
+    return { ...c, type: c.claim ?? t, hidden: false, value: VALUES[t] };
+  });
+}
+
+function refineByDeterminization(view: PlayerView, board: Board, scored: ScoredMove[], beliefs: Beliefs, trueType: TrueTypes, rng: Rng): void {
+  const me = view.viewer, opp = opponent(me);
+  const worlds = Array.from({ length: WORLDS }, () => sampleWorld(beliefs, rng));
+  const byScore = scored.slice().sort((a, b) => b.score - a.score);
+  // The best few moves, plus the best lie so a bluff is judged on the same footing.
+  const top = byScore.slice(0, CANDIDATES);
+  const lie = byScore.find((s) => !s.honest);
+  if (lie && !top.includes(lie)) top.push(lie);
+  for (const s of top) {
+    if (Math.abs(s.score) >= MATE - 1000) continue;
+    const after = makeMove(board, s.m);
+    const ep = s.m.double ? (s.m.from + s.m.to) / 2 : -1;
+    let total = 0;
+    for (const w of worlds) {
+      total += -search(worldBoard(after, me, trueType, w, beliefs), opp, WORLD_DEPTH, -MATE - 1, MATE + 1, ep, { nodes: 0, maxNodes: WORLD_NODES });
+    }
+    const delta = total / worlds.length - s.score;
+    s.score += delta;
+    s.ev += s.callable && !s.honest ? delta * (1 - s.pCall) : delta;
+  }
+  // Don't repeat the position when ahead: a third repetition is a draw.
+  if (!view.config.repetition) return;
+  for (const s of scored) {
+    if (s.score <= 50) continue;
+    const ep = s.m.double ? idxToSq((s.m.from + s.m.to) / 2) : null;
+    const seen = view.positions[boardKey(makeMove(board, s.m), opp, ep)] ?? 0;
+    if (!seen) continue;
+    const delta = (seen >= 2 ? 0 : s.score - 40) - s.score;
+    s.score += delta;
+    s.ev += delta;
+  }
 }
 
 // ---------------------------------------------------------------------------

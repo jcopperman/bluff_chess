@@ -7,6 +7,8 @@ export interface InputHandlers {
   hover(pieceId: string, el: HTMLElement): void;
   unhover(): void;
   knob(name: string, value: string | boolean): void;
+  /** Text typed into a [data-field] input. */
+  field(name: string, value: string): void;
   key(key: string, e: KeyboardEvent): void;
 }
 
@@ -40,6 +42,11 @@ export function bindInput(root: HTMLElement, h: InputHandlers): void {
   });
 
   root.addEventListener('input', (e) => {
+    const f = closest(e, '[data-field]');
+    if (f instanceof HTMLInputElement) {
+      h.field(f.dataset.field!, f.value);
+      return;
+    }
     const k = closest(e, '[data-knob]');
     if (!k) return;
     const value = k instanceof HTMLInputElement && k.type === 'checkbox' ? k.checked : (k as HTMLInputElement | HTMLSelectElement).value;

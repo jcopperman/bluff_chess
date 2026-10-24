@@ -7,5 +7,5 @@
     "outDir": "dist",
     "sourceMap": true
   },
-  "include": ["main.ts", "engine/**/*.ts", "bot/**/*.ts", "coach/**/*.ts", "lessons/**/*.ts", "ui/**/*.ts"]
+  "include": ["main.ts", "engine/**/*.ts", "bot/**/*.ts", "coach/**/*.ts", "lessons/**/*.ts", "puzzles/**/*.ts", "net/**/*.ts", "ui/**/*.ts"]
 }

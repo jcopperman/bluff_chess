@@ -16,7 +16,7 @@ export type LineKey =
 
 export type GamePhase = 'opening' | 'middlegame' | 'endgame';
 /** A player-chosen difficulty applied on top of each personality. */
-export type Difficulty = 'easier' | 'normal' | 'harder';
+export type Difficulty = 'easier' | 'normal' | 'harder' | 'expert';
 export type Standing = 'ahead' | 'even' | 'behind';
 
 export interface Personality {
@@ -27,7 +27,7 @@ export interface Personality {
   color: string;
   blurb: string;
   teaches: string;
-  /** 1-3: search depth and evaluation noise. */
+  /** 1-3: search depth and evaluation noise. 4 (expert difficulty only) adds determinized search. */
   chessStrength: number;
   /** 0-1: chance per move of settling for another reasonable move instead of the best. */
   mistakeRate: number;

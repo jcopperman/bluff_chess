@@ -5,7 +5,7 @@ import {
   createGame, applyAction, getLegalActions, getPlayerView, getActor, createRng, randomArrangement, CLASSIC_ARRANGEMENT,
 } from '../engine/index.ts';
 import type { Action, Arrangement, ClaimType, GameState, PlayerView } from '../engine/index.ts';
-import { chooseAction } from '../bot/bot.ts';
+import { chooseAction, applyDifficulty, sampleWorld } from '../bot/bot.ts';
 import type { Decision, PersonalityConfig, TableImage } from '../bot/bot.ts';
 import { computeBeliefs } from '../bot/belief.ts';
 
@@ -157,4 +157,33 @@ test('calls: a bot calls a claim whose lie would leave its opponent mated', () =
   for (const seed of [1, 2, 3]) {
     assert.equal(decide(getPlayerView(s, 'white'), load('deacon'), {}, seed).action.type, 'call');
   }
+});
+
+test('expert: sampled worlds respect the piece counts', () => {
+  let s = createGame({ setups: { white: classic(), black: classic() } });
+  s = applyAction(s, { type: 'move', player: 'white', from: 'b1', to: 'c3', claim: 'knight' }).state;
+  s = applyAction(s, { type: 'pass', player: 'black' }).state;
+  const beliefs = computeBeliefs(getPlayerView(s, 'black'));
+  const rng = createRng(3);
+  for (let i = 0; i < 50; i++) {
+    const counts: Record<string, number> = {};
+    for (const t of Object.values(sampleWorld(beliefs, rng))) counts[t] = (counts[t] || 0) + 1;
+    assert.deepEqual(counts, { rook: 2, knight: 2, bishop: 2, queen: 1 });
+  }
+});
+
+test("expert: legal decisions that don't depend on the opponent's hidden arrangement", () => {
+  const expert = applyDifficulty(load('widow'), 'expert');
+  const blackSetups: Arrangement[] = [classic(), ['queen', 'knight', 'rook', 'bishop', 'rook', 'knight', 'bishop']];
+  const decisions = blackSetups.map((blackSetup) => {
+    let s = createGame({ setups: { white: classic(), black: blackSetup } });
+    s = applyAction(s, { type: 'move', player: 'white', from: 'e2', to: 'e4' }).state;
+    s = applyAction(s, { type: 'move', player: 'black', from: 'b8', to: 'c6', claim: 'knight' }).state;
+    s = applyAction(s, { type: 'pass', player: 'white' }).state;
+    const v = getPlayerView(s, 'white');
+    const d = decide(v, expert, {}, 11);
+    assert.ok(getLegalActions(v, 'white').some((a) => sameAction(a, d.action)));
+    return d;
+  });
+  assert.ok(sameAction(decisions[0].action, decisions[1].action));
 });

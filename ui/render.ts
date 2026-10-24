@@ -7,6 +7,7 @@ import type { Arrangement, Board, ClaimRecord, ClaimType, Color, GameState, Piec
 import type { Difficulty, PersonalityConfig, TypeDist } from '../bot/bot.ts';
 import type { Advice } from '../coach/advice.ts';
 import type { Lesson, Profile } from '../lessons/lessons.ts';
+import type { Puzzle } from '../puzzles/puzzles.ts';
 import { pieceSVG } from './art/pieces.ts';
 import { emblemSVG, numeral } from './art/emblems.ts';
 import type { Mood } from './art/emblems.ts';
@@ -92,14 +93,21 @@ export interface BoardOptions {
   final?: boolean;
 }
 
+/** Rank and file order from the top-left corner, seen from `me`'s side of the table. */
+export function boardOrder(me: Color): { ranks: number[]; files: number[] } {
+  const up = [0, 1, 2, 3, 4, 5, 6, 7];
+  return me === 'black' ? { ranks: up, files: [...up].reverse() } : { ranks: [...up].reverse(), files: up };
+}
+
 /** Works on a player view, or on the full state once the game is over (with opts.final). */
 export function boardHTML(view: GameState, opts: BoardOptions): string {
   const bySq: Record<Square, Piece> = {};
   for (const p of view.pieces) if (!p.captured && p.square) bySq[p.square] = p;
   const pendingSqs = view.pending ? [view.pending.from, view.pending.to] : [];
+  const { ranks, files } = boardOrder(opts.me);
   let html = '';
-  for (let r = 7; r >= 0; r--) {
-    for (let f = 0; f < 8; f++) {
+  for (const r of ranks) {
+    for (const f of files) {
       const sq = 'abcdefgh'[f] + (r + 1);
       const cls = ['sq', (f + r) % 2 === 0 ? 'dark' : 'light'];
       let marker = '';
@@ -118,8 +126,8 @@ export function boardHTML(view: GameState, opts: BoardOptions): string {
       if (opts.checkSquare === sq) cls.push('in-check');
       if (opts.hints?.includes(sq)) cls.push('hint-sq');
       const p = bySq[sq];
-      const coordF = r === 0 ? `<span class="coord coord-f">${'abcdefgh'[f]}</span>` : '';
-      const coordR = f === 0 ? `<span class="coord coord-r">${r + 1}</span>` : '';
+      const coordF = r === ranks[7] ? `<span class="coord coord-f">${'abcdefgh'[f]}</span>` : '';
+      const coordR = f === files[0] ? `<span class="coord coord-r">${r + 1}</span>` : '';
       html += `<div class="${cls.join(' ')}" data-sq="${sq}">${coordF}${coordR}${p ? pieceHTML(p, opts) : ''}${marker}</div>`;
     }
   }
@@ -153,10 +161,12 @@ export function capturedTray(view: GameState, owner: Color): string {
 // ---------------------------------------------------------------------------
 // Opponent cards
 
-export function characterCard(bot: PersonalityConfig, num: number, opts: { mood?: Mood; active?: boolean; small?: boolean } = {}): string {
+/** `num` is the corner index: a numeral for characters, or a letter (W, B) for human players. */
+export function characterCard(bot: PersonalityConfig, num: number | string, opts: { mood?: Mood; active?: boolean; small?: boolean } = {}): string {
   const mood = opts.mood ?? 'neutral';
+  const corner = typeof num === 'number' ? numeral(num) : esc(num);
   return `<div class="ccard mood-${mood}${opts.active ? ' active' : ''}${opts.small ? ' small' : ''}">
-    <span class="cc-corner cc-tl">${numeral(num)}</span><span class="cc-corner cc-br">${numeral(num)}</span>
+    <span class="cc-corner cc-tl">${corner}</span><span class="cc-corner cc-br">${corner}</span>
     <div class="cc-emblem">${emblemSVG(bot.id)}</div>
     <div class="cc-name">${esc(bot.name)}</div>
     ${mood === 'caught' ? '<span class="cc-stamp">Caught</span>' : mood === 'beaten' ? '<span class="cc-stamp beaten">Beaten</span>' : ''}
@@ -167,18 +177,22 @@ export function cardBack(label = ''): string {
   return `<div class="ccard back"><span class="cb-label">${label}</span></div>`;
 }
 
-export function oppPanelHTML({ bot, num, mood, chips, tray, thinking, isTurn }: {
-  bot: PersonalityConfig; num: number; mood: Mood; chips: number; tray: string; thinking: boolean; isTurn: boolean;
+export function oppPanelHTML({ bot, num, mood, chips, tray, thinking, isTurn, color, status }: {
+  bot: PersonalityConfig; num: number | string; mood: Mood; chips: number; tray: string; thinking: boolean; isTurn: boolean; color: Color;
+  /** Overrides the turn pill, e.g. "Offline" for a disconnected online opponent. */
+  status?: string;
 }): string {
+  const pill = status ? `<span class="turn-pill muted">${esc(status)}</span>`
+    : thinking ? '<span class="turn-pill muted">Thinking<span class="dots"></span></span>' : isTurn ? '<span class="turn-pill muted">To act</span>' : '';
   return `${characterCard(bot, num, { mood, active: isTurn })}
-    <div class="seat"><div class="seat-name">${esc(bot.name)}</div><div class="seat-status">${thinking ? '<span class="turn-pill muted">Thinking<span class="dots"></span></span>' : isTurn ? '<span class="turn-pill muted">To act</span>' : ''}</div></div>
-    <div class="seat-row">${purse(chips, 'black')}</div>
+    <div class="seat"><div class="seat-name">${esc(bot.name)}</div><div class="seat-status">${pill}</div></div>
+    <div class="seat-row">${purse(chips, color)}</div>
     ${tray ? `<div class="tray"><span class="tray-label">Lost</span>${tray}</div>` : ''}`;
 }
 
-export function mePanelHTML({ chips, tray, isTurn }: { chips: number; tray: string; isTurn: boolean }): string {
-  return `<div class="seat"><div class="seat-name">You</div><div class="seat-status">${isTurn ? '<span class="turn-pill">Your turn</span>' : ''}</div></div>
-    <div class="seat-row">${purse(chips, 'white')}</div>
+export function mePanelHTML({ chips, tray, isTurn, color, name = 'You' }: { chips: number; tray: string; isTurn: boolean; color: Color; name?: string }): string {
+  return `<div class="seat"><div class="seat-name">${esc(name)}</div><div class="seat-status">${isTurn ? '<span class="turn-pill">Your turn</span>' : ''}</div></div>
+    <div class="seat-row">${purse(chips, color)}</div>
     ${tray ? `<div class="tray"><span class="tray-label">Lost</span>${tray}</div>` : ''}`;
 }
 
@@ -193,7 +207,7 @@ export function trackerHTML(view: GameState, opp: Color): string {
     }
     const possible = PIECE_COUNTS[t] - dead;
     const over = claimed > possible;
-    return `<div class="trk-row${over ? ' over' : ''}">${pieceIcon(t, 'black')}<span>${typeName(t)}</span><span class="trk-val">${claimed}/${possible}</span></div>`;
+    return `<div class="trk-row${over ? ' over' : ''}">${pieceIcon(t, opp)}<span>${typeName(t)}</span><span class="trk-val">${claimed}/${possible}</span></div>`;
   }).join('');
   const unclaimed = view.pieces.filter((p) => p.owner === opp && !p.faceUp && !p.claim && !p.captured).length;
   return `<div class="sheet-head"><span>${codexLink('counting', 'Claim tracker')}</span><small>their claims / possible</small></div>
@@ -216,7 +230,7 @@ export function logHTML(log: LogEntry[]): string {
 export function tooltipHTML(piece: Piece, dist: TypeDist | undefined, history: ClaimRecord[], guess: ClaimType | undefined): string {
   const rows = CLAIMABLE.filter((t) => dist && dist[t] > 0.001)
     .sort((a, b) => dist![b] - dist![a])
-    .map((t) => `<div class="tt-row">${pieceIcon(t, 'black')}<span>${typeName(t)}</span><span class="tt-bar"><i style="width:${Math.round(dist![t] * 100)}%"></i></span><span>${Math.round(dist![t] * 100)}%</span></div>`)
+    .map((t) => `<div class="tt-row">${pieceIcon(t, piece.owner)}<span>${typeName(t)}</span><span class="tt-bar"><i style="width:${Math.round(dist![t] * 100)}%"></i></span><span>${Math.round(dist![t] * 100)}%</span></div>`)
     .join('');
   const hist = history.length
     ? history.map((h) => `<div class="tt-hist">Move ${h.fullmove}: claimed ${typeName(h.claim)}, ${h.outcome === 'passed' ? 'not called' : h.outcome}</div>`).join('')
@@ -259,18 +273,19 @@ export function titleScreen(): string {
 }
 
 export function hubScreen({ nudge }: { nudge: string | null }): string {
-  const card = (act: string, n: string, piece: PieceType, label: string, sub: string, soon = false) =>
-    `<button class="menu-card${soon ? ' menu-soon' : ''}"${soon ? ' disabled aria-disabled="true"' : ` data-act="${act}"`}>
-      ${soon ? '<span class="mc-soon">Coming soon</span>' : ''}<span class="mc-num">${n}</span><span class="mc-art pc-white">${pieceSVG(piece)}</span>
+  const card = (act: string, n: string, piece: PieceType, label: string, sub: string) =>
+    `<button class="menu-card" data-act="${act}">
+      <span class="mc-num">${n}</span><span class="mc-art pc-white">${pieceSVG(piece)}</span>
       <span class="mc-label">${label}</span><span class="mc-sub">${sub}</span></button>`;
   return `<section class="hub">
     <h1 class="wordmark small">Bluff <span class="red">Chess</span></h1>
     <div class="menu-row">
-      ${card('go-circuit', 'I', 'king', 'Circuit', 'Five opponents, in order')}
+      ${card('go-circuit', 'I', 'king', 'Circuit', 'Five opponents')}
       ${card('go-lessons', 'II', 'pawn', 'Lessons', 'Learn the game')}
-      ${card('go-free', 'III', 'knight', 'Free play', 'Your rules, any unlocked opponent')}
-      ${card('go-pvp', 'IV', 'queen', 'PvP', 'Play a friend', true)}
-      ${card('codex', 'V', 'rook', 'Rulebook', 'Rules and pieces')}
+      ${card('go-puzzles', 'III', 'bishop', 'Puzzles', 'Positions with a goal')}
+      ${card('go-free', 'IV', 'knight', 'Free play', 'Your rules')}
+      ${card('go-pvp', 'V', 'queen', 'PvP', 'Play a friend')}
+      ${card('codex', 'VI', 'rook', 'Rulebook', 'Rules and pieces')}
     </div>
     ${nudge ? `<p class="nudge">${nudge}</p>` : ''}
   </section>`;
@@ -356,29 +371,127 @@ export function lessonsScreen({ lessons, done, isRecommended, profile }: {
     </div></section>`;
 }
 
-export function setupScreen({ arrangement, picked, bot, num }: { arrangement: Arrangement; picked: number | null; bot: PersonalityConfig; num: number }): string {
-  const cells = 'abcdefgh'.split('').map((f) => {
-    if (f === 'e') return `<div class="slot fixed"><span class="pc pc-white">${pieceSVG('king')}</span><small>e1</small></div>`;
+export function puzzlesScreen({ puzzles, done }: { puzzles: Puzzle[]; done: Set<string> }): string {
+  const rows = puzzles.map((p, i) => `<button class="toc-row${done.has(p.id) ? ' done' : ''}" data-act="start-puzzle" data-puzzle="${p.id}">
+      <span class="toc-num">${numeral(i + 1)}.</span>
+      <span class="toc-title"><b>${esc(p.title)}</b><small>${esc(p.blurb)}</small></span>
+      <span class="toc-tag">${GOAL_TAG[p.goal.type]}${done.has(p.id) ? ' · <span class="red">solved</span>' : ''}</span>
+      <span class="toc-check">${done.has(p.id) ? icon('check') : ''}</span>
+    </button>`).join('');
+  return `<section class="lessons"><header class="page-head"><h2>Puzzles</h2>
+      <p>Each position has one goal. You play white. Retry as often as you like.</p></header>
+    <div class="sheet toc">${rows}</div></section>`;
+}
+
+const GOAL_TAG: Record<Puzzle['goal']['type'], string> = { mate: 'Checkmate', decide: 'Call or pass', breakMate: 'Showdown' };
+
+export interface PvpForm {
+  white: string;
+  black: string;
+  name: string;
+  color: ColorChoice;
+  code: string;
+}
+
+export function pvpScreen({ form, error, busy }: { form: PvpForm; error: string | null; busy: boolean }): string {
+  const pick = (c: ColorChoice, label: string) => `<button class="btn btn-small${form.color === c ? ' btn-ink' : ''}" data-act="pvp-color" data-v="${c}">${label}</button>`;
+  const field = (k: keyof PvpForm, label: string, extra = '') =>
+    `<label class="field"><span>${label}</span><input type="text" data-field="${k}" value="${esc(form[k])}" maxlength="20" autocomplete="off" spellcheck="false" ${extra}></label>`;
+  return `<section class="pvp"><header class="page-head"><h2>Player vs player</h2><p>Play a friend at the same table or over the internet.</p></header>
+    <div class="pvp-body">
+      <div class="sheet pvp-sheet">
+        <h3>Same device</h3>
+        <p>Take turns at one screen. Between turns the board hides, so nobody sees the other player's cards.</p>
+        ${field('white', 'White')}
+        ${field('black', 'Black')}
+        <button class="btn btn-red" data-act="pvp-local">Start</button>
+      </div>
+      <div class="sheet pvp-sheet">
+        <h3>Online</h3>
+        <p>Open a room and send the code to your friend, or join theirs.</p>
+        ${field('name', 'Your name')}
+        <div class="field"><span>Play as</span><span class="seg">${pick('white', 'White')}${pick('black', 'Black')}${pick('random', 'Random')}</span></div>
+        <button class="btn btn-red" data-act="pvp-create" ${busy ? 'disabled' : ''}>Open a room</button>
+        <div class="pvp-join">${field('code', 'Room code', 'class="code-input"')}<button class="btn" data-act="pvp-join" ${busy ? 'disabled' : ''}>Join</button></div>
+      </div>
+    </div>
+    ${error ? `<p class="pvp-error">${esc(error)}</p>` : ''}
+  </section>`;
+}
+
+export function roomScreen({ code, you, names, joined, down }: {
+  code: string; you: Color; names: Record<Color, string>; joined: boolean; down: boolean;
+}): string {
+  const them: Color = you === 'white' ? 'black' : 'white';
+  return `<section class="room">
+    <div class="sheet room-sheet">
+      <div class="kicker">Room code</div>
+      <div class="room-code">${esc(code)}</div>
+      <p>Send this code to your friend. They choose <b>PvP</b>, then <b>Join</b>.</p>
+      <p>You play <b>${you === 'white' ? 'White' : 'Black'}</b>.</p>
+      <p class="room-status">${down ? 'Reconnecting to the server…' : joined ? `${esc(names[them])} has joined.` : 'Waiting for your opponent<span class="dots"></span>'}</p>
+      <div class="modal-actions"><button class="btn" data-act="room-leave">Leave room</button></div>
+    </div>
+  </section>`;
+}
+
+/** Covers the table between turns in pass-and-play, with what happened since this player last looked. */
+export function curtainHTML({ name, color, recent, setup }: { name: string; color: Color; recent: LogEntry[]; setup?: boolean }): string {
+  const other = color === 'white' ? 'Black' : 'White';
+  return `<div class="curtain-card">
+    <span class="curtain-piece pc-${color}">${pieceSVG('king')}</span>
+    <div class="kicker">${setup ? 'Secret setup' : 'Your turn'}</div>
+    <h2>Pass to ${esc(name)}</h2>
+    <p>${other}, look away.</p>
+    ${recent.length ? `<div class="curtain-log"><div class="kicker">Since your last turn</div>${logHTML(recent)}</div>` : ''}
+    <button class="btn btn-red btn-big" data-act="curtain-open">I'm ${esc(name)}: show my pieces</button>
+  </div>`;
+}
+
+export type ColorChoice = Color | 'random';
+
+export function setupScreen({ arrangement, picked, color, colorChoice, heading, side, startLabel = 'Start' }: {
+  arrangement: Arrangement; picked: number | null; color: Color;
+  /** Shown as a White / Black / Random picker when set (bot matches). */
+  colorChoice: ColorChoice | null;
+  heading: string;
+  /** Left column: the opponent's card and status. */
+  side: string;
+  startLabel?: string;
+}): string {
+  const back = color === 'white' ? '1' : '8';
+  const order = boardOrder(color).files.map((f) => 'abcdefgh'[f]);
+  const cells = order.map((f) => {
+    if (f === 'e') return `<div class="slot fixed"><span class="pc pc-${color}">${pieceSVG('king')}</span><small>e${back}</small></div>`;
     const i = (BACK_FILES as readonly string[]).indexOf(f);
     return `<button class="slot${picked === i ? ' picked' : ''}" data-act="setup-swap" data-i="${i}">
-      <span class="pc card card-white mine"><span class="card-face pc-white">${pieceSVG(arrangement[i])}</span></span><small>${f}1</small></button>`;
+      <span class="pc card card-${color} mine"><span class="card-face pc-${color}">${pieceSVG(arrangement[i])}</span></span><small>${f}${back}</small></button>`;
   }).join('');
+  // a1 and h8 are dark: a square is dark when file and rank have the same parity.
+  const rank = Number(back) - 1;
   const bishopColors = [BACK_FILES[arrangement.indexOf('bishop')], BACK_FILES[arrangement.lastIndexOf('bishop')]]
-    .map((f) => ('abcdefgh'.indexOf(f) % 2 === 0 ? 'dark' : 'light'));
+    .map((f) => (('abcdefgh'.indexOf(f) + rank) % 2 === 0 ? 'dark' : 'light'));
+  const pick = (c: ColorChoice, label: string) => `<button class="btn btn-small${colorChoice === c ? ' btn-ink' : ''}" data-act="setup-color" data-v="${c}">${label}</button>`;
   return `<section class="setup">
-    <div class="setup-opp">${characterCard(bot, num, { mood: 'thinking' })}<p>${esc(bot.name)} is arranging in secret.</p></div>
+    <div class="setup-opp">${side}</div>
     <div class="setup-main">
-      <h2>Arrange your back rank</h2>
+      <h2>${esc(heading)}</h2>
+      ${colorChoice ? `<p class="setup-color">Play as <span class="seg">${pick('white', 'White')}${pick('black', 'Black')}${pick('random', 'Random')}</span> <small>White moves first.</small></p>` : ''}
       <p>Your opponent sees only card backs. Click two cards to swap them.</p>
       <div class="slots">${cells}</div>
       <p class="setup-note">${bishopColors[0] === bishopColors[1] ? `Both bishops are on ${bishopColors[0]} squares. That's allowed.` : 'Bishops on opposite colours.'}</p>
       <div class="setup-actions">
         <button class="btn" data-act="setup-classic">Classic</button>
         <button class="btn" data-act="setup-random">Shuffle</button>
-        <button class="btn btn-red" data-act="setup-start">Start</button>
+        <button class="btn btn-red" data-act="setup-start">${esc(startLabel)}</button>
       </div>
     </div>
   </section>`;
+}
+
+/** The setup screen's left column for a bot match. */
+export function setupBotSide(bot: PersonalityConfig, num: number): string {
+  return `${characterCard(bot, num, { mood: 'thinking' })}<p>${esc(bot.name)} is arranging in secret.</p>`;
 }
 
 export function gameShell(mode: string): string {
@@ -394,6 +507,7 @@ export function gameShell(mode: string): string {
       <div class="sheet coach-card" id="coach-card"></div>
       <div class="sheet record"><div id="tracker"></div><div class="log" id="log"></div></div>
     </aside>
+    <div class="curtain hidden" id="curtain"></div>
   </section>`;
 }
 
@@ -413,7 +527,7 @@ export function profileHTML(profile: Partial<Profile>): string {
   </div>`;
 }
 
-export const DIFFICULTY_LABEL: Record<Difficulty, string> = { easier: 'Easier', normal: 'Normal', harder: 'Harder' };
+export const DIFFICULTY_LABEL: Record<Difficulty, string> = { easier: 'Easier', normal: 'Normal', harder: 'Harder', expert: 'Expert' };
 
 export function settingsHTML({ volume, muted, coach, difficulty, reducedMotion }: {
   volume: number; muted: boolean; coach: 'auto' | 'on' | 'off'; difficulty: Difficulty; reducedMotion: boolean;
@@ -422,7 +536,7 @@ export function settingsHTML({ volume, muted, coach, difficulty, reducedMotion }
   const diff = (v: Difficulty) => `<button class="btn btn-small${difficulty === v ? ' btn-ink' : ''}" data-act="difficulty" data-v="${v}">${DIFFICULTY_LABEL[v]}</button>`;
   return `<div class="sheet modal-sheet settings">
     <h2>Settings</h2>
-    <div class="set-row"><span>Difficulty<small>Opponents keep their style; easier ones blunder more and call less.</small></span><span class="seg">${diff('easier')}${diff('normal')}${diff('harder')}</span></div>
+    <div class="set-row"><span>Difficulty<small>Opponents keep their style; easier ones blunder more and call less. Expert searches deeper and never blunders on purpose.</small></span><span class="seg">${diff('easier')}${diff('normal')}${diff('harder')}${diff('expert')}</span></div>
     <label class="set-row"><span>Volume</span><input type="range" min="0" max="100" value="${Math.round(volume * 100)}" data-knob="volume"></label>
     <label class="set-row"><span>Mute</span><input type="checkbox" data-knob="muted" ${muted ? 'checked' : ''}></label>
     <div class="set-row"><span>Coach</span><span class="seg">${seg('auto', 'First 5 games')}${seg('on', 'Always')}${seg('off', 'Off')}</span></div>
@@ -586,9 +700,15 @@ function pickSnaps(state: GameState, snaps: BeliefSnap[]) {
   }).slice(0, 5).sort((a, b) => a.fullmove - b.fullmove);
 }
 
-export function revealHTML({ state, bot, num, snaps, me, newlyUnlocked, resultText, won }: {
-  state: GameState; bot: PersonalityConfig; num: number; snaps: BeliefSnap[]; me: Color; newlyUnlocked: string[]; resultText: string; won: boolean | null;
+export function revealHTML({ state, bot, num, snaps, me, newlyUnlocked, resultText, won, meName = 'You', beliefs: showBeliefs = true }: {
+  state: GameState; bot: PersonalityConfig; num: number | string; snaps: BeliefSnap[]; me: Color; newlyUnlocked: string[]; resultText: string; won: boolean | null;
+  /** "You" against a bot or online; the seat's name in pass-and-play. */
+  meName?: string;
+  /** The bot's beliefs section; off for human opponents. */
+  beliefs?: boolean;
 }): string {
+  const isYou = meName === 'You';
+  const yours = isYou ? 'Your' : `${esc(meName)}'s`;
   const opp: Color = me === 'white' ? 'black' : 'white';
   const you = stats(state, me);
   const them = stats(state, opp);
@@ -612,17 +732,17 @@ export function revealHTML({ state, bot, num, snaps, me, newlyUnlocked, resultTe
         <p class="rv-legend">Cards marked in red were lying when the game ended.</p>
       </div>
       <div class="rv-cols">
-        <div><h3>Your lies</h3>
+        <div><h3>${yours} lies</h3>
           <div class="rv-stat">${count(you.claims, 'claim')}, ${count(you.lies, 'lie')}, ${you.caught} caught</div>
-          ${lieList(groupClaims(state, me), you.claims ? 'None. You played it straight.' : 'You made no claims.', me)}
-          <div class="rv-stat">You called ${count(you.calls, 'time')}, ${you.right} correctly</div></div>
+          ${lieList(groupClaims(state, me), you.claims ? (isYou ? 'None. You played it straight.' : 'None.') : (isYou ? 'You made no claims.' : 'No claims.'), me)}
+          <div class="rv-stat">${isYou ? 'You' : esc(meName)} called ${count(you.calls, 'time')}, ${you.right} correctly</div></div>
         <div><h3>${esc(bot.name)}'s lies</h3>
           <div class="rv-stat">${count(them.claims, 'claim')}, ${count(them.lies, 'lie')}, ${them.caught} caught</div>
           ${lieList(groupClaims(state, opp), them.claims ? 'None.' : 'They made no claims.', opp)}
           <div class="rv-stat">They called ${count(them.calls, 'time')}, ${them.right} correctly</div></div>
       </div>
     </div>
-    <div class="rv-beliefs"><h3>What ${esc(midName(bot.name))} believed</h3>${beliefRows}</div>
+    ${showBeliefs ? `<div class="rv-beliefs"><h3>What ${esc(midName(bot.name))} believed</h3>${beliefRows}</div>` : ''}
     <div class="modal-actions">
       <button class="btn" data-act="close-modal">View board</button>
       <button class="btn" data-act="leave">Leave</button>

@@ -3,5 +3,5 @@
   // game logic never touches browser or platform APIs.
   "extends": "./tsconfig.base.json",
   "compilerOptions": { "lib": ["ES2022"], "noEmit": true },
-  "include": ["engine/**/*.ts", "bot/**/*.ts", "coach/**/*.ts", "lessons/**/*.ts"]
+  "include": ["engine/**/*.ts", "bot/**/*.ts", "coach/**/*.ts", "lessons/**/*.ts", "puzzles/**/*.ts"]
 }

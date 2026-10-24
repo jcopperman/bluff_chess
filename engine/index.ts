@@ -9,10 +9,10 @@ import {
 import { applyMove } from './claims.ts';
 import { applyCall, applyPass } from './calls.ts';
 import { applyShowdown, applyAcceptMate } from './showdown.ts';
-import { getPlayerView, getApparentBoard, apparentIfCaught } from './view.ts';
+import { getPlayerView, getPublicView, getApparentBoard, apparentIfCaught, boardKey } from './view.ts';
 import type { Action, Color, GameEvent, GameState, Result } from './types.ts';
 
-export { createGame, getPlayerView, getApparentBoard, apparentIfCaught };
+export { createGame, getPlayerView, getPublicView, getApparentBoard, apparentIfCaught, boardKey };
 export { randomArrangement, isValidArrangement, CLASSIC_ARRANGEMENT, BACK_FILES, PIECE_COUNTS, DEFAULT_CONFIG } from './state.ts';
 export { opponent, CLAIMABLE, sqToIdx, idxToSq, inCheck, generateMoves, makeMove } from './moves.ts';
 export { createRng } from './rng.ts';

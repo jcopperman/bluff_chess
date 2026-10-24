@@ -126,6 +126,8 @@ Curated positions with a goal, in the spirit of chess puzzles:
 
 Stored as JSON so new puzzles are data, not code. A daily puzzle is a natural later addition.
 
+**As built:** each puzzle is a position, optional scripted moves that set it up, one goal and an opponent personality. There are three goal types: `mate` (win within N of your moves; the opponent bot answers), `decide` (call or pass on a pending claim) and `breakMate` (expose a lie in a showdown). You always play white, and the coach is off. Tests prove every mate puzzle is forced in exactly N moves by searching the full state, calls included.
+
 ### 3.4 Tutorial
 
 A short guided match against a deliberately loose bot that bluffs a lot, teaching: hidden pieces, claims, calling, the apparent board, showdowns.
@@ -199,10 +201,10 @@ Bots with `adaptivity > 0` shift their call threshold based on this. A player wh
 - **Move choice:** shallow search on the apparent board, plus a bluff decision: when a false claim would yield a significantly better move, bluff with probability shaped by `bluffRate` and `bluffContext`.
 - **Call choice:** call when `P(lie) × value of catching it` exceeds `callThreshold`, adjusted by `chipCaution` and table image.
 
-**Phase 2: stronger search (later)**
+**Phase 2: stronger search (built as the Expert difficulty)**
 
-- Determinization / Information Set Monte Carlo Tree Search: sample plausible hidden arrangements from the belief model, search each, aggregate.
-- Watch performance; consider Web Workers so search never blocks the UI.
+- Determinization: sample six plausible hidden arrangements from the belief model, give each enemy card its sampled identity, run a ply-deeper alpha-beta on each world and average the scores of the best few moves (plus the best lie). Full ISMCTS was set aside, because random playouts are weak in chess-like games.
+- All bot decisions run in a Web Worker, falling back to the main thread where workers are unavailable.
 
 ---
 
@@ -355,13 +357,18 @@ Three to five personalities with distinct tells, table image memory, circuit pro
 **M5 — Teaching and polish**
 Tutorial, first set of bluff puzzles, claim tracker, possible-identities readout, reveal animations, final card-back design.
 
-**Later — PvP** (see section 8).
+**PvP** (see section 8): pass-and-play and online rooms are built; a call timer, ratings and hosting are still to do.
 
 ---
 
-## 8. Future: PvP
+## 8. PvP
 
-Not in scope now, but the architecture above is designed for it.
+**As built:**
+
+- **Pass-and-play** on one device. Secret setup for both players, a covering "Pass to…" screen whenever the device must change hands, and a shared log that uses only public information (`getPublicView`).
+- **Online rooms.** The dev server (`tools/rooms.ts`) is the authoritative server below: it holds the true state, validates each action against the seat and the legal actions, and sends each player only `getPlayerView` for their own seat, over server-sent events. Rooms use five-letter codes, reconnect on reload, show presence, and offer rematches with colours swapped. Because the server holds the state, commit-reveal isn't needed.
+
+**Still to do** from the original plan:
 
 - **Async first.** Correspondence-style matches need minimal infrastructure and suit the game's pace.
 - **Commit-reveal for hidden pieces.** At setup, each player publishes a salted hash per hidden piece. When a piece is called, captured or revealed, its owner reveals type + salt and the opponent verifies against the hash. No one can change a piece mid-game, and no client ever receives hidden information it shouldn't. Casual PvP can run over a lightweight relay.
