@@ -402,11 +402,11 @@ export interface PvpForm {
   code: string;
 }
 
-export function pvpScreen({ form, error, busy }: { form: PvpForm; error: string | null; busy: boolean }): string {
+export function pvpScreen({ form, error, busy, online }: { form: PvpForm; error: string | null; busy: boolean; online: boolean }): string {
   const pick = (c: ColorChoice, label: string) => `<button class="btn btn-small${form.color === c ? ' btn-ink' : ''}" data-act="pvp-color" data-v="${c}">${label}</button>`;
   const field = (k: keyof PvpForm, label: string, extra = '') =>
     `<label class="field"><span>${label}</span><input type="text" data-field="${k}" value="${esc(form[k])}" maxlength="20" autocomplete="off" spellcheck="false" ${extra}></label>`;
-  return `<section class="pvp"><header class="page-head"><h2>Player vs player</h2><p>Play a friend at the same table or over the internet.</p></header>
+  return `<section class="pvp"><header class="page-head"><h2>Player vs player</h2><p>${online ? 'Play a friend at the same table or over the internet.' : 'Play a friend at the same table.'}</p></header>
     <div class="pvp-body">
       <div class="sheet pvp-sheet">
         <h3>Same device</h3>
@@ -415,14 +415,14 @@ export function pvpScreen({ form, error, busy }: { form: PvpForm; error: string 
         ${field('black', 'Black')}
         <button class="btn btn-red" data-act="pvp-local">Start</button>
       </div>
-      <div class="sheet pvp-sheet">
+      ${online ? `<div class="sheet pvp-sheet">
         <h3>Online</h3>
         <p>Open a room and send the code to your friend, or join theirs.</p>
         ${field('name', 'Your name')}
         <div class="field"><span>Play as</span><span class="seg">${pick('white', 'White')}${pick('black', 'Black')}${pick('random', 'Random')}</span></div>
         <button class="btn btn-red" data-act="pvp-create" ${busy ? 'disabled' : ''}>Open a room</button>
         <div class="pvp-join">${field('code', 'Room code', 'class="code-input"')}<button class="btn" data-act="pvp-join" ${busy ? 'disabled' : ''}>Join</button></div>
-      </div>
+      </div>` : ''}
     </div>
     ${error ? `<p class="pvp-error">${esc(error)}</p>` : ''}
   </section>`;
@@ -511,7 +511,9 @@ export function gameShell(mode: string): string {
       <div class="prompt" id="prompt" role="status" aria-live="polite"></div>
     </div>
     <div class="g-me" id="me-panel"></div>
-    <aside class="g-side">
+    <button class="info-btn" id="info-btn" data-act="info-open" aria-haspopup="dialog">Info</button>
+    <div class="info-scrim" data-act="info-close"></div>
+    <aside class="g-side" aria-label="Game info">
       <div class="sheet action-panel" id="action-panel"></div>
       <div class="side-tabs" id="side-tabs" role="toolbar"></div>
       <div class="sheet coach-card" id="coach-card"></div>

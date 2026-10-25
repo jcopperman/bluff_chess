@@ -863,10 +863,6 @@ h1, h2, h3 { margin: 0; font-weight: 400; }
 /* phones on their side: the board on the left at full height, everything else beside it */
 [data-size=phone][data-layout=landscape] .hud { height: calc(38px + env(safe-area-inset-top)); }
 [data-size=phone][data-layout=landscape] .hud-link { min-height: 38px; }
-[data-size=phone][data-layout=landscape] .game {
-  --board: min(calc(var(--stage-h) - 38px - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 2 * var(--pad) - 12px), calc(var(--stage-w) * 0.56));
-  padding: 6px max(8px, env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); gap: 6px 12px;
-  grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr) auto; grid-template-areas: 'board opp' 'board me' 'board side' 'board prompt'; }
 [data-size=phone][data-layout=landscape] .board-frame { align-self: start; }
 [data-size=phone][data-layout=landscape] .title-cards { display: none; }
 [data-size=phone][data-layout=landscape] .wordmark { font-size: 54px; }
@@ -875,3 +871,43 @@ h1, h2, h3 { margin: 0; font-weight: 400; }
 [data-size=phone][data-layout=landscape] .opp-row { display: grid; grid-template-columns: 1fr 1fr; }
 [data-size=phone][data-layout=landscape] .setup { padding-top: 8px; }
 [data-size=phone][data-layout=landscape] .slots { max-width: 420px; }
+
+/* Phone games outside lessons and puzzles: the coach, claims and move list open as a sheet
+   from the Info button beside your strip, so the board gets the space. */
+.info-btn, .info-scrim, .side-close { display: none; }
+[data-size=phone] .game:not([data-mode=lesson], [data-mode=puzzle]) .info-btn { grid-area: info; align-self: center; position: relative; display: inline-flex; align-items: center; min-height: 40px; margin-right: 4px; padding: 0 14px; cursor: pointer;
+  background: none; border: 0; box-shadow: inset 0 0 0 1px var(--table-line); font: 700 condensed 15px var(--head); text-transform: uppercase; letter-spacing: 0.06em; color: var(--on-table); }
+[data-size=phone] .game:not([data-mode=lesson], [data-mode=puzzle]) .info-btn.alert::after { content: ''; position: absolute; top: -4px; right: -4px; width: 10px; height: 10px; border-radius: 50%; background: var(--red); box-shadow: 0 0 0 2px var(--table); }
+[data-size=phone] .game:not([data-mode=lesson], [data-mode=puzzle]) .g-side { display: none; position: fixed; z-index: 61; background: var(--table); }
+[data-size=phone] .game.info-open:not([data-mode=lesson], [data-mode=puzzle]) .g-side { display: flex; animation: sheet-up 0.2s ease-out; }
+[data-size=phone] .game.info-open:not([data-mode=lesson], [data-mode=puzzle]) .info-scrim { display: block; position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,0.45); }
+[data-size=phone] .game:not([data-mode=lesson], [data-mode=puzzle]) .side-tabs { order: -1; }
+[data-size=phone] .game:not([data-mode=lesson], [data-mode=puzzle]) .side-tab { min-height: 44px; }
+[data-size=phone] .game:not([data-mode=lesson], [data-mode=puzzle]) :is(.coach-card, .record) { flex: 0 1 auto; }
+[data-size=phone] .game:not([data-mode=lesson], [data-mode=puzzle]) .side-close { display: block; flex: none; min-height: 44px; padding: 0 4px 0 14px; background: none; border: 0; cursor: pointer;
+  font: 700 condensed 14px var(--head); text-transform: uppercase; letter-spacing: 0.06em; color: var(--on-table); }
+@keyframes sheet-up { from { transform: translateY(24px); opacity: 0; } }
+
+/* Upright: the board takes the full width; the sheet rises from the bottom. */
+[data-size=phone][data-layout=portrait] .game:not([data-mode=lesson], [data-mode=puzzle]) { --pad: 4px;
+  --board: min(calc(var(--stage-w) - 2 * var(--pad) - 4px), calc(var(--stage-h) - 46px - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 184px));
+  padding: 4px 2px calc(6px + env(safe-area-inset-bottom));
+  grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: minmax(0, 1fr) auto auto auto minmax(0, 1fr) auto;
+  grid-template-areas: '. .' 'opp opp' 'board board' 'me info' '. .' 'prompt prompt'; }
+[data-size=phone][data-layout=portrait] .game:not([data-mode=lesson], [data-mode=puzzle]) .board-frame { --pad: 4px; }
+[data-size=phone][data-layout=portrait] .game:not([data-mode=lesson], [data-mode=puzzle]) :is(.g-opp, .g-me) { padding: 0 4px; }
+[data-size=phone][data-layout=portrait] .game:not([data-mode=lesson], [data-mode=puzzle]) .g-side { left: 0; right: 0; bottom: 0; max-height: min(72%, 560px);
+  padding: 4px max(10px, env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)); box-shadow: 0 -1.5px 0 var(--table-line), 0 -10px 30px rgba(0,0,0,0.45); }
+
+/* Sideways: the board runs the full height of the screen. The top bar moves into the
+   column beside it, and the sheet covers that column, leaving the board in view. */
+[data-size=phone][data-layout=landscape] { --lboard: min(calc(var(--stage-h) - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px), calc(var(--stage-w) * 0.56));
+  --lcol: calc(max(8px, env(safe-area-inset-left)) + var(--lboard) + 20px); }
+[data-size=phone][data-layout=landscape] #app:has(.screen-game) .hud { position: absolute; top: 0; right: 0; left: var(--lcol); height: calc(38px + env(safe-area-inset-top)); padding-left: 0; }
+[data-size=phone][data-layout=landscape] .game { --board: var(--lboard);
+  padding: calc(4px + env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) calc(4px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); gap: 6px 12px;
+  grid-template-columns: auto minmax(0, 1fr) auto; grid-template-rows: 34px auto auto minmax(0, 1fr) auto;
+  grid-template-areas: 'board . .' 'board opp opp' 'board me info' 'board side side' 'board prompt prompt'; }
+[data-size=phone][data-layout=landscape] .board-frame { --pad: 4px; }
+[data-size=phone][data-layout=landscape] .game:not([data-mode=lesson], [data-mode=puzzle]) .g-side { top: 0; right: 0; bottom: 0; left: calc(var(--lcol) - 8px);
+  padding: calc(4px + env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) 10px; box-shadow: -1.5px 0 0 var(--table-line), -10px 0 30px rgba(0,0,0,0.45); }

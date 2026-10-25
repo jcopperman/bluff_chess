@@ -159,6 +159,8 @@ interface App {
   pvpError: string | null;
   pvpBusy: boolean;
   online: OnlineLink | null;
+  /** Whether a room server answered at boot; without one the PvP screen offers only same-device play. */
+  onlineAvailable: boolean;
 }
 
 const app: App = {
@@ -179,6 +181,7 @@ const app: App = {
   pvpError: null,
   pvpBusy: false,
   online: null,
+  onlineAvailable: false,
 };
 
 // ---------------------------------------------------------------------------
@@ -211,8 +214,10 @@ async function init(): Promise<void> {
   fitStage();
   show('title');
   // A reload during an online game rejoins it.
+  app.onlineAvailable = await Net.serverAvailable();
   const seat = Net.savedSeat();
-  if (seat) goOnline(seat);
+  if (seat && app.onlineAvailable) goOnline(seat);
+  if (app.screen === 'pvp') show('pvp');
 }
 
 /**
@@ -335,7 +340,7 @@ function show(screen: Exclude<Screen, 'game'>): void {
   } else if (screen === 'puzzles') {
     root.innerHTML = R.puzzlesScreen({ puzzles: app.puzzles, done: new Set(app.data.puzzlesDone) });
   } else if (screen === 'pvp') {
-    root.innerHTML = R.pvpScreen({ form: app.pvp, error: app.pvpError, busy: app.pvpBusy });
+    root.innerHTML = R.pvpScreen({ form: app.pvp, error: app.pvpError, busy: app.pvpBusy, online: app.onlineAvailable });
   } else if (screen === 'room' && app.online) {
     const o = app.online;
     root.innerHTML = R.roomScreen({ code: o.seat.code, you: o.seat.color, names: o.names, joined: o.seated[E.opponent(o.seat.color)], down: o.down });
@@ -432,6 +437,7 @@ function enterGame(m: Match): void {
   const root = el('#screen');
   root.className = 'screen screen-game';
   root.innerHTML = R.gameShell(m.mode);
+  infoOpen = false;
   renderHud();
 }
 
@@ -1077,6 +1083,8 @@ function pickLine(key: LineKey): string | null {
 /** Which side panel a phone shows below the board: they don't fit side by side. */
 type SideTab = 'coach' | 'claims' | 'log';
 let sideTab: SideTab = 'coach';
+/** Upright phones keep the side panel in a popup so the board can take the screen's width. */
+let infoOpen = false;
 
 let speechTimer: ReturnType<typeof setTimeout> | undefined;
 function say(text: string | null): void {
@@ -1171,7 +1179,11 @@ function renderGame(opts: { noSlide?: boolean } = {}): void {
   // Only replace the overlay when it changes, so the claim flag animates in once.
   const overlay = el('#board-overlay'), overlayNow = m.curtain ? '' : overlayHTML(v);
   if (overlay.dataset.html !== overlayNow) { overlay.dataset.html = overlayNow; overlay.innerHTML = overlayNow; }
-  el('#action-panel').innerHTML = infoPanelHTML(v);
+  const info = infoPanelHTML(v);
+  el('#action-panel').innerHTML = info;
+  // A warning in the popup marks the button, so it isn't missed while the popup is shut.
+  el('#info-btn').classList.toggle('alert', info.includes('ap-alert'));
+  el('.game').classList.toggle('info-open', infoOpen);
   const coach = el('#coach-card');
   coach.classList.toggle('hidden', !coachOn());
   if (coachOn()) coach.innerHTML = R.coachCardHTML(coachAdvice(v), legend);
@@ -1187,7 +1199,8 @@ function renderGame(opts: { noSlide?: boolean } = {}): void {
   const tab = tabs.some(([t]) => t === sideTab) ? sideTab : tabs[0][0];
   el('.g-side').dataset.tab = tab;
   el('#side-tabs').innerHTML = tabs.map(([t, label]) =>
-    `<button class="side-tab${t === tab ? ' on' : ''}" data-act="side-tab" data-tab="${t}" aria-pressed="${t === tab}">${label}</button>`).join('');
+    `<button class="side-tab${t === tab ? ' on' : ''}" data-act="side-tab" data-tab="${t}" aria-pressed="${t === tab}">${label}</button>`).join('')
+    + '<button class="side-close" data-act="info-close" aria-label="Close">Close</button>';
   const curtain = el('#curtain');
   curtain.classList.toggle('hidden', !m.curtain);
   if (m.curtain) {
@@ -1735,6 +1748,10 @@ const handlers: InputHandlers = {
       case 'side-tab':
         sideTab = ds.tab as SideTab;
         return renderGame();
+      case 'info-open':
+      case 'info-close':
+        infoOpen = name === 'info-open';
+        return renderGame({ noSlide: true });
       case 'toggle-mute':
         app.data.settings.muted = !app.data.settings.muted;
         applySettings();
