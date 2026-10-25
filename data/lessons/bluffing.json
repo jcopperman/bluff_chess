@@ -52,7 +52,7 @@
         "c1",
         "d3"
       ],
-      "hint": "Click the c1 card, then d3, then pick Knight. It's marked Bluff.",
+      "hint": "Select the c1 card, then d3, then pick Knight. It's marked Bluff.",
       "success": "He passed: the bluff worked and you won a rook! But that card is now a \"knight\" forever, and every move it makes can be called.",
       "reply": [
         {

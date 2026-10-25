@@ -52,10 +52,11 @@ function sendJson(res: ServerResponse, status: number, data: unknown): void {
   res.end(JSON.stringify(data));
 }
 
-/** POST /api/rooms, POST /api/rooms/:code/{join,action,rematch}, GET /api/rooms/:code/events?token= (server-sent events). */
+/** GET /api/rooms (health check), POST /api/rooms, POST /api/rooms/:code/{join,action,rematch}, GET /api/rooms/:code/events?token= (server-sent events). */
 async function api(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
   const parts = url.pathname.split('/').filter(Boolean).slice(2);
   try {
+    if (req.method === 'GET' && parts.length === 0) return sendJson(res, 200, { ok: true });
     if (req.method === 'POST' && parts.length === 0) {
       const body = await readJson(req);
       return sendJson(res, 200, rooms.create(body.name, body.color === 'white' || body.color === 'black' ? body.color : 'random'));

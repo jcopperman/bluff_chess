@@ -45,7 +45,7 @@
         "d4",
         "d7"
       ],
-      "hint": "Click your rook on d4, then click d7.",
+      "hint": "Select your rook on d4, then d7.",
       "success": "Captured! Pieces capture by moving onto an enemy's square."
     },
     {
@@ -309,7 +309,7 @@
       "highlight": [
         "e4"
       ],
-      "hint": "Click the king on e4, then one of the marked squares.",
+      "hint": "Select the king on e4, then one of the marked squares.",
       "success": "That's every piece. Next: check and checkmate."
     }
   ]

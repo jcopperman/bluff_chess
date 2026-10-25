@@ -18,6 +18,16 @@ async function post<T>(path: string, body: unknown): Promise<T> {
   return data;
 }
 
+/** Whether a room server is answering. Static hosts (itch.io and the like) have none. */
+export async function serverAvailable(): Promise<boolean> {
+  try {
+    const res = await fetch('api/rooms', { cache: 'no-store' });
+    return res.ok && ((await res.json()) as { ok?: boolean }).ok === true;
+  } catch {
+    return false;
+  }
+}
+
 export async function createRoom(name: string, color: ColorChoice): Promise<Seat> {
   const r = await post<{ code: string; token: string; color: Color }>('', { name, color });
   return { code: r.code, token: r.token, color: r.color };

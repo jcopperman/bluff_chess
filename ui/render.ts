@@ -64,6 +64,7 @@ export function hudHTML({ title, back, inGame, muted, coachOn }: {
       ${back ? `<button class="hud-link hud-back" data-act="${back}">${icon('back')}<span>Back</span></button>` : ''}
       <span class="hud-title">${esc(title)}</span>
     </div>
+    <button class="hud-link hud-menu" data-act="hud-menu" aria-expanded="false">Menu</button>
     <nav class="hud-right">
       <button class="hud-link" data-act="codex" data-entry="overview">Rulebook</button>
       ${inGame ? `<button class="hud-link" data-act="toggle-coach">Coach <b>${coachOn ? 'on' : 'off'}</b></button>` : ''}
@@ -231,7 +232,7 @@ export function logHTML(log: LogEntry[]): string {
   return log.map((e) => `<div class="log-row log-${e.kind}">${e.n ? `<span class="log-n">${e.n}</span>` : ''}<span>${e.html}</span></div>`).join('');
 }
 
-export function tooltipHTML(piece: Piece, dist: TypeDist | undefined, history: ClaimRecord[], guess: ClaimType | undefined): string {
+export function tooltipHTML(piece: Piece, dist: TypeDist | undefined, history: ClaimRecord[], guess: ClaimType | undefined, touch = false): string {
   const rows = CLAIMABLE.filter((t) => dist && dist[t] > 0.001)
     .sort((a, b) => dist![b] - dist![a])
     .map((t) => `<div class="tt-row">${pieceIcon(t, piece.owner)}<span>${typeName(t)}</span><span class="tt-bar"><i style="width:${Math.round(dist![t] * 100)}%"></i></span><span>${Math.round(dist![t] * 100)}%</span></div>`)
@@ -241,7 +242,11 @@ export function tooltipHTML(piece: Piece, dist: TypeDist | undefined, history: C
     : '<div class="tt-hist">No claim yet, so it threatens nothing.</div>';
   return `<div class="tt-title">Card from ${originSquare(piece.id) || '?'}${piece.claim ? `, claims ${typeName(piece.claim)}` : ''}</div>
     <div class="tt-sub">Could be, from public information:</div>${rows}${hist}
-    <div class="tt-foot">${guess ? `Your note: ${typeName(guess)}. ` : ''}Right-click to note a guess.</div>`;
+    ${touch
+    ? `<div class="tt-foot">Note a guess:</div><div class="tt-marks">${CLAIMABLE.map((t) =>
+      `<button class="btn btn-small${guess === t ? ' btn-ink' : ''}" data-act="mark" data-piece="${piece.id}" data-v="${t}" aria-label="${typeName(t)}">${pieceIcon(t)}</button>`).join('')}
+      <button class="btn btn-small" data-act="mark" data-piece="${piece.id}" data-v="">Clear</button></div>`
+    : `<div class="tt-foot">${guess ? `Your note: ${typeName(guess)}. ` : ''}Right-click to note a guess.</div>`}`;
 }
 
 const MARK: Record<Advice['tone'], string> = { info: '☞', good: '✓', warn: '!', danger: '✗' };
@@ -397,11 +402,11 @@ export interface PvpForm {
   code: string;
 }
 
-export function pvpScreen({ form, error, busy }: { form: PvpForm; error: string | null; busy: boolean }): string {
+export function pvpScreen({ form, error, busy, online }: { form: PvpForm; error: string | null; busy: boolean; online: boolean }): string {
   const pick = (c: ColorChoice, label: string) => `<button class="btn btn-small${form.color === c ? ' btn-ink' : ''}" data-act="pvp-color" data-v="${c}">${label}</button>`;
   const field = (k: keyof PvpForm, label: string, extra = '') =>
     `<label class="field"><span>${label}</span><input type="text" data-field="${k}" value="${esc(form[k])}" maxlength="20" autocomplete="off" spellcheck="false" ${extra}></label>`;
-  return `<section class="pvp"><header class="page-head"><h2>Player vs player</h2><p>Play a friend at the same table or over the internet.</p></header>
+  return `<section class="pvp"><header class="page-head"><h2>Player vs player</h2><p>${online ? 'Play a friend at the same table or over the internet.' : 'Play a friend at the same table.'}</p></header>
     <div class="pvp-body">
       <div class="sheet pvp-sheet">
         <h3>Same device</h3>
@@ -410,14 +415,14 @@ export function pvpScreen({ form, error, busy }: { form: PvpForm; error: string 
         ${field('black', 'Black')}
         <button class="btn btn-red" data-act="pvp-local">Start</button>
       </div>
-      <div class="sheet pvp-sheet">
+      ${online ? `<div class="sheet pvp-sheet">
         <h3>Online</h3>
         <p>Open a room and send the code to your friend, or join theirs.</p>
         ${field('name', 'Your name')}
         <div class="field"><span>Play as</span><span class="seg">${pick('white', 'White')}${pick('black', 'Black')}${pick('random', 'Random')}</span></div>
         <button class="btn btn-red" data-act="pvp-create" ${busy ? 'disabled' : ''}>Open a room</button>
         <div class="pvp-join">${field('code', 'Room code', 'class="code-input"')}<button class="btn" data-act="pvp-join" ${busy ? 'disabled' : ''}>Join</button></div>
-      </div>
+      </div>` : ''}
     </div>
     ${error ? `<p class="pvp-error">${esc(error)}</p>` : ''}
   </section>`;
@@ -481,7 +486,7 @@ export function setupScreen({ arrangement, picked, color, colorChoice, heading, 
     <div class="setup-main">
       <h2>${esc(heading)}</h2>
       ${colorChoice ? `<p class="setup-color">Play as <span class="seg">${pick('white', 'White')}${pick('black', 'Black')}${pick('random', 'Random')}</span> <small>White moves first.</small></p>` : ''}
-      <p>Your opponent sees only card backs. Click two cards to swap them.</p>
+      <p>Your opponent sees only card backs. Pick two cards to swap them.</p>
       <div class="slots">${cells}</div>
       <p class="setup-note">${bishopColors[0] === bishopColors[1] ? `Both bishops are on ${bishopColors[0]} squares. That's allowed.` : 'Bishops on opposite colours.'}</p>
       <div class="setup-actions">
@@ -506,8 +511,11 @@ export function gameShell(mode: string): string {
       <div class="prompt" id="prompt" role="status" aria-live="polite"></div>
     </div>
     <div class="g-me" id="me-panel"></div>
-    <aside class="g-side">
+    <button class="info-btn" id="info-btn" data-act="info-open" aria-haspopup="dialog">Info</button>
+    <div class="info-scrim" data-act="info-close"></div>
+    <aside class="g-side" aria-label="Game info">
       <div class="sheet action-panel" id="action-panel"></div>
+      <div class="side-tabs" id="side-tabs" role="toolbar"></div>
       <div class="sheet coach-card" id="coach-card"></div>
       <div class="sheet record"><div id="tracker"></div><div class="log" id="log"></div></div>
     </aside>
