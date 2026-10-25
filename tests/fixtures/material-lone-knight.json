@@ -1,0 +1,34 @@
+{
+  "name": "a king and a face-up knight against a bare king is a draw",
+  "config": {
+    "pieces": [
+      {
+        "id": "w-k",
+        "owner": "white",
+        "type": "king",
+        "square": "e1"
+      },
+      {
+        "id": "w-n",
+        "owner": "white",
+        "type": "knight",
+        "square": "c3",
+        "faceUp": true
+      },
+      {
+        "id": "b-k",
+        "owner": "black",
+        "type": "king",
+        "square": "e8"
+      }
+    ]
+  },
+  "actions": [],
+  "expect": {
+    "phase": "over",
+    "result": {
+      "winner": null,
+      "reason": "insufficientMaterial"
+    }
+  }
+}

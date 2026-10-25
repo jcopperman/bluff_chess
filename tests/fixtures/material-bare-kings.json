@@ -1,0 +1,27 @@
+{
+  "name": "two bare kings is a draw by insufficient material",
+  "config": {
+    "pieces": [
+      {
+        "id": "w-k",
+        "owner": "white",
+        "type": "king",
+        "square": "e1"
+      },
+      {
+        "id": "b-k",
+        "owner": "black",
+        "type": "king",
+        "square": "e8"
+      }
+    ]
+  },
+  "actions": [],
+  "expect": {
+    "phase": "over",
+    "result": {
+      "winner": null,
+      "reason": "insufficientMaterial"
+    }
+  }
+}

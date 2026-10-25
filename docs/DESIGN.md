@@ -90,7 +90,7 @@ This is the dramatic last-chance moment and should be presented as such.
 
 ### 2.7 End of game
 
-- Checkmate (after any showdowns) wins, and so does busting your opponent (taking their last chip). Stalemate on the apparent board is a draw. Threefold repetition and the 50-move rule apply as in chess (low priority for v0.1).
+- Checkmate (after any showdowns) wins, and so does busting your opponent (taking their last chip). Stalemate on the apparent board is a draw. Threefold repetition and the 50-move rule apply as in chess (low priority for v0.1). Insufficient material (bare kings, a lone bishop or knight, bishops all on one colour) is a draw too, but only once every remaining piece is face-up, so declaring it never reveals a hidden card.
 - At the end of every match, **all pieces are revealed**, followed by the post-match reveal (section 4.5).
 
 ### 2.8 Tuning knobs
