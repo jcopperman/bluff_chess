@@ -507,8 +507,9 @@ export function gameShell(mode: string): string {
   return `<section class="game" data-mode="${mode}">
     <div class="g-opp"><div id="opp-panel"></div><div class="speech hidden" id="speech"></div></div>
     <div class="g-board">
-      <div class="board-frame"><div class="board" id="board"></div><div class="board-overlay" id="board-overlay"></div><div class="fx-layer" id="fx-layer"></div></div>
-      <div class="prompt" id="prompt" role="status" aria-live="polite"></div>
+      <div class="board-frame"><div class="board" id="board"></div><div class="board-overlay" id="board-overlay"></div><div class="fx-layer" id="fx-layer"></div>
+        <div class="callouts"><div id="prompt" role="status" aria-live="polite"></div><div id="flash" aria-hidden="true"></div></div>
+      </div>
     </div>
     <div class="g-me" id="me-panel"></div>
     <button class="info-btn" id="info-btn" data-act="info-open" aria-haspopup="dialog">Info</button>
