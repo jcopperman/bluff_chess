@@ -215,15 +215,30 @@ async function init(): Promise<void> {
   if (seat) goOnline(seat);
 }
 
-/** Scale the fixed-size stage to the window: 16:9 landscape, or a tall layout on phones. */
+/**
+ * Fit the stage to the window. Tablets and desktops scale a fixed stage (16:9, or tall
+ * when portrait). Phones get the window itself at real pixel size, so text stays readable
+ * and nothing is letterboxed; the phone styles lay the screens out for that.
+ */
 function fitStage(): void {
   const stage = el('#stage');
-  const portrait = window.innerWidth < window.innerHeight * 0.9;
-  const [w, h] = portrait ? [900, 1600] : [1600, 900];
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const portrait = vw < vh * 0.9;
+  const phone = Math.min(vw, vh) < 560;
+  const [w, h] = phone ? [vw, vh] : portrait ? [900, 1600] : [1600, 900];
+  const changed = stage.dataset.layout !== (portrait ? 'portrait' : 'landscape') || stage.dataset.size !== (phone ? 'phone' : 'stage');
   stage.dataset.layout = portrait ? 'portrait' : 'landscape';
+  stage.dataset.size = phone ? 'phone' : 'stage';
   stage.style.width = `${w}px`;
   stage.style.height = `${h}px`;
-  stage.style.setProperty('--scale', String(Math.min(window.innerWidth / w, window.innerHeight / h)));
+  stage.style.setProperty('--stage-w', `${w}px`);
+  stage.style.setProperty('--stage-h', `${h}px`);
+  stage.style.setProperty('--scale', String(phone ? 1 : Math.min(vw / w, vh / h)));
+  // Overlay labels are placed in pixels, so redraw the board when the layout changes size.
+  if (app.screen === 'game' && app.match) {
+    if (changed) hideTooltip();
+    renderGame({ noSlide: true });
+  }
 }
 
 function save(): void {
@@ -1059,6 +1074,10 @@ function pickLine(key: LineKey): string | null {
   return lines?.length ? lines[Math.floor(Math.random() * lines.length)] : null;
 }
 
+/** Which side panel a phone shows below the board: they don't fit side by side. */
+type SideTab = 'coach' | 'claims' | 'log';
+let sideTab: SideTab = 'coach';
+
 let speechTimer: ReturnType<typeof setTimeout> | undefined;
 function say(text: string | null): void {
   const bubble = $('#speech');
@@ -1158,11 +1177,17 @@ function renderGame(opts: { noSlide?: boolean } = {}): void {
   if (coachOn()) coach.innerHTML = R.coachCardHTML(coachAdvice(v), legend);
   const hasCards = v.pieces.some((p) => p.owner === opp() && (!p.faceUp || p.claim));
   const tracker = el('#tracker');
-  tracker.classList.toggle('hidden', !hasCards);
-  tracker.innerHTML = hasCards ? R.trackerHTML(v, opp()) : '';
+  tracker.classList.toggle('trk-none', !hasCards);
+  tracker.innerHTML = hasCards ? R.trackerHTML(v, opp()) : '<p class="coach-idle">No hidden cards in play.</p>';
   const logEl = el('#log');
   logEl.innerHTML = R.logHTML(m.log);
   logEl.scrollTop = logEl.scrollHeight;
+  // Phones show one side panel at a time; the stage shows them all and hides the tabs.
+  const tabs: [SideTab, string][] = [...(coachOn() ? [['coach', 'Coach'] as [SideTab, string]] : []), ['claims', 'Claims'], ['log', 'Moves']];
+  const tab = tabs.some(([t]) => t === sideTab) ? sideTab : tabs[0][0];
+  el('.g-side').dataset.tab = tab;
+  el('#side-tabs').innerHTML = tabs.map(([t, label]) =>
+    `<button class="side-tab${t === tab ? ' on' : ''}" data-act="side-tab" data-tab="${t}" aria-pressed="${t === tab}">${label}</button>`).join('');
   const curtain = el('#curtain');
   curtain.classList.toggle('hidden', !m.curtain);
   if (m.curtain) {
@@ -1223,7 +1248,7 @@ function promptFor(v: PlayerView, actor: Color | null): Prompt {
   if (m.mode === 'online' && app.online?.down) return { tone: 'wait', key: 'down', title: 'Reconnecting to the server', sub: 'Your game is safe on the server.' };
   if (m.guard) {
     return {
-      tone: 'act', key: 'guard', title: 'Are you sure?', sub: `${esc(m.guard.advice.lines.join(' '))} Click the board to choose again.`,
+      tone: 'act', key: 'guard', title: 'Are you sure?', sub: `${esc(m.guard.advice.lines.join(' '))} Pick a move on the board to choose again.`,
       buttons: '<button class="btn" data-act="guard-cancel">Take it back</button><button class="btn btn-ink" data-act="guard-confirm">Move anyway</button>',
     };
   }
@@ -1273,7 +1298,7 @@ function promptFor(v: PlayerView, actor: Color | null): Prompt {
   if (v.phase === 'showdown') {
     if (actor === me()) {
       return {
-        tone: 'act', key: 'showdown-me', title: 'Showdown', sub: 'Click a marked card to expose it for 1 chip.',
+        tone: 'act', key: 'showdown-me', title: 'Showdown', sub: 'Pick a marked card to expose it for 1 chip.',
         buttons: m.mode === 'lesson' ? '' : '<button class="btn" data-act="accept-mate">Accept defeat</button>',
       };
     }
@@ -1302,7 +1327,7 @@ function moveHint(v: PlayerView): string {
   if (!p) return '';
   if (!p.faceUp && !p.claim) return `Your hidden ${typeName(p.type)} is unclaimed: it may move as any type.`;
   if (!p.faceUp) return `Hidden ${typeName(p.type)}, locked as a ${typeName(p.claim)}${p.claim !== p.type ? ' (a bluff)' : ''}.`;
-  if (castlesFrom(v, E.getLegalActions(v, me()), m.selected).size) return 'King selected. Pick a marked square. To castle, click Castle or the corner card.';
+  if (castlesFrom(v, E.getLegalActions(v, me()), m.selected).size) return 'King selected. Pick a marked square. To castle, pick Castle or the corner card.';
   return `${typeName(p.type)} selected. Pick a marked square.`;
 }
 
@@ -1340,10 +1365,12 @@ function renderPrompt(v: PlayerView, actor: Color | null): void {
 
 /** Position of a square's top-centre within the board frame, in layout pixels. */
 function squareSpot(sq: Square): { x: number; y: number; size: number; rank: number } {
-  const size = el('#board').offsetWidth / 8;
+  const boardEl = el('#board');
+  const size = boardEl.offsetWidth / 8;
   const file = sq.charCodeAt(0) - 97, rank = Number(sq[1]) - 1;
   const { ranks, files } = R.boardOrder(me());
-  const pad = 20;
+  // The frame's padding: 20px on the stage, less on phones.
+  const pad = boardEl.offsetLeft;
   return { x: pad + (files.indexOf(file) + 0.5) * size, y: pad + ranks.indexOf(rank) * size, size, rank };
 }
 
@@ -1386,9 +1413,9 @@ function infoPanelHTML(v: PlayerView): string {
     // Puzzles ask you to do the counting.
     const certain = m.mode !== 'puzzle' && computeBeliefs(v).certainLies.includes(claim);
     const secs = m.lastThinkMs && !vsHuman(m.mode) && m.mode !== 'lesson' && m.mode !== 'puzzle' ? ` · thought ${(m.lastThinkMs / 1000).toFixed(1)}s` : '';
-    html += `<div class="ap-kicker">${codexLink('call', 'Their claim')}</div>
+    html += `<div class="ap-claim"><div class="ap-kicker">${codexLink('call', 'Their claim')}</div>
       <div class="ap-title">${esc(m.names[opp()])} claims ${claimTag(claim)}</div>
-      <div class="ap-sub">${p.castle ? 'Castled' : `Moved ${p.from}→${p.to}`}${p.capturedId ? ', capturing' : ''}${secs}</div>
+      <div class="ap-sub">${p.castle ? 'Castled' : `Moved ${p.from}→${p.to}`}${p.capturedId ? ', capturing' : ''}${secs}</div></div>
       ${certain ? '<div class="ap-alert">More cards claim this than can exist, so one of them is lying.</div>' : ''}`;
   }
   return html;
@@ -1437,7 +1464,8 @@ function choiceHTML(v: PlayerView, options: MoveAction[]): string {
         ${a.claim ? pieceIcon(a.claim) : ''}<span>${typeName(a.claim)}</span><small>${tag}</small></button>`;
     }).join('');
   return `<div class="claim-pop-title">${promo ? 'Promote to' : `${options[0].from}→${options[0].to}: ${codexLink('claim', 'claim it as')}`}</div>
-    <div class="claim-grid">${btns}</div>`;
+    <div class="claim-grid">${btns}</div>
+    <button class="btn claim-cancel" data-act="cancel-choice">Cancel</button>`;
 }
 
 // ---------------------------------------------------------------------------
@@ -1607,7 +1635,7 @@ function onGuess(sq: Square): void {
   renderGame();
 }
 
-function onHover(pieceId: string, pieceEl: HTMLElement): void {
+function onHover(pieceId: string, pieceEl: HTMLElement, touch = false): void {
   const m = app.match;
   if (!m || app.screen !== 'game' || m.curtain || pieceEl.closest('.modal')) return;
   const v = view();
@@ -1616,7 +1644,7 @@ function onHover(pieceId: string, pieceEl: HTMLElement): void {
   let html: string;
   if (p.owner === opp() && v.phase !== 'over') {
     const dist = computeBeliefs(v).probs[p.id];
-    html = R.tooltipHTML(p, dist, v.claims.filter((c) => c.pieceId === p.id), m.notes[me()][p.id]);
+    html = R.tooltipHTML(p, dist, v.claims.filter((c) => c.pieceId === p.id), m.notes[me()][p.id], touch);
   } else {
     html = `<div class="tt-title">Your hidden ${typeName(p.type)}</div><div class="tt-hist">${p.claim ? `Claims ${typeName(p.claim)}${p.claim !== p.type ? ': a bluff. Every move it makes can be called.' : '.'}` : `Unclaimed: ${esc(m.names[opp()])} sees only a card back.`}</div>`;
   }
@@ -1627,6 +1655,8 @@ function onHover(pieceId: string, pieceEl: HTMLElement): void {
   const tt = el('#tooltip');
   tt.innerHTML = html;
   tt.classList.remove('hidden');
+  // A long-pressed card stays open with buttons, so it takes taps.
+  tt.classList.toggle('tt-touch', touch);
   const w = tt.offsetWidth, h = tt.offsetHeight;
   const cx = (r.left - s.left + r.width / 2) / k;
   const top = (r.top - s.top) / k;
@@ -1674,6 +1704,7 @@ const handlers: InputHandlers = {
   action(name, ds, e) {
     const m = app.match;
     if (name !== 'close-modal-bg') Sound.play('click');
+    if (name !== 'hud-menu') el('#hud').classList.remove('menu-open');
     switch (name) {
       case 'enter': return show('hub');
       case 'go-hub': return show('hub');
@@ -1686,6 +1717,24 @@ const handlers: InputHandlers = {
         return show(app.online ? 'room' : 'pvp');
       case 'codex': return openCodex(ds.entry || 'overview');
       case 'settings': return openSettings();
+      case 'hud-menu': {
+        // Phones fold the top-bar links into a menu.
+        const open = el('#hud').classList.toggle('menu-open');
+        $('.hud-menu')?.setAttribute('aria-expanded', String(open));
+        return;
+      }
+      case 'mark': {
+        // Noting a guess from the touch details card.
+        if (!m) return;
+        const notes = m.notes[me()];
+        if (ds.v) notes[ds.piece!] = ds.v as ClaimType;
+        else delete notes[ds.piece!];
+        hideTooltip();
+        return renderGame({ noSlide: true });
+      }
+      case 'side-tab':
+        sideTab = ds.tab as SideTab;
+        return renderGame();
       case 'toggle-mute':
         app.data.settings.muted = !app.data.settings.muted;
         applySettings();
@@ -1823,7 +1872,10 @@ const handlers: InputHandlers = {
       default:
     }
   },
-  square: onSquare,
+  square(sq) {
+    el('#hud').classList.remove('menu-open');
+    onSquare(sq);
+  },
   guess: onGuess,
   hover: onHover,
   unhover: hideTooltip,

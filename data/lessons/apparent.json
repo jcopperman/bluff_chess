@@ -45,7 +45,7 @@
         "e2",
         "e5"
       ],
-      "hint": "Click your king, then e2.",
+      "hint": "Select your king, then e2.",
       "success": "Safe, for now.",
       "reply": [
         {

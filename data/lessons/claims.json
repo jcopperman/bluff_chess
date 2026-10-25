@@ -43,7 +43,7 @@
         "b1",
         "c3"
       ],
-      "hint": "Click the b1 card, click c3, then choose Knight.",
+      "hint": "Select the b1 card, then c3, then choose Knight.",
       "success": "The badge in the card's corner shows your claim. The Professor could have called it, but he passed.",
       "reply": [
         {
@@ -68,7 +68,7 @@
       "highlight": [
         "c3"
       ],
-      "hint": "Click the card on c3. It can only move like a knight now.",
+      "hint": "Select the card on c3. It can only move like a knight now.",
       "success": "Good. A locked claim tells your opponent something, so claim with care.",
       "reply": [
         {
@@ -84,7 +84,7 @@
       ]
     },
     {
-      "say": "<b>Castling</b> works as in chess: king and corner piece unmoved, the squares between them empty, and no check on the way. Here it is also a claim: the corner card says it is a <b>rook</b>, and it can be called. Castle kingside: click your king, then <b>g1</b> (or the h1 card).",
+      "say": "<b>Castling</b> works as in chess: king and corner piece unmoved, the squares between them empty, and no check on the way. Here it is also a claim: the corner card says it is a <b>rook</b>, and it can be called. Castle kingside: select your king, then <b>g1</b> (or the h1 card).",
       "position": {
         "pieces": [
           {
@@ -142,7 +142,7 @@
         "g1",
         "h1"
       ],
-      "hint": "Click the king on e1, then the square marked Castle (g1), or the h1 card.",
+      "hint": "Select the king on e1, then the square marked Castle (g1), or the h1 card.",
       "success": "Castled. Your h1 card really was a rook, so a call would have cost the caller. Castle with a knight in the corner and it is a bluff like any other.",
       "reply": [
         {
