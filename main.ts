@@ -438,6 +438,7 @@ function enterGame(m: Match): void {
   root.className = 'screen screen-game';
   root.innerHTML = R.gameShell(m.mode);
   infoOpen = false;
+  lastFlashKey = null;
   renderHud();
 }
 
@@ -1345,35 +1346,90 @@ function moveHint(v: PlayerView): string {
 }
 
 let lastActKey: string | null = null;
+let lastFlashKey: string | null = null;
 
+/** Waiting moments worth a card on the board. Plain "they're thinking" shows on their card and the board edge instead. */
+const WAIT_CARDS = new Set(['down', 'bot-calling', 'showdown-bot', 'setup-wait']);
+
+/**
+ * The prompt pops up from the board instead of sitting in a bar: decisions are cards with
+ * buttons, placed on the half of the board away from the square in question, and the start
+ * of your turn is announced with a slip slammed onto the board.
+ */
 function renderPrompt(v: PlayerView, actor: Color | null): void {
   const m = match();
   const p = promptFor(v, actor);
-  const bar = el('#prompt');
-  const html = `<div class="prompt-text"><b>${p.title}</b>${p.sub ? `<span>${p.sub}</span>` : ''}</div>${p.buttons ? `<div class="prompt-actions">${p.buttons}</div>` : ''}`;
-  if (bar.dataset.key !== p.key) {
-    // New content rises in; a change of tone wipes the new colour across. When the
-    // opponent has just acted, wait for their piece to land before asking anything.
-    const prevTone = bar.dataset.tone;
-    const late = prevTone === 'wait' && p.tone === 'act';
-    bar.dataset.key = p.key;
-    bar.dataset.tone = p.tone;
-    bar.className = `prompt prompt-${p.tone} prompt-enter${prevTone !== p.tone ? ' prompt-tone-in' : ''}${late ? ' prompt-late' : ''}`;
-  } else {
-    bar.className = bar.className.replace(/prompt-(act|wait|done)/, `prompt-${p.tone}`);
+  const host = el('#prompt');
+  // Choosing a claim happens on the claim picker, which carries its own Cancel.
+  const card = p.key !== 'choice' && (!!p.buttons || !!p.small || (p.tone === 'wait' && WAIT_CARDS.has(p.key)));
+  const html = card ? `<div class="callout-text"><b>${p.title}</b>${p.sub ? `<span>${p.sub}</span>` : ''}</div>${p.buttons ? `<div class="callout-actions">${p.buttons}</div>` : ''}` : '';
+  const pos = p.tone === 'done' ? 'mid' : calloutSide(p.key === 'guard' ? m.guard?.action.to : v.phase === 'callWindow' ? v.pending?.to : m.stuck?.squares[0]);
+  let current = host.querySelector<HTMLElement>('.callout:not(.out)');
+  if (host.dataset.key !== p.key || !card) {
+    const late = host.dataset.tone === 'wait' && p.tone === 'act';
+    host.dataset.key = p.key;
+    host.dataset.tone = p.tone;
+    // The old card drops away while the new one pops up.
+    if (current) {
+      const old = current;
+      old.classList.add('out');
+      setTimeout(() => old.remove(), 220);
+      current = null;
+    }
+    if (card) {
+      current = document.createElement('div');
+      // When the opponent has just acted, let their piece land before asking anything.
+      current.className = `callout pop${late ? ' late' : ''}`;
+      host.appendChild(current);
+    }
   }
-  bar.classList.toggle('prompt-small', !!p.small);
-  if (bar.innerHTML !== html) bar.innerHTML = html;
+  if (current) {
+    current.classList.remove('callout-act', 'callout-wait', 'callout-done', 'at-top', 'at-bottom', 'at-mid');
+    current.classList.add(`callout-${p.tone}`, `at-${pos}`);
+    current.classList.toggle('callout-small', !!p.small);
+    if (current.innerHTML !== html) current.innerHTML = html;
+  }
 
   const frame = el('.board-frame');
   frame.classList.toggle('turn-me', p.tone === 'act');
   frame.classList.toggle('turn-opp', p.tone === 'wait' && actor === opp());
 
-  // A chime and a tab title when it becomes your turn.
+  // A chime, a slip on the board and a tab title when it becomes your turn.
   const acting = p.tone === 'act';
   if (acting && lastActKey === null && m.mode !== 'lesson') Sound.play('turn');
+  // Each new move of yours gets the slip, including straight after you call or pass;
+  // then it waits a beat so the stamp on the board is seen first.
+  if (p.key.startsWith('move-') && p.key !== lastFlashKey && m.mode !== 'lesson') {
+    const check = E.inCheck(E.getApparentBoard(v), me());
+    const afterCall = lastActKey?.startsWith('call-') ?? false;
+    setTimeout(() => {
+      if (app.match !== m || el('#prompt').dataset.key !== p.key) return;
+      flash(check ? 'Check!' : m.mode === 'local' ? `${esc(m.names[me()])} to move` : 'Your move', check ? 'check' : 'turn');
+      if (check && !app.data.settings.reducedMotion) FX.shake(frame);
+    }, afterCall ? 700 : 0);
+  }
+  if (p.key.startsWith('move-')) lastFlashKey = p.key;
   lastActKey = acting ? p.key : null;
   document.title = acting ? `● ${p.title.replace(/<[^>]+>/g, '')} · Bluff Chess` : 'Bluff Chess';
+}
+
+/** Which half of the board a card sits on: away from the square it's about, so that square stays in view. */
+function calloutSide(sq: Square | undefined): 'top' | 'bottom' {
+  if (!sq) return 'bottom';
+  const row = R.boardOrder(me()).ranks.indexOf(Number(sq[1]) - 1);
+  return row >= 4 ? 'top' : 'bottom';
+}
+
+/** A printed slip slammed onto the middle of the board, gone after a moment. */
+function flash(text: string, kind: 'turn' | 'check'): void {
+  const layer = $('#flash');
+  if (!layer) return;
+  layer.querySelectorAll('.flash').forEach((old) => old.remove());
+  const slip = document.createElement('div');
+  slip.className = `flash flash-${kind}`;
+  slip.innerHTML = `<span>${text}</span>`;
+  layer.appendChild(slip);
+  setTimeout(() => slip.remove(), 1400);
 }
 
 /** Position of a square's top-centre within the board frame, in layout pixels. */
@@ -1402,7 +1458,10 @@ function overlayHTML(v: PlayerView): string {
     const below = atTop || (occupied(s.rank + up) && !occupied(s.rank - up));
     const theirs = v.pending.mover === opp();
     const text = theirs ? `Claims ${typeName(v.pending.claim)}?` : `${m.mode === 'local' ? `${esc(m.names[me()])} claims` : 'You claim'} ${typeName(v.pending.claim)}`;
-    html += `<div class="claim-flag${below ? ' below' : ''}${theirs ? ' theirs' : ''}" style="left:${s.x}px;top:${below ? s.y + s.size + 6 : s.y - 6}px">${text}</div>`;
+    // On the outer files the flag extends inward, so it isn't cut off at the board's edge.
+    const boardW = el('#board').offsetWidth, edge = s.x - s.size / 2 - el('#board').offsetLeft;
+    const pin = edge < s.size * 1.5 ? ' pin-l' : edge > boardW - s.size * 2.5 ? ' pin-r' : '';
+    html += `<div class="claim-flag${below ? ' below' : ''}${theirs ? ' theirs' : ''}${pin}" style="left:${s.x}px;top:${below ? s.y + s.size + 6 : s.y - 6}px">${text}</div>`;
   }
   if (m.choice) {
     const s = squareSpot(m.choice.options[0].to);

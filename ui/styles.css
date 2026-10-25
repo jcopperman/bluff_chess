@@ -251,7 +251,7 @@ h1, h2, h3 { margin: 0; font-weight: 400; }
 .curtain-card .btn-big { margin-top: 10px; }
 
 /* ---------- game layout ---------- */
-.game { position: absolute; inset: 0; display: grid; padding: 14px 32px; gap: 14px 28px; --board: 712px;
+.game { position: absolute; inset: 0; display: grid; padding: 14px 32px; gap: 14px 28px; --board: 760px;
   grid-template-columns: 300px calc(var(--board) + 40px) 1fr; grid-template-rows: 1fr auto; grid-template-areas: 'opp board side' 'me board side'; }
 [data-layout=portrait] .game { --board: 790px; padding: 14px 20px; gap: 12px; grid-template-columns: 1fr; grid-template-rows: auto auto auto 1fr; grid-template-areas: 'opp' 'board' 'me' 'side'; }
 .g-opp { grid-area: opp; display: flex; flex-direction: column; align-items: center; min-height: 0; position: relative; }
@@ -544,38 +544,44 @@ h1, h2, h3 { margin: 0; font-weight: 400; }
 }
 .reduce-motion *, .reduce-motion *::before, .reduce-motion *::after { animation-duration: 0.01ms !important; animation-delay: 0s !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 
-/* ---------- turn signals ---------- */
-.prompt { width: calc(var(--board) + 40px); min-height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 8px 10px 8px 22px; border-radius: 2px; }
-.prompt-act { background: linear-gradient(var(--red), var(--red)) no-repeat left / 100% 100%; color: var(--paper); }
-.prompt-wait { color: var(--on-table-2); box-shadow: inset 0 0 0 1.5px var(--table-line); }
-.prompt-done { background: var(--paper); color: var(--ink); box-shadow: var(--frame); }
-/* Turn transitions: content rises in, a new tone wipes across from the left, and after
-   the opponent acts everything waits for their piece to land (the slide takes 240ms). */
-.prompt-enter > * { animation: prompt-in 0.22s cubic-bezier(.3,.8,.3,1) both; }
-.prompt-enter > .prompt-actions { animation-delay: 0.05s; }
-.prompt-tone-in.prompt-act { animation: prompt-wipe 0.24s cubic-bezier(.3,.8,.3,1) both; }
-.prompt-tone-in.prompt-wait, .prompt-tone-in.prompt-done { animation: prompt-fade 0.2s ease-out both; }
-.prompt-late.prompt-tone-in { animation-delay: 0.24s; }
-.prompt-late > .prompt-text { animation-delay: 0.36s; }
-.prompt-late > .prompt-actions { animation-delay: 0.42s; }
-@keyframes prompt-in { from { transform: translateY(8px); opacity: 0; } }
-@keyframes prompt-wipe { from { background-size: 0% 100%; } }
-@keyframes prompt-fade { from { opacity: 0.4; } }
-.prompt-text { display: flex; align-items: baseline; gap: 16px; min-width: 0; flex-wrap: wrap; row-gap: 0; }
-.prompt-text > b { font: 700 condensed 30px/1.1 var(--head); text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; }
-.prompt-text span { font-size: 18px; }
-.prompt-small .prompt-text > b { font-size: 24px; }
-.prompt-small .prompt-text span { font-size: 16px; line-height: 1.25; }
-.prompt-done .prompt-text > b { white-space: normal; font-size: 24px; }
-.prompt-wait .prompt-text > b::after { content: '…'; display: inline-block; width: 1em; overflow: hidden; vertical-align: bottom; animation: dots 1.2s steps(4) infinite; }
-.prompt-text span .claim-tag { font-weight: 700; }
-.prompt-act .claim-tag .pi { --fill: var(--paper); --line: var(--paper); --detail: var(--red); }
-.prompt-actions { display: flex; gap: 10px; flex: none; }
-.prompt-actions .btn { min-width: 132px; padding: 6px 18px; font-size: 22px; }
-.prompt-act .btn { background: var(--paper); color: var(--ink); border-color: var(--paper); }
-.prompt-act .btn:hover:not(:disabled) { background: var(--ink); color: var(--paper); border-color: var(--ink); }
-.prompt-act .btn-ink { background: var(--ink); color: var(--paper); border-color: var(--ink); }
-.prompt-act .btn-ink:hover:not(:disabled) { background: var(--paper); color: var(--ink); border-color: var(--paper); }
+/* ---------- turn signals: callouts that pop up from the board ---------- */
+.callouts { position: absolute; inset: var(--pad, 20px); pointer-events: none; z-index: 20; overflow: hidden; }
+/* A decision is a printed card with a double ink rule, popping up from the board's edge. */
+.callout { --ty: 0%; --from: 48px; position: absolute; left: 50%; width: min(84%, 560px); display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 18px 24px 20px; text-align: center; pointer-events: auto;
+  background: var(--paper); color: var(--ink); transform: translate(-50%, var(--ty));
+  box-shadow: inset 0 0 0 2px var(--ink), inset 0 0 0 5px var(--paper), inset 0 0 0 6.5px var(--ink), 0 5px 0 rgba(0,0,0,0.4), 0 16px 34px rgba(0,0,0,0.3); }
+.callout.at-bottom { bottom: 5%; }
+.callout.at-top { top: 5%; --from: -48px; }
+.callout.at-mid { top: 50%; --ty: -50%; --from: 0px; width: min(88%, 620px); padding: 26px 28px 26px; }
+.callout.pop { animation: callout-pop 0.42s cubic-bezier(.2,.9,.3,1.25) both; }
+.callout.pop.late { animation-delay: 0.3s; }
+.callout.out { animation: callout-out 0.2s ease-in forwards; pointer-events: none; }
+@keyframes callout-pop { from { opacity: 0; transform: translate(-50%, calc(var(--ty) + var(--from))) scale(0.7) rotate(-5deg); } }
+@keyframes callout-out { to { opacity: 0; transform: translate(-50%, var(--ty)) scale(0.9); } }
+.callout-text { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.callout-text > b { font: 800 condensed 40px/1 var(--head); text-transform: uppercase; letter-spacing: 0.03em; }
+.callout-act .callout-text > b { color: var(--red); }
+.callout-text span { font-size: 18px; line-height: 1.3; color: var(--ink-2); }
+.callout-text span .claim-tag { font-weight: 700; color: var(--ink); }
+.callout-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; }
+.callout-actions .btn { min-width: 150px; padding: 10px 22px; font-size: 24px; }
+.callout-actions .btn:not(:disabled):active { transform: translateY(2px); }
+/* Waiting and notes are smaller cards; results are the big one in the middle. */
+.callout-wait, .callout-small { width: auto; max-width: min(84%, 520px); padding: 12px 22px 14px; gap: 8px; }
+.callout-wait .callout-text > b, .callout-small .callout-text > b { font-size: 24px; }
+.callout-small .callout-text span { font-size: 16px; }
+.callout-wait .callout-text > b { color: var(--ink-2); }
+.callout-wait .callout-text > b::after { content: '…'; display: inline-block; width: 1em; overflow: hidden; vertical-align: bottom; text-align: left; animation: dots 1.2s steps(4) infinite; }
+.callout-done .callout-text > b { font-size: 46px; }
+
+/* The start of your turn: a band sweeps across the board and the words slam onto it. */
+#flash { position: absolute; inset: 0; pointer-events: none; }
+.flash { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); padding: calc(var(--board) * 0.02) 0; text-align: center; background: var(--ink); color: var(--paper);
+  box-shadow: inset 0 3px 0 var(--ink), inset 0 5px 0 var(--paper), inset 0 -3px 0 var(--ink), inset 0 -5px 0 var(--paper); animation: band 1.35s cubic-bezier(.3,.8,.3,1) forwards; }
+.flash span { display: inline-block; font: 800 condensed calc(var(--board) * 0.11)/1 var(--head); text-transform: uppercase; letter-spacing: 0.05em; animation: band-text 1.35s ease-out both; }
+.flash-check { background: var(--red); box-shadow: inset 0 3px 0 var(--red), inset 0 5px 0 var(--paper), inset 0 -3px 0 var(--red), inset 0 -5px 0 var(--paper); }
+@keyframes band { 0% { clip-path: inset(0 100% 0 0); } 14% { clip-path: inset(0 0 0 0); } 76% { clip-path: inset(0 0 0 0); } 100% { clip-path: inset(0 0 0 100%); } }
+@keyframes band-text { 0%, 9% { opacity: 0; transform: scale(1.7); } 19% { opacity: 1; transform: scale(0.96); } 25%, 100% { transform: scale(1); } }
 
 /* A bar on the board edge of whoever must act: red for you, grey for them. */
 .board-frame.turn-me::after, .board-frame.turn-opp::after { content: ''; position: absolute; left: var(--pad); right: var(--pad); height: 6px; }
@@ -595,12 +601,18 @@ h1, h2, h3 { margin: 0; font-weight: 400; }
 @keyframes flag-in-below { from { opacity: 0; margin-top: 10px; } }
 .claim-flag.below::after { bottom: auto; top: -6px; border: 6px solid transparent; border-top: 0; border-bottom-color: var(--ink); }
 .claim-flag.below.theirs::after { border-bottom-color: var(--red); }
+.claim-flag.pin-l { transform: translate(-20px, -100%); }
+.claim-flag.pin-r { transform: translate(calc(-100% + 20px), -100%); }
+.claim-flag.pin-l.below { transform: translate(-20px, 0); }
+.claim-flag.pin-r.below { transform: translate(calc(-100% + 20px), 0); }
+.claim-flag.pin-l::after { left: 20px; }
+.claim-flag.pin-r::after { left: auto; right: 20px; margin: 0 -6px 0 0; }
 .claim-pop { position: absolute; transform: translate(-50%, 0); pointer-events: auto; padding: 14px 18px 16px; background: var(--paper); color: var(--ink);
   box-shadow: var(--frame), 0 4px 0 rgba(0,0,0,0.4); animation: rise 0.2s ease-out; }
 .claim-pop.above { transform: translate(-50%, -100%); }
 .claim-pop-title { font: 700 condensed 18px var(--head); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 10px; }
-/* On the stage, Cancel sits in the turn bar; on phones the sheet covers the bar, so it carries its own. */
-.claim-cancel { display: none; }
+/* The picker carries its own Cancel. */
+.claim-cancel { display: flex; justify-content: center; width: 100%; margin-top: 10px; }
 .claim-pop .claim-grid { margin: 0; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); }
 
 .turn-pill { display: inline-block; font: 700 condensed 15px var(--head); text-transform: uppercase; letter-spacing: 0.05em; color: var(--paper); background: var(--red); padding: 2px 10px; }
@@ -730,9 +742,9 @@ h1, h2, h3 { margin: 0; font-weight: 400; }
 
 /* game: opponent, board, me, side panel, turn bar */
 [data-size=phone] .game { --pad: 6px; --side-min: 96px;
-  --board: min(calc(var(--stage-w) - 2 * var(--pad) - 12px), calc(var(--stage-h) - 46px - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 176px - var(--side-min)));
+  --board: min(calc(var(--stage-w) - 2 * var(--pad) - 12px), calc(var(--stage-h) - 46px - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 116px - var(--side-min)));
   padding: 6px 6px calc(6px + env(safe-area-inset-bottom)); gap: 6px;
-  grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto minmax(var(--side-min), 1fr) auto; grid-template-areas: 'opp' 'board' 'me' 'side' 'prompt'; }
+  grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto minmax(var(--side-min), 1fr); grid-template-areas: 'opp' 'board' 'me' 'side'; }
 [data-size=phone] .g-board { display: contents; }
 [data-size=phone] .board-frame { grid-area: board; justify-self: center; --pad: 6px; }
 [data-size=phone] .board-frame.turn-me::after, [data-size=phone] .board-frame.turn-opp::after { height: 3px; }
@@ -755,7 +767,6 @@ h1, h2, h3 { margin: 0; font-weight: 400; }
 [data-size=phone] .btn-claim { font-size: 16px; padding: 8px 4px; }
 [data-size=phone] .btn-claim .pi { width: 36px; height: 36px; }
 [data-size=phone] .btn-claim small { font-size: 11px; }
-[data-size=phone] .claim-cancel { display: flex; width: 100%; margin-top: 10px; }
 
 /* seat strips */
 [data-size=phone] .g-opp { flex-direction: row; align-items: center; }
@@ -784,13 +795,16 @@ h1, h2, h3 { margin: 0; font-weight: 400; }
 [data-size=phone] .speech { position: absolute; left: 40px; right: 0; top: 0; min-height: 100%; width: auto; margin: 0; z-index: 30; display: flex; align-items: center; padding: 4px 10px; font-size: 14px; line-height: 1.25; pointer-events: none; }
 [data-size=phone] .speech::before { left: -6px; top: calc(50% - 5px); width: 10px; height: 10px; box-shadow: -1.5px 1.5px 0 0 var(--ink); }
 
-/* turn bar */
-[data-size=phone] .prompt { grid-area: prompt; width: 100%; min-height: 54px; gap: 10px; padding: 6px 6px 6px 12px; }
-[data-size=phone] .prompt-text { flex-direction: column; align-items: flex-start; gap: 0; }
-[data-size=phone] .prompt-text > b, [data-size=phone] .prompt-small .prompt-text > b, [data-size=phone] .prompt-done .prompt-text > b { font-size: 20px; white-space: normal; }
-[data-size=phone] .prompt-text span, [data-size=phone] .prompt-small .prompt-text span { font-size: 13px; line-height: 1.25; }
-[data-size=phone] .prompt-actions { gap: 6px; }
-[data-size=phone] .prompt-actions .btn { min-width: 74px; min-height: 42px; padding: 6px 10px; font-size: 17px; }
+/* callouts: full-width cards with thumb-sized buttons */
+[data-size=phone] .callout { width: 94%; padding: 14px 14px 16px; gap: 10px; }
+[data-size=phone] .callout.at-mid { width: 94%; padding: 18px 14px; }
+[data-size=phone] .callout-wait, [data-size=phone] .callout-small { width: auto; max-width: 94%; padding: 10px 14px 12px; }
+[data-size=phone] .callout-text > b { font-size: 28px; }
+[data-size=phone] .callout-done .callout-text > b { font-size: 30px; }
+[data-size=phone] .callout-wait .callout-text > b, [data-size=phone] .callout-small .callout-text > b { font-size: 19px; }
+[data-size=phone] .callout-text span { font-size: 14px; }
+[data-size=phone] .callout-actions { width: 100%; gap: 8px; flex-wrap: nowrap; }
+[data-size=phone] .callout-actions .btn { flex: 1; min-width: 0; min-height: 50px; padding: 8px 10px; font-size: 20px; }
 
 /* side panel: one tab at a time */
 [data-size=phone] .g-side { display: flex; flex-direction: column; gap: 6px; min-height: 0; overflow: hidden; }
@@ -890,10 +904,10 @@ h1, h2, h3 { margin: 0; font-weight: 400; }
 
 /* Upright: the board takes the full width; the sheet rises from the bottom. */
 [data-size=phone][data-layout=portrait] .game:not([data-mode=lesson], [data-mode=puzzle]) { --pad: 4px;
-  --board: min(calc(var(--stage-w) - 2 * var(--pad) - 4px), calc(var(--stage-h) - 46px - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 184px));
+  --board: min(calc(var(--stage-w) - 2 * var(--pad) - 4px), calc(var(--stage-h) - 46px - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 124px));
   padding: 4px 2px calc(6px + env(safe-area-inset-bottom));
-  grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: minmax(0, 1fr) auto auto auto minmax(0, 1fr) auto;
-  grid-template-areas: '. .' 'opp opp' 'board board' 'me info' '. .' 'prompt prompt'; }
+  grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: minmax(0, 1fr) auto auto auto minmax(0, 1fr);
+  grid-template-areas: '. .' 'opp opp' 'board board' 'me info' '. .'; }
 [data-size=phone][data-layout=portrait] .game:not([data-mode=lesson], [data-mode=puzzle]) .board-frame { --pad: 4px; }
 [data-size=phone][data-layout=portrait] .game:not([data-mode=lesson], [data-mode=puzzle]) :is(.g-opp, .g-me) { padding: 0 4px; }
 [data-size=phone][data-layout=portrait] .game:not([data-mode=lesson], [data-mode=puzzle]) .g-side { left: 0; right: 0; bottom: 0; max-height: min(72%, 560px);
@@ -906,8 +920,8 @@ h1, h2, h3 { margin: 0; font-weight: 400; }
 [data-size=phone][data-layout=landscape] #app:has(.screen-game) .hud { position: absolute; top: 0; right: 0; left: var(--lcol); height: calc(38px + env(safe-area-inset-top)); padding-left: 0; }
 [data-size=phone][data-layout=landscape] .game { --board: var(--lboard);
   padding: calc(4px + env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) calc(4px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); gap: 6px 12px;
-  grid-template-columns: auto minmax(0, 1fr) auto; grid-template-rows: 34px auto auto minmax(0, 1fr) auto;
-  grid-template-areas: 'board . .' 'board opp opp' 'board me info' 'board side side' 'board prompt prompt'; }
+  grid-template-columns: auto minmax(0, 1fr) auto; grid-template-rows: 34px auto auto minmax(0, 1fr);
+  grid-template-areas: 'board . .' 'board opp opp' 'board me info' 'board side side'; }
 [data-size=phone][data-layout=landscape] .board-frame { --pad: 4px; }
 [data-size=phone][data-layout=landscape] .game:not([data-mode=lesson], [data-mode=puzzle]) .g-side { top: 0; right: 0; bottom: 0; left: calc(var(--lcol) - 8px);
   padding: calc(4px + env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) 10px; box-shadow: -1.5px 0 0 var(--table-line), -10px 0 30px rgba(0,0,0,0.45); }
