@@ -20,6 +20,12 @@
         "owner": "black",
         "type": "king",
         "square": "h5"
+      },
+      {
+        "id": "b-ph",
+        "owner": "black",
+        "type": "pawn",
+        "square": "h7"
       }
     ]
   },

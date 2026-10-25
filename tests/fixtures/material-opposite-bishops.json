@@ -1,0 +1,37 @@
+{
+  "name": "bishops on opposite colours can still mate, so play goes on",
+  "config": {
+    "pieces": [
+      {
+        "id": "w-k",
+        "owner": "white",
+        "type": "king",
+        "square": "e1"
+      },
+      {
+        "id": "w-b",
+        "owner": "white",
+        "type": "bishop",
+        "square": "c1",
+        "faceUp": true
+      },
+      {
+        "id": "b-k",
+        "owner": "black",
+        "type": "king",
+        "square": "e8"
+      },
+      {
+        "id": "b-b",
+        "owner": "black",
+        "type": "bishop",
+        "square": "c8",
+        "faceUp": true
+      }
+    ]
+  },
+  "actions": [],
+  "expect": {
+    "phase": "move"
+  }
+}

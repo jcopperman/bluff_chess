@@ -1,0 +1,41 @@
+{
+  "name": "bishops all on one colour can never mate: draw",
+  "config": {
+    "pieces": [
+      {
+        "id": "w-k",
+        "owner": "white",
+        "type": "king",
+        "square": "e1"
+      },
+      {
+        "id": "w-b",
+        "owner": "white",
+        "type": "bishop",
+        "square": "c1",
+        "faceUp": true
+      },
+      {
+        "id": "b-k",
+        "owner": "black",
+        "type": "king",
+        "square": "e8"
+      },
+      {
+        "id": "b-b",
+        "owner": "black",
+        "type": "bishop",
+        "square": "f8",
+        "faceUp": true
+      }
+    ]
+  },
+  "actions": [],
+  "expect": {
+    "phase": "over",
+    "result": {
+      "winner": null,
+      "reason": "insufficientMaterial"
+    }
+  }
+}

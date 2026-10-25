@@ -174,6 +174,22 @@ function chipsOutCheck(state: GameState, events: GameEvent[]): boolean {
 }
 
 /**
+ * Neither side can ever checkmate: chess's dead draws (bare kings, a lone bishop or knight,
+ * or only bishops all on one colour). Declared only once every piece left is face-up, so it
+ * never reveals a hidden card, and no claim, call or showdown can change the material.
+ */
+export function insufficientMaterial(state: GameState): boolean {
+  const live = state.pieces.filter((p) => !p.captured && p.square);
+  if (live.some((p) => !p.faceUp)) return false;
+  const others = live.filter((p) => p.type !== 'king');
+  if (others.some((p) => p.type !== 'bishop' && p.type !== 'knight')) return false;
+  if (others.length <= 1) return true;
+  if (!others.every((p) => p.type === 'bishop')) return false;
+  const shade = (sq: Square) => (sq.charCodeAt(0) - 97 + Number(sq[1])) % 2;
+  return new Set(others.map((p) => shade(must(p.square, 'square')))).size === 1;
+}
+
+/**
  * Called whenever play passes to `state.turn` (or after a showdown).
  * Decides between normal play, a showdown, or the end of the game.
  */
@@ -205,6 +221,7 @@ export function updateStatus(state: GameState, events: GameEvent[], { afterShowd
     events.push({ type: 'mateBroken', player });
     return;
   }
+  if (insufficientMaterial(state)) return gameOver(state, null, 'insufficientMaterial', events);
 
   if (state.config.repetition) {
     const key = positionKey(state);

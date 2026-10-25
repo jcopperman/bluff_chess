@@ -1,0 +1,41 @@
+{
+  "name": "capturing the last piece that could mate ends the game in a draw",
+  "config": {
+    "pieces": [
+      {
+        "id": "w-k",
+        "owner": "white",
+        "type": "king",
+        "square": "e1"
+      },
+      {
+        "id": "b-k",
+        "owner": "black",
+        "type": "king",
+        "square": "e8"
+      },
+      {
+        "id": "b-r",
+        "owner": "black",
+        "type": "rook",
+        "square": "e2",
+        "faceUp": true
+      }
+    ]
+  },
+  "actions": [
+    {
+      "type": "move",
+      "player": "white",
+      "from": "e1",
+      "to": "e2"
+    }
+  ],
+  "expect": {
+    "phase": "over",
+    "result": {
+      "winner": null,
+      "reason": "insufficientMaterial"
+    }
+  }
+}

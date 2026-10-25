@@ -42,7 +42,7 @@
         {
           "id": "checkmate",
           "title": "Check & winning",
-          "body": "<p>A king that is attacked is <b>in check</b> and must escape: move the king, block, or capture the attacker. A move may never leave your own king in check. Kings are never captured.</p><p><b>Checkmate</b> (check with no escape) wins, after any showdowns. No legal moves without check is <b>stalemate</b>, a draw. Threefold repetition and the fifty-move rule are draws too.</p>"
+          "body": "<p>A king that is attacked is <b>in check</b> and must escape: move the king, block, or capture the attacker. A move may never leave your own king in check. Kings are never captured.</p><p><b>Checkmate</b> (check with no escape) wins, after any showdowns. No legal moves without check is <b>stalemate</b>, a draw. Threefold repetition and the fifty-move rule are draws too, and so is a position where neither side has enough left to checkmate (bare kings, a lone bishop or knight, or bishops all on one colour), once every remaining piece is face-up.</p>"
         }
       ]
     },

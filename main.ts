@@ -1059,7 +1059,7 @@ function handleEvents(events: GameEvent[], before: GameState): void {
 
 const REASONS: Record<Result['reason'], string> = {
   checkmate: 'checkmate', stalemate: 'stalemate', resign: 'resignation', chips: 'running out of chips',
-  repetition: 'threefold repetition', fiftyMove: 'the fifty-move rule',
+  repetition: 'threefold repetition', fiftyMove: 'the fifty-move rule', insufficientMaterial: 'insufficient material',
 };
 
 function resultText(r: Result): string {

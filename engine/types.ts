@@ -101,7 +101,7 @@ export interface ShowdownRecord {
   square: Square | null;
 }
 
-export type ResultReason = 'checkmate' | 'stalemate' | 'resign' | 'chips' | 'repetition' | 'fiftyMove';
+export type ResultReason = 'checkmate' | 'stalemate' | 'resign' | 'chips' | 'repetition' | 'fiftyMove' | 'insufficientMaterial';
 
 export interface Result {
   winner: Color | null;

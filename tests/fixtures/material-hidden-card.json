@@ -1,0 +1,31 @@
+{
+  "name": "a face-down card left in play could be anything, so no draw is declared",
+  "config": {
+    "pieces": [
+      {
+        "id": "w-k",
+        "owner": "white",
+        "type": "king",
+        "square": "e1"
+      },
+      {
+        "id": "w-n",
+        "owner": "white",
+        "type": "knight",
+        "square": "b1",
+        "claim": "knight",
+        "hasMoved": false
+      },
+      {
+        "id": "b-k",
+        "owner": "black",
+        "type": "king",
+        "square": "e8"
+      }
+    ]
+  },
+  "actions": [],
+  "expect": {
+    "phase": "move"
+  }
+}
