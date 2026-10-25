@@ -307,6 +307,9 @@ h1, h2, h3 { margin: 0; font-weight: 400; }
 .tdot { position: absolute; width: 22%; height: 22%; border-radius: 50%; background: var(--ink); box-shadow: 0 0 0 3px var(--paper); z-index: 3; pointer-events: none; }
 .tclaim { position: absolute; width: 38%; height: 38%; z-index: 3; pointer-events: none; display: grid; place-items: center; background: var(--paper); border-radius: 50%; box-shadow: 0 0 0 1.5px var(--red); }
 .tclaim .piece-svg { width: 84%; height: 84%; }
+.tcastle { position: absolute; bottom: 6%; left: 50%; transform: translateX(-50%); z-index: 3; pointer-events: none; padding: 1px 5px; background: var(--paper); color: var(--red); border: 1.5px solid var(--red); font-size: 10px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; }
+.sq.castle-corner { cursor: pointer; }
+.sq.castle-corner::after { content: ''; position: absolute; inset: 4px; border: 2px dashed var(--red); z-index: 4; pointer-events: none; }
 .tclaim .piece-svg .b { fill: var(--red); stroke: var(--red); }
 .tclaim .piece-svg .d, .tclaim .piece-svg .s, .tclaim .piece-svg .e { stroke: transparent; fill: none; }
 .sq.capture-target::after { content: ''; position: absolute; inset: 6%; border-radius: 50%; border: 3px solid var(--red); z-index: 3; pointer-events: none; }

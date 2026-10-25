@@ -82,6 +82,8 @@ export interface BoardOptions {
   captureTargets?: Set<Square>;
   /** Claim types that can reach each target (coach marking). */
   targetClaims?: Map<Square, ClaimType[]>;
+  /** Castling: the king's landing square mapped to the corner piece it brings across. */
+  castles?: Map<Square, Square>;
   lastMove?: { from: Square; to: Square } | null;
   hover?: Square[];
   guesses?: Record<string, ClaimType>;
@@ -118,7 +120,9 @@ export function boardHTML(view: GameState, opts: BoardOptions): string {
         cls.push(capture ? 'capture-target' : 'target');
         if (claims?.length === 1 && !capture) marker = `<span class="tclaim">${pieceSVG(claims[0])}</span>`;
         else if (!capture) marker = '<span class="tdot"></span>';
+        if (opts.castles?.has(sq)) marker = '<span class="tcastle">Castle</span>';
       }
+      if ([...(opts.castles?.values() ?? [])].includes(sq)) cls.push('castle-corner');
       if (opts.lastMove && (opts.lastMove.from === sq || opts.lastMove.to === sq)) cls.push('last');
       if (pendingSqs.includes(sq)) cls.push('pending');
       if (opts.hover?.includes(sq)) cls.push('bot-hover');

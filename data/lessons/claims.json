@@ -84,6 +84,80 @@
       ]
     },
     {
+      "say": "<b>Castling</b> works as in chess: king and corner piece unmoved, the squares between them empty, and no check on the way. Here it is also a claim: the corner card says it is a <b>rook</b>, and it can be called. Castle kingside: click your king, then <b>g1</b> (or the h1 card).",
+      "position": {
+        "pieces": [
+          {
+            "id": "w-k",
+            "owner": "white",
+            "type": "king",
+            "square": "e1"
+          },
+          {
+            "id": "w-h1",
+            "owner": "white",
+            "type": "rook",
+            "square": "h1"
+          },
+          {
+            "id": "w-pf",
+            "owner": "white",
+            "type": "pawn",
+            "square": "f2"
+          },
+          {
+            "id": "w-pg",
+            "owner": "white",
+            "type": "pawn",
+            "square": "g2"
+          },
+          {
+            "id": "w-ph",
+            "owner": "white",
+            "type": "pawn",
+            "square": "h2"
+          },
+          {
+            "id": "b-k",
+            "owner": "black",
+            "type": "king",
+            "square": "e8"
+          },
+          {
+            "id": "b-pe",
+            "owner": "black",
+            "type": "pawn",
+            "square": "e7"
+          }
+        ]
+      },
+      "expect": [
+        {
+          "from": "e1",
+          "to": "g1"
+        }
+      ],
+      "highlight": [
+        "e1",
+        "g1",
+        "h1"
+      ],
+      "hint": "Click the king on e1, then the square marked Castle (g1), or the h1 card.",
+      "success": "Castled. Your h1 card really was a rook, so a call would have cost the caller. Castle with a knight in the corner and it is a bluff like any other.",
+      "reply": [
+        {
+          "type": "pass",
+          "player": "black"
+        },
+        {
+          "type": "move",
+          "player": "black",
+          "from": "e7",
+          "to": "e6"
+        }
+      ]
+    },
+    {
       "say": "Your opponent's claims show the same way, as a badge in the corner of their cards. The <b>claim tracker</b> beside the board counts them. If more cards claim a type than can exist, someone is lying. Next: catching liars.",
       "expect": "next"
     }

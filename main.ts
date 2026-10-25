@@ -1107,6 +1107,7 @@ function renderGame(opts: { noSlide?: boolean } = {}): void {
   const targets = new Set<Square>();
   const captureTargets = new Set<Square>();
   const targetClaims = new Map<Square, ClaimType[]>();
+  const castles = new Map<Square, Square>();
   let legend: { types: ClaimType[]; multi: boolean } | null = null;
   if (m.selected && v.phase === 'move' && actor === me()) {
     const selected = v.pieces.find((p) => !p.captured && p.square === m.selected);
@@ -1117,6 +1118,7 @@ function renderGame(opts: { noSlide?: boolean } = {}): void {
       if (v.pieces.some((p) => !p.captured && p.square === a.to)) captureTargets.add(a.to);
       if (unclaimedCard && a.claim) targetClaims.set(a.to, [...(targetClaims.get(a.to) ?? []), a.claim]);
     }
+    for (const [corner, a] of castlesFrom(v, legal, m.selected)) castles.set(a.to, corner);
     if (unclaimedCard && coachOn()) {
       const reach = [...targetClaims.values()];
       legend = { types: E.CLAIMABLE.filter((t) => reach.some((cs) => cs.includes(t))), multi: reach.some((cs) => cs.length > 1) };
@@ -1135,7 +1137,7 @@ function renderGame(opts: { noSlide?: boolean } = {}): void {
   const boardEl = el('#board');
   const before = app.data.settings.reducedMotion || opts.noSlide ? null : FX.snapshotPieces(boardEl);
   boardEl.innerHTML = R.boardHTML(v, {
-    me: me(), selected: m.selected, targets, captureTargets, targetClaims: coachOn() ? targetClaims : undefined,
+    me: me(), selected: m.selected, targets, captureTargets, targetClaims: coachOn() ? targetClaims : undefined, castles,
     lastMove: m.lastMove, hover: m.hover, guesses: m.notes[me()], flip: m.flip, showdownTargets, checkSquare,
     hints: step && m.lesson?.phase === 'playing' ? step.highlight : m.stuck?.squares, final: v.phase === 'over',
   });
@@ -1300,6 +1302,7 @@ function moveHint(v: PlayerView): string {
   if (!p) return '';
   if (!p.faceUp && !p.claim) return `Your hidden ${typeName(p.type)} is unclaimed: it may move as any type.`;
   if (!p.faceUp) return `Hidden ${typeName(p.type)}, locked as a ${typeName(p.claim)}${p.claim !== p.type ? ' (a bluff)' : ''}.`;
+  if (castlesFrom(v, E.getLegalActions(v, me()), m.selected).size) return 'King selected. Pick a marked square. To castle, click Castle or the corner card.';
   return `${typeName(p.type)} selected. Pick a marked square.`;
 }
 
@@ -1515,6 +1518,19 @@ function rematch(): void {
 // ---------------------------------------------------------------------------
 // Input
 
+/** Castling moves for the selected king, keyed by the corner square they bring across. */
+function castlesFrom(v: PlayerView, legal: Action[], from: Square | null): Map<Square, MoveAction> {
+  const out = new Map<Square, MoveAction>();
+  const king = v.pieces.find((p) => !p.captured && p.square === from && p.type === 'king');
+  if (!king || !from) return out;
+  for (const a of legal) {
+    if (a.type !== 'move' || a.from !== from) continue;
+    const df = a.to.charCodeAt(0) - from.charCodeAt(0);
+    if (Math.abs(df) === 2) out.set(`${df > 0 ? 'h' : 'a'}${from[1]}`, a);
+  }
+  return out;
+}
+
 function onSquare(sq: Square): void {
   const m = app.match;
   if (!m || app.screen !== 'game' || m.busy || m.curtain) return;
@@ -1543,6 +1559,9 @@ function onSquare(sq: Square): void {
   m.choice = null;
   const legal = E.getLegalActions(v, me()).filter((a): a is MoveAction => a.type === 'move');
   const p = v.pieces.find((x) => !x.captured && x.square === sq);
+  // King selected, then its corner piece clicked: castle on that side.
+  const castle = castlesFrom(v, legal, m.selected).get(sq);
+  if (castle) return playerAct(castle);
   if (m.selected && m.selected !== sq) {
     const opts = legal.filter((a) => a.from === m.selected && a.to === sq);
     if (opts.length === 1) return playerAct(opts[0]);
