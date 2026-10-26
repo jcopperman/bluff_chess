@@ -16,6 +16,16 @@ export interface InputHandlers {
 /** How long a finger rests on a piece before its details show. */
 const LONG_PRESS_MS = 450;
 
+/** Where the mouse last was, so a redraw can tell which piece is under it now. */
+let mouse: { x: number; y: number } | null = null;
+
+/** The piece under the mouse pointer, if any. The board is redrawn wholesale, and the
+ *  browser sends no mouseout for an element it removed, so hover is rechecked after a redraw. */
+export function pieceUnderMouse(): HTMLElement | null {
+  if (!mouse) return null;
+  return document.elementFromPoint(mouse.x, mouse.y)?.closest<HTMLElement>('[data-piece]') ?? null;
+}
+
 export function bindInput(root: HTMLElement, h: InputHandlers): void {
   const closest = (e: Event, sel: string) => (e.target instanceof Element ? e.target.closest<HTMLElement>(sel) : null);
 
@@ -49,7 +59,11 @@ export function bindInput(root: HTMLElement, h: InputHandlers): void {
   root.addEventListener('pointermove', (e) => {
     if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > 10) cancelPress();
   });
-  root.addEventListener('pointerup', () => { lastTouch = Date.now(); cancelPress(); });
+  root.addEventListener('pointerup', (e) => {
+    // Only touches count: a mouse click must not switch off hover for the next second.
+    if (e.pointerType !== 'mouse') lastTouch = Date.now();
+    cancelPress();
+  });
   root.addEventListener('pointercancel', cancelPress);
 
   root.addEventListener('click', (e) => {
@@ -76,6 +90,15 @@ export function bindInput(root: HTMLElement, h: InputHandlers): void {
     h.guess(sq.dataset.sq!);
   });
 
+  window.addEventListener('mousemove', (e) => {
+    if (fromTouch()) {
+      mouse = null;
+      return;
+    }
+    mouse = { x: e.clientX, y: e.clientY };
+    // A piece can slide out from under a still mouse, so mouseout alone can miss it.
+    if (!closest(e, '[data-piece]') && !closest(e, '.tooltip')) h.unhover();
+  });
   root.addEventListener('mouseover', (e) => {
     if (fromTouch()) return;
     const pc = closest(e, '[data-piece]');

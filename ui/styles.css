@@ -451,7 +451,8 @@ h1, h2, h3 { margin: 0; font-weight: 400; }
 .tt-bar i { display: block; height: 100%; background: var(--ink); }
 .tt-hist { color: var(--ink-2); font-size: 14px; margin-top: 4px; }
 .tt-foot { color: var(--ink-3); font-size: 13px; margin-top: 6px; border-top: 1px solid var(--ink-3); padding-top: 4px; }
-.tooltip.tt-touch { pointer-events: auto; }
+/* A long-pressed card keeps its mark buttons tappable; taps anywhere else fall through to the board. */
+.tooltip.tt-touch .tt-marks .btn { pointer-events: auto; }
 .tt-marks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .tt-marks .btn { min-width: 44px; min-height: 40px; padding: 4px 8px; }
 .tt-marks .pi { width: 26px; height: 26px; }

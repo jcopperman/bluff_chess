@@ -17,7 +17,7 @@ import type { Puzzle, Verdict } from './puzzles/puzzles.ts';
 import * as R from './ui/render.ts';
 import type { BeliefSnap, CodexData, ColorChoice, FreeKnobs, LogEntry, LogKind, PvpForm } from './ui/render.ts';
 import type { Mood } from './ui/art/emblems.ts';
-import { bindInput } from './ui/input.ts';
+import { bindInput, pieceUnderMouse } from './ui/input.ts';
 import type { InputHandlers } from './ui/input.ts';
 import * as FX from './ui/animations.ts';
 import * as Sound from './ui/audio.ts';
@@ -1208,6 +1208,7 @@ function renderGame(opts: { noSlide?: boolean } = {}): void {
   });
   if (before) FX.slidePieces(boardEl, before);
   m.flip.clear();
+  syncTooltip(boardEl);
 
   renderOpp();
   el('#me-panel').innerHTML = R.mePanelHTML({
@@ -1781,12 +1782,16 @@ function onGuess(sq: Square): void {
   renderGame();
 }
 
+/** The piece the open tooltip describes, and whether a long press opened it. */
+let tipFor: { id: string; touch: boolean } | null = null;
+
 function onHover(pieceId: string, pieceEl: HTMLElement, touch = false): void {
   const m = app.match;
   if (!m || app.screen !== 'game' || m.curtain || pieceEl.closest('.modal')) return;
   const v = view();
   const p = v.pieces.find((x) => x.id === pieceId);
   if (!p || p.faceUp) return hideTooltip();
+  tipFor = { id: pieceId, touch };
   let html: string;
   if (p.owner === opp() && v.phase !== 'over') {
     const dist = computeBeliefs(v).probs[p.id];
@@ -1811,7 +1816,17 @@ function onHover(pieceId: string, pieceEl: HTMLElement, touch = false): void {
 }
 
 function hideTooltip(): void {
+  tipFor = null;
   $('#tooltip')?.classList.add('hidden');
+}
+
+/** The board was just redrawn, so the element the tooltip was pinned to is gone. Point it at
+ *  whatever piece is under the mouse now (or the long-pressed piece), or close it. */
+function syncTooltip(boardEl: HTMLElement): void {
+  if (!tipFor) return;
+  const pc = tipFor.touch ? boardEl.querySelector<HTMLElement>(`[data-piece="${tipFor.id}"]`) : pieceUnderMouse();
+  if (pc && boardEl.contains(pc)) onHover(pc.dataset.piece!, pc, tipFor.touch);
+  else hideTooltip();
 }
 
 function playerDecision(type: 'call' | 'pass'): void {
