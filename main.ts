@@ -193,7 +193,19 @@ async function fetchJson<T>(url: string): Promise<T> {
   }
 }
 
+/** Fade the loading screen out over the title screen, then drop it. */
+function hideBoot(): void {
+  const boot = el('#boot');
+  el('#boot-fill').style.width = '100%';
+  boot.classList.add('done');
+  const drop = () => boot.remove();
+  boot.addEventListener('animationend', drop, { once: true });
+  setTimeout(drop, 600);
+}
+
 async function init(): Promise<void> {
+  // The scripts are in; now the data.
+  el('#boot-msg').textContent = 'Dealing the cards…';
   // Everything at once: one round trip per level instead of one per file.
   const [index, lessonIds, codex] = await Promise.all([
     fetchJson<{ tutorial: string; circuit: string[] }>('data/personalities/index.json'),
@@ -218,7 +230,7 @@ async function init(): Promise<void> {
   window.addEventListener('resize', fitStage);
   fitStage();
   show('title');
-  el('#boot').classList.add('done');
+  hideBoot();
   // A reload during an online game rejoins it.
   app.onlineAvailable = await Net.serverAvailable();
   const seat = Net.savedSeat();
@@ -2095,6 +2107,7 @@ const handlers: InputHandlers = {
 init().catch((e: unknown) => {
   console.error(e);
   // The stage may never have been sized, so the error goes on the loading screen.
+  el('#boot').classList.add('failed');
   const msg = el('#boot-msg');
   if (location.protocol === 'file:') {
     msg.textContent = 'Bluff Chess must be served over HTTP, not opened as a file. Run npm start in the project folder and open the printed URL.';

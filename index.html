@@ -9,10 +9,67 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♞</text></svg>">
   <link rel="preload" href="assets/fonts/archivo-latin-standard-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="ui/styles.css">
+  <!-- boot:preload -->
+  <link rel="modulepreload" href="dist/main.js">
+  <link rel="modulepreload" href="dist/engine/index.js">
+  <link rel="modulepreload" href="dist/engine/moves.js">
+  <link rel="modulepreload" href="dist/engine/state.js">
+  <link rel="modulepreload" href="dist/engine/view.js">
+  <link rel="modulepreload" href="dist/engine/claims.js">
+  <link rel="modulepreload" href="dist/engine/calls.js">
+  <link rel="modulepreload" href="dist/engine/showdown.js">
+  <link rel="modulepreload" href="dist/engine/rng.js">
+  <link rel="modulepreload" href="dist/bot/bot.js">
+  <link rel="modulepreload" href="dist/bot/belief.js">
+  <link rel="modulepreload" href="dist/bot/evaluate.js">
+  <link rel="modulepreload" href="dist/coach/advice.js">
+  <link rel="modulepreload" href="dist/lessons/lessons.js">
+  <link rel="modulepreload" href="dist/daily/daily.js">
+  <link rel="modulepreload" href="dist/ui/render.js">
+  <link rel="modulepreload" href="dist/ui/art/pieces.js">
+  <link rel="modulepreload" href="dist/ui/art/emblems.js">
+  <link rel="modulepreload" href="dist/ui/art/icons.js">
+  <link rel="modulepreload" href="dist/ui/input.js">
+  <link rel="modulepreload" href="dist/ui/animations.js">
+  <link rel="modulepreload" href="dist/ui/audio.js">
+  <link rel="modulepreload" href="dist/ui/storage.js">
+  <link rel="modulepreload" href="dist/ui/think.js">
+  <link rel="modulepreload" href="dist/ui/online.js">
+  <link rel="preload" href="data/personalities/index.json" as="fetch" crossorigin>
+  <link rel="preload" href="data/personalities/tutor.json" as="fetch" crossorigin>
+  <link rel="preload" href="data/personalities/deacon.json" as="fetch" crossorigin>
+  <link rel="preload" href="data/personalities/marlowe.json" as="fetch" crossorigin>
+  <link rel="preload" href="data/personalities/pip.json" as="fetch" crossorigin>
+  <link rel="preload" href="data/personalities/sable.json" as="fetch" crossorigin>
+  <link rel="preload" href="data/personalities/widow.json" as="fetch" crossorigin>
+  <link rel="preload" href="data/lessons/index.json" as="fetch" crossorigin>
+  <link rel="preload" href="data/lessons/moving.json" as="fetch" crossorigin>
+  <link rel="preload" href="data/lessons/check.json" as="fetch" crossorigin>
+  <link rel="preload" href="data/lessons/claims.json" as="fetch" crossorigin>
+  <link rel="preload" href="data/lessons/calling.json" as="fetch" crossorigin>
+  <link rel="preload" href="data/lessons/bluffing.json" as="fetch" crossorigin>
+  <link rel="preload" href="data/lessons/apparent.json" as="fetch" crossorigin>
+  <link rel="preload" href="data/lessons/showdown.json" as="fetch" crossorigin>
+  <link rel="preload" href="data/codex.json" as="fetch" crossorigin>
+  <!-- /boot:preload -->
 </head>
 <body>
-  <!-- Shown until the game has loaded, so a slow first load (or a failed one) is never a blank screen. -->
-  <div id="boot" role="status"><div class="boot-word">Bluff <span>Chess</span></div><p id="boot-msg">Shuffling the deck…</p></div>
+  <!-- Shown until the game has loaded, so a slow first load (or a failed one) is never a blank screen.
+       It mirrors the title screen, which fades in over it. -->
+  <div id="boot" role="status">
+    <div class="boot-stage">
+      <div class="boot-cards" aria-hidden="true">
+        <span class="tcard t1"><svg class="piece-svg" viewBox="0 0 100 100" aria-hidden="true"><path class="b" d="M22 91 H78 V85 C78 80.5 74.5 77 70 77 H30 C25.5 77 22 80.5 22 85 Z"/><path class="d" d="M27 84 H73"/><path class="b" d="M30 77 H70 C71 60 67 45 61 35 C58 28 53 21 45 18 L43 10 L38 19 C30 23 24 33 20 43 C18 49 22 54 27 51 C31 49 35 47 41 45 C41 55 35 65 30 77 Z"/><circle class="e" cx="42" cy="29" r="2.6"/><path class="d" d="M47 21 C56 26 62 36 64 50 M24 47 C27 46 29 46 31 46"/><path class="s" d="M53 28 C58 34 61 42 62 52"/></svg></span>
+        <span class="boot-flip"><span class="tcard backside"></span><span class="tcard boot-face"><svg class="piece-svg" viewBox="0 0 100 100" aria-hidden="true"><path class="b" d="M22 91 H78 V85 C78 80.5 74.5 77 70 77 H30 C25.5 77 22 80.5 22 85 Z"/><path class="d" d="M27 84 H73"/><path class="b" d="M42 56 C40 64 36 70 34 77 H66 C64 70 60 64 58 56 Z"/><rect class="b" x="38" y="51" width="24" height="7" rx="3"/><path class="b" d="M50 15 C65 26 67 43 57 51 H43 C33 43 35 26 50 15 Z"/><circle class="b" cx="50" cy="11" r="4.5"/><path class="d" d="M56 27 L47 39"/><path class="s" d="M42 30 C42 26 44 23 47 21"/></svg></span></span>
+        <span class="tcard t3"><svg class="piece-svg" viewBox="0 0 100 100" aria-hidden="true"><path class="b" d="M22 91 H78 V85 C78 80.5 74.5 77 70 77 H30 C25.5 77 22 80.5 22 85 Z"/><path class="d" d="M27 84 H73"/><path class="b" d="M34 64 C36 69 34 73 32 77 H68 C66 73 64 69 66 64 Z"/><path class="b" d="M22 30 L32 48 L36 22 L44 45 L50 17 L56 45 L64 22 L68 48 L78 30 L69 62 H31 Z"/><rect class="b" x="31" y="58" width="38" height="7" rx="3"/><circle class="b" cx="22" cy="28" r="4"/><circle class="b" cx="36" cy="20" r="4"/><circle class="b" cx="50" cy="14" r="4.5"/><circle class="b" cx="64" cy="20" r="4"/><circle class="b" cx="78" cy="28" r="4"/><path class="s" d="M36 52 H64"/></svg></span>
+      </div>
+      <div class="boot-word">Bluff <span>Chess</span></div>
+      <div class="boot-foot">
+        <div class="boot-bar"><i id="boot-fill"></i></div>
+        <p id="boot-msg">Shuffling the deck…</p>
+      </div>
+    </div>
+  </div>
   <div id="viewport">
     <div id="stage" data-layout="landscape">
       <div id="app">
@@ -25,15 +82,29 @@
   </div>
   <script type="module" src="dist/main.js"></script>
   <script>
+    // Progress: count the preloaded files as they finish. The build writes the list (tools/preload.ts).
+    (function () {
+      var want = {}, total = 0, done = 0;
+      document.querySelectorAll('link[rel=modulepreload], link[rel=preload][as=fetch]').forEach(function (l) { want[l.href] = true; total++; });
+      var fill = document.getElementById('boot-fill');
+      function count(entries) {
+        entries.forEach(function (e) { if (want[e.name]) { want[e.name] = false; done++; } });
+        if (total) fill.style.width = Math.round(100 * done / total) + '%';
+      }
+      if (!total || !window.PerformanceObserver) return;
+      count(performance.getEntriesByType('resource'));
+      try { new PerformanceObserver(function (list) { count(list.getEntries()); }).observe({ type: 'resource', buffered: true }); } catch (e) {}
+    })();
     // If a script never arrives, init() can't report it: offer a reload after a while.
     setTimeout(function () {
       var boot = document.getElementById('boot');
       if (boot.classList.contains('done') || boot.querySelector('button')) return;
+      boot.classList.add('failed');
       document.getElementById('boot-msg').textContent = 'This is taking longer than it should.';
       var b = document.createElement('button');
       b.textContent = 'Reload';
       b.onclick = function () { location.reload(); };
-      boot.appendChild(b);
+      document.querySelector('.boot-foot').appendChild(b);
     }, 20000);
   </script>
 </body>
