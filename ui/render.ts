@@ -772,7 +772,7 @@ export function revealHTML({ state, bot, num, snaps, me, newlyUnlocked, resultTe
     <div class="rv-grid">
       <div class="rv-board-col">
         <div class="board board-small">${boardHTML(state, { me, final: true })}</div>
-        <p class="rv-legend">Cards marked in red were lying when the game ended.</p>
+        <div class="rv-legend">Cards marked in red were lying when the game ended.</div>
       </div>
       <div class="rv-cols">
         <div><h3>${yours} lies</h3>
