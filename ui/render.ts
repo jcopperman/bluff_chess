@@ -7,7 +7,8 @@ import type { Arrangement, Board, ClaimRecord, ClaimType, Color, GameState, Piec
 import type { Difficulty, PersonalityConfig, TypeDist } from '../bot/bot.ts';
 import type { Advice } from '../coach/advice.ts';
 import type { Lesson, Profile } from '../lessons/lessons.ts';
-import type { Puzzle } from '../puzzles/puzzles.ts';
+import { outcomeText } from '../daily/daily.ts';
+import type { Daily, DailyEntry } from '../daily/daily.ts';
 import { pieceSVG } from './art/pieces.ts';
 import { emblemSVG, numeral } from './art/emblems.ts';
 import type { Mood } from './art/emblems.ts';
@@ -291,7 +292,7 @@ export function hubScreen({ nudge }: { nudge: string | null }): string {
     <div class="menu-row">
       ${card('go-circuit', 'I', 'king', 'Circuit', 'Five opponents')}
       ${card('go-lessons', 'II', 'pawn', 'Lessons', 'Learn the game')}
-      ${card('go-puzzles', 'III', 'bishop', 'Puzzles', 'Positions with a goal')}
+      ${card('go-daily', 'III', 'bishop', 'Daily', 'Today’s game')}
       ${card('go-free', 'IV', 'knight', 'Free play', 'Your rules')}
       ${card('go-pvp', 'V', 'queen', 'PvP', 'Play a friend')}
       ${card('codex', 'VI', 'rook', 'Rulebook', 'Rules and pieces')}
@@ -380,19 +381,46 @@ export function lessonsScreen({ lessons, done, isRecommended, profile }: {
     </div></section>`;
 }
 
-export function puzzlesScreen({ puzzles, done }: { puzzles: Puzzle[]; done: Set<string> }): string {
-  const rows = puzzles.map((p, i) => `<button class="toc-row${done.has(p.id) ? ' done' : ''}" data-act="start-puzzle" data-puzzle="${p.id}">
-      <span class="toc-num">${numeral(i + 1)}.</span>
-      <span class="toc-title"><b>${esc(p.title)}</b><small>${esc(p.blurb)}</small></span>
-      <span class="toc-tag">${GOAL_TAG[p.goal.type]}${done.has(p.id) ? ' · <span class="red">solved</span>' : ''}</span>
-      <span class="toc-check">${done.has(p.id) ? icon('check') : ''}</span>
-    </button>`).join('');
-  return `<section class="lessons"><header class="page-head"><h2>Puzzles</h2>
-      <p>Each position has one goal. You play white. Retry as often as you like.</p></header>
-    <div class="sheet toc">${rows}</div></section>`;
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+/** "26 October" from a YYYY-MM-DD key. */
+function dayLabel(key: string): string {
+  const [, m, d] = key.split('-').map(Number);
+  return `${d} ${MONTHS[m - 1]}`;
 }
 
-const GOAL_TAG: Record<Puzzle['goal']['type'], string> = { mate: 'Checkmate', decide: 'Call or pass', breakMate: 'Showdown' };
+export function dailyScreen({ daily, bot, num, entry, streak, history }: {
+  daily: Daily; bot: PersonalityConfig; num: number; entry: DailyEntry | undefined; streak: number; history: [string, DailyEntry][];
+}): string {
+  const rank = daily.config.setups![daily.seat]!;
+  const result = entry
+    ? `<div class="dy-result"><div class="kicker">Your result</div><b>${outcomeText(entry)}</b>
+        ${entry.done ? '<button class="btn btn-small" data-act="daily-share">Copy result</button>' : '<small>Leaving a game early counts as a loss.</small>'}</div>`
+    : '';
+  const past = history.length
+    ? `<div class="dy-past"><div class="sheet-head">Recent days</div>${history.map(([k, e]) =>
+        `<div class="dy-day"><span>${dayLabel(k)}</span><span class="${e.outcome === 'w' && e.done ? 'red' : ''}">${outcomeText(e)}</span></div>`).join('')}</div>`
+    : '';
+  return `<section class="free daily"><header class="page-head"><h2>Daily game</h2>
+      <p>${dayLabel(daily.key)}. One game, the same for everyone today. Your first try counts.</p></header>
+    <div class="free-body dy-body">
+      <div class="picks">${characterCard(bot, num)}</div>
+      <div class="sheet dy-sheet">
+        <div class="dy-facts">
+          <div><div class="kicker">Opponent</div><b>${esc(bot.name)}</b><small>${esc(bot.title)}</small></div>
+          <div><div class="kicker">Rules</div><b>${esc(daily.twist.title)}</b><small>${esc(daily.twist.text)}</small></div>
+          <div><div class="kicker">You play</div><b>${daily.seat === 'white' ? 'White' : 'Black'}</b><small>${daily.seat === 'white' ? 'You move first.' : `${esc(bot.name)} moves first.`}</small></div>
+          <div><div class="kicker">Your back rank</div><span class="dy-rank">${[...rank.slice(0, 4), 'king' as const, ...rank.slice(4)].map((t) => pieceIcon(t, daily.seat)).join('')}</span><small>Dealt, not arranged. Files a to h.</small></div>
+        </div>
+        ${result}
+        <div class="dy-foot">
+          <span class="dy-streak">Streak <b>${streak}</b> ${streak === 1 ? 'day' : 'days'}</span>
+          <button class="btn btn-red" data-act="daily-start">${entry ? 'Play again (won’t count)' : 'Play today’s game'}</button>
+        </div>
+        ${past}
+      </div>
+    </div></section>`;
+}
 
 export interface PvpForm {
   white: string;
@@ -713,12 +741,14 @@ function pickSnaps(state: GameState, snaps: BeliefSnap[]) {
   }).slice(0, 5).sort((a, b) => a.fullmove - b.fullmove);
 }
 
-export function revealHTML({ state, bot, num, snaps, me, newlyUnlocked, resultText, won, meName = 'You', beliefs: showBeliefs = true }: {
+export function revealHTML({ state, bot, num, snaps, me, newlyUnlocked, resultText, won, meName = 'You', beliefs: showBeliefs = true, again = 'Rematch' }: {
   state: GameState; bot: PersonalityConfig; num: number | string; snaps: BeliefSnap[]; me: Color; newlyUnlocked: string[]; resultText: string; won: boolean | null;
   /** "You" against a bot or online; the seat's name in pass-and-play. */
   meName?: string;
   /** The bot's beliefs section; off for human opponents. */
   beliefs?: boolean;
+  /** Label for the play-again button. */
+  again?: string;
 }): string {
   const isYou = meName === 'You';
   const yours = isYou ? 'Your' : `${esc(meName)}'s`;
@@ -759,7 +789,7 @@ export function revealHTML({ state, bot, num, snaps, me, newlyUnlocked, resultTe
     <div class="modal-actions">
       <button class="btn" data-act="close-modal">View board</button>
       <button class="btn" data-act="leave">Leave</button>
-      <button class="btn btn-red" data-act="rematch">Rematch</button>
+      <button class="btn btn-red" data-act="rematch">${again}</button>
     </div>
   </div>`;
 }

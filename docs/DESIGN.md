@@ -125,17 +125,18 @@ A roster of bot opponents the player works through, roughly ordered by difficult
 
 Pick any unlocked opponent and adjust tuning knobs (starting chips, claim locking, etc.). Good for testing and for players who want specific rules.
 
-### 3.3 Bluff Puzzles
+### 3.3 Daily Game
 
-Curated positions with a goal, in the spirit of chess puzzles:
+One full game a day, the same for everyone. The local date seeds a PRNG that picks:
 
-- "Win in three moves, using exactly one lie."
-- "The bot has a hidden queen. Find it before it finds your king."
-- "You have one chip. Which move do you call?"
+- a circuit opponent,
+- one rule twist: house rules, two or eight chips, claim locking off, liars don't pay, one showdown per mate, or no bust at zero chips,
+- your colour,
+- both back ranks, which are dealt rather than arranged.
 
-Stored as JSON so new puzzles are data, not code. A daily puzzle is a natural later addition.
+Difficulty is fixed at Normal, whatever the player's setting, so the game is the same for everyone. The first attempt counts and is saved as a loss until it finishes, so reloading can't erase it; replays don't count. Results are stored in `localStorage` by date, with a streak of consecutive days played and a spoiler-free result line to copy. The daily game keeps its own record, apart from the circuit's records and unlocks. Logic is in `daily/daily.ts`.
 
-**As built:** each puzzle is a position, optional scripted moves that set it up, one goal and an opponent personality. There are three goal types: `mate` (win within N of your moves; the opponent bot answers), `decide` (call or pass on a pending claim) and `breakMate` (expose a lie in a showdown). You always play white, and the coach is off. Tests prove every mate puzzle is forced in exactly N moves by searching the full state, calls included.
+This replaced the original Bluff Puzzles: curated positions with one goal each (mate in N, call or pass, or break a mate in a showdown), stored as JSON.
 
 ### 3.4 Tutorial
 
@@ -317,7 +318,6 @@ Events (for UI and logs): `moved`, `claimMade`, `callWindowOpened`, `lieCaught`,
   evaluate.ts
 /data/
   personalities/*.json
-  puzzles/*.json
 /ui/
   render.ts
   input.ts
@@ -365,7 +365,7 @@ Belief model, Phase 1 heuristic bot, one personality with one tell. End-of-match
 Three to five personalities with distinct tells, table image memory, circuit progression and records.
 
 **M5 — Teaching and polish**
-Tutorial, first set of bluff puzzles, claim tracker, possible-identities readout, reveal animations, final card-back design.
+Tutorial, first set of bluff puzzles (since replaced by the daily game), claim tracker, possible-identities readout, reveal animations, final card-back design.
 
 **PvP** (see section 8): pass-and-play and online rooms are built; a call timer, ratings and hosting are still to do.
 

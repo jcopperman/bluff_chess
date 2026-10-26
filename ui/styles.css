@@ -177,6 +177,21 @@ h1, h2, h3 { margin: 0; font-weight: 400; }
 .rule input:checked + .box { background: var(--ink); }
 .rule input:checked + .box::after { content: '✓'; font: 700 17px/1 var(--body); color: var(--paper); }
 .rule-range { flex-direction: column; grid-column: 1 / -1; }
+.dy-body { flex-direction: row; align-items: flex-start; justify-content: center; }
+.dy-sheet { width: 760px; display: flex; flex-direction: column; gap: 18px; padding: 28px 34px; }
+.dy-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 34px; }
+.dy-facts b, .dy-result b { font: 700 condensed 21px var(--head); text-transform: uppercase; display: block; }
+.dy-facts small, .dy-result small { font: 16px var(--body); color: var(--ink-2); display: block; }
+.dy-rank { display: flex; gap: 4px; margin: 2px 0; }
+.dy-rank .pi { width: 30px; height: 30px; }
+.dy-result { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; border-top: 1px solid var(--ink-3); padding-top: 14px; }
+.dy-result .kicker { flex-basis: 100%; }
+.dy-foot { display: flex; justify-content: space-between; align-items: center; gap: 14px; }
+.dy-streak { font: 700 condensed 17px var(--head); text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-2); }
+.dy-streak b { color: var(--red); font-size: 22px; }
+.dy-day { display: flex; justify-content: space-between; gap: 14px; font-size: 16px; padding: 3px 0; border-bottom: 1px solid var(--ink-3); }
+.dy-day:last-child { border-bottom: 0; }
+.dy-day .red { color: var(--red); }
 .rule-range input { width: 100%; accent-color: var(--red); }
 
 /* ---------- lessons ---------- */
@@ -695,6 +710,14 @@ h1, h2, h3 { margin: 0; font-weight: 400; }
 [data-size=phone] .picks { max-width: 100%; overflow-x: auto; gap: 4px; padding-bottom: 6px; justify-content: flex-start; }
 [data-size=phone] .pick { flex: none; padding: 4px; }
 [data-size=phone] .pick .ccard.small { width: 92px; }
+[data-size=phone] .dy-body, [data-layout=portrait] .dy-body { flex-direction: column; align-items: center; }
+[data-size=phone] .dy-body .ccard { width: 130px; padding: 16px 10px 10px; }
+[data-size=phone] .dy-body .cc-name { font-size: 14px; padding: 3px 8px 0; }
+[data-size=phone] .dy-sheet { width: 100%; padding: 18px 16px; gap: 14px; }
+[data-size=phone] .dy-facts { grid-template-columns: 1fr; gap: 12px; }
+[data-size=phone] .dy-facts b, [data-size=phone] .dy-result b { font-size: 17px; }
+[data-size=phone] .dy-facts small, [data-size=phone] .dy-result small { font-size: 13.5px; }
+[data-size=phone] .dy-foot { flex-direction: column-reverse; align-items: stretch; text-align: center; }
 [data-size=phone] .rules-sheet { width: 100%; grid-template-columns: 1fr; gap: 12px; padding: 18px 16px; }
 [data-size=phone] .rule b { font-size: 17px; }
 [data-size=phone] .rule small { font-size: 13.5px; }
@@ -814,7 +837,7 @@ h1, h2, h3 { margin: 0; font-weight: 400; }
 [data-size=phone] .ap-claim { display: none; }
 [data-size=phone] .action-panel:not(:has(.lesson-panel, .ap-alert)) { display: none; }
 [data-size=phone] .ap-alert { margin-top: 0; }
-/* In lessons and puzzles the instructions are what matters: they get the whole side area. */
+/* In lessons the instructions are what matters: they get the whole side area. */
 [data-size=phone] .g-side:has(.lesson-panel) .action-panel { flex: 1; max-height: none; }
 [data-size=phone] .g-side:has(.lesson-panel) :is(.side-tabs, .coach-card, .record) { display: none; }
 [data-size=phone] .side-tabs { display: flex; flex: none; border-bottom: 1px solid var(--table-line); }
@@ -887,31 +910,31 @@ h1, h2, h3 { margin: 0; font-weight: 400; }
 [data-size=phone][data-layout=landscape] .setup { padding-top: 8px; }
 [data-size=phone][data-layout=landscape] .slots { max-width: 420px; }
 
-/* Phone games outside lessons and puzzles: the coach, claims and move list open as a sheet
+/* Phone games outside lessons: the coach, claims and move list open as a sheet
    from the Info button beside your strip, so the board gets the space. */
 .info-btn, .info-scrim, .side-close { display: none; }
-[data-size=phone] .game:not([data-mode=lesson], [data-mode=puzzle]) .info-btn { grid-area: info; align-self: center; position: relative; display: inline-flex; align-items: center; min-height: 40px; margin-right: 4px; padding: 0 14px; cursor: pointer;
+[data-size=phone] .game:not([data-mode=lesson]) .info-btn { grid-area: info; align-self: center; position: relative; display: inline-flex; align-items: center; min-height: 40px; margin-right: 4px; padding: 0 14px; cursor: pointer;
   background: none; border: 0; box-shadow: inset 0 0 0 1px var(--table-line); font: 700 condensed 15px var(--head); text-transform: uppercase; letter-spacing: 0.06em; color: var(--on-table); }
-[data-size=phone] .game:not([data-mode=lesson], [data-mode=puzzle]) .info-btn.alert::after { content: ''; position: absolute; top: -4px; right: -4px; width: 10px; height: 10px; border-radius: 50%; background: var(--red); box-shadow: 0 0 0 2px var(--table); }
-[data-size=phone] .game:not([data-mode=lesson], [data-mode=puzzle]) .g-side { display: none; position: fixed; z-index: 61; background: var(--table); }
-[data-size=phone] .game.info-open:not([data-mode=lesson], [data-mode=puzzle]) .g-side { display: flex; animation: sheet-up 0.2s ease-out; }
-[data-size=phone] .game.info-open:not([data-mode=lesson], [data-mode=puzzle]) .info-scrim { display: block; position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,0.45); }
-[data-size=phone] .game:not([data-mode=lesson], [data-mode=puzzle]) .side-tabs { order: -1; }
-[data-size=phone] .game:not([data-mode=lesson], [data-mode=puzzle]) .side-tab { min-height: 44px; }
-[data-size=phone] .game:not([data-mode=lesson], [data-mode=puzzle]) :is(.coach-card, .record) { flex: 0 1 auto; }
-[data-size=phone] .game:not([data-mode=lesson], [data-mode=puzzle]) .side-close { display: block; flex: none; min-height: 44px; padding: 0 4px 0 14px; background: none; border: 0; cursor: pointer;
+[data-size=phone] .game:not([data-mode=lesson]) .info-btn.alert::after { content: ''; position: absolute; top: -4px; right: -4px; width: 10px; height: 10px; border-radius: 50%; background: var(--red); box-shadow: 0 0 0 2px var(--table); }
+[data-size=phone] .game:not([data-mode=lesson]) .g-side { display: none; position: fixed; z-index: 61; background: var(--table); }
+[data-size=phone] .game.info-open:not([data-mode=lesson]) .g-side { display: flex; animation: sheet-up 0.2s ease-out; }
+[data-size=phone] .game.info-open:not([data-mode=lesson]) .info-scrim { display: block; position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,0.45); }
+[data-size=phone] .game:not([data-mode=lesson]) .side-tabs { order: -1; }
+[data-size=phone] .game:not([data-mode=lesson]) .side-tab { min-height: 44px; }
+[data-size=phone] .game:not([data-mode=lesson]) :is(.coach-card, .record) { flex: 0 1 auto; }
+[data-size=phone] .game:not([data-mode=lesson]) .side-close { display: block; flex: none; min-height: 44px; padding: 0 4px 0 14px; background: none; border: 0; cursor: pointer;
   font: 700 condensed 14px var(--head); text-transform: uppercase; letter-spacing: 0.06em; color: var(--on-table); }
 @keyframes sheet-up { from { transform: translateY(24px); opacity: 0; } }
 
 /* Upright: the board takes the full width; the sheet rises from the bottom. */
-[data-size=phone][data-layout=portrait] .game:not([data-mode=lesson], [data-mode=puzzle]) { --pad: 4px;
+[data-size=phone][data-layout=portrait] .game:not([data-mode=lesson]) { --pad: 4px;
   --board: min(calc(var(--stage-w) - 2 * var(--pad) - 4px), calc(var(--stage-h) - 46px - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 124px));
   padding: 4px 2px calc(6px + env(safe-area-inset-bottom));
   grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: minmax(0, 1fr) auto auto auto minmax(0, 1fr);
   grid-template-areas: '. .' 'opp opp' 'board board' 'me info' '. .'; }
-[data-size=phone][data-layout=portrait] .game:not([data-mode=lesson], [data-mode=puzzle]) .board-frame { --pad: 4px; }
-[data-size=phone][data-layout=portrait] .game:not([data-mode=lesson], [data-mode=puzzle]) :is(.g-opp, .g-me) { padding: 0 4px; }
-[data-size=phone][data-layout=portrait] .game:not([data-mode=lesson], [data-mode=puzzle]) .g-side { left: 0; right: 0; bottom: 0; max-height: min(72%, 560px);
+[data-size=phone][data-layout=portrait] .game:not([data-mode=lesson]) .board-frame { --pad: 4px; }
+[data-size=phone][data-layout=portrait] .game:not([data-mode=lesson]) :is(.g-opp, .g-me) { padding: 0 4px; }
+[data-size=phone][data-layout=portrait] .game:not([data-mode=lesson]) .g-side { left: 0; right: 0; bottom: 0; max-height: min(72%, 560px);
   padding: 4px max(10px, env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)); box-shadow: 0 -1.5px 0 var(--table-line), 0 -10px 30px rgba(0,0,0,0.45); }
 
 /* Sideways: the board runs the full height of the screen. The top bar moves into the
@@ -924,5 +947,5 @@ h1, h2, h3 { margin: 0; font-weight: 400; }
   grid-template-columns: auto minmax(0, 1fr) auto; grid-template-rows: 34px auto auto minmax(0, 1fr);
   grid-template-areas: 'board . .' 'board opp opp' 'board me info' 'board side side'; }
 [data-size=phone][data-layout=landscape] .board-frame { --pad: 4px; }
-[data-size=phone][data-layout=landscape] .game:not([data-mode=lesson], [data-mode=puzzle]) .g-side { top: 0; right: 0; bottom: 0; left: calc(var(--lcol) - 8px);
+[data-size=phone][data-layout=landscape] .game:not([data-mode=lesson]) .g-side { top: 0; right: 0; bottom: 0; left: calc(var(--lcol) - 8px);
   padding: calc(4px + env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) 10px; box-shadow: -1.5px 0 0 var(--table-line), -10px 0 30px rgba(0,0,0,0.45); }
