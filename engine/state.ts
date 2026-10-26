@@ -14,7 +14,7 @@ export const CLASSIC_ARRANGEMENT: readonly ClaimType[] = ['rook', 'knight', 'bis
 export const PIECE_COUNTS: Readonly<Record<ClaimType, number>> = { rook: 2, knight: 2, bishop: 2, queen: 1 };
 
 export const DEFAULT_CONFIG: Readonly<Config> = {
-  startingChips: 4,
+  startingChips: 3,
   claimLocking: true,
   chipsOutLoss: true,
   liarPaysChip: true,

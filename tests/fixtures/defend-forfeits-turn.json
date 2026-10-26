@@ -1,6 +1,7 @@
 {
   "name": "a defended king move that was not escaping check forfeits the turn",
   "config": {
+    "startingChips": 4,
     "pieces": [
       {
         "id": "w-k",

@@ -29,7 +29,7 @@ npm run typecheck  # strict tsc over the engine/bot, the browser build, and test
 - `tests/moves.test.ts`: move generation three ways. Perft from six standard chess positions against published counts (castling, en passant, promotion, pins), the same perft through the full engine, and a differential test where an independent reference generator must agree with the engine on every position from random games with hidden pieces, claims and bluffs.
 - `tests/lessons.test.ts`: every lesson can be played start to finish against the real engine, and each one teaches what it says.
 - `tests/coach.test.ts`: illegal-move explanations, the blunder guard, claim risk and call advice.
-- `tests/puzzles.test.ts`: every puzzle's solution solves it against its opponent. Mate puzzles are proved forced in exactly the stated number of moves by an exhaustive search over the full state (calls included). In call-or-pass and showdown puzzles, every other answer fails.
+- `tests/daily.test.ts`: the daily game. The same date always deals the same game, every day of a year deals a valid one, the days vary, a game replays from its seed, and streaks count across month and year ends.
 - `tests/rooms.test.ts`: online rooms. Seats, full and unknown rooms, actions checked against the seat and the rules, each player seeing only their own cards, presence, rematches and cleanup.
 
 ## TypeScript setup
@@ -37,7 +37,7 @@ npm run typecheck  # strict tsc over the engine/bot, the browser build, and test
 - Source is TypeScript with only erasable syntax (`erasableSyntaxOnly`), and imports name `.ts` files. Node strips the types at runtime, so tests and `tools/serve.ts` need no build step.
 - `tsc` rewrites those imports to `.js` (`rewriteRelativeImportExtensions`) when it builds the browser bundle into `dist/`. There is no bundler.
 - There are three tsconfigs, sharing `tsconfig.base.json`:
-  - `tsconfig.core.json` checks `engine/`, `bot/`, `coach/`, `lessons/` and `puzzles/` with no DOM or Node types. Any browser or platform API used there is a compile error.
+  - `tsconfig.core.json` checks `engine/`, `bot/`, `coach/`, `lessons/` and `daily/` with no DOM or Node types. Any browser or platform API used there is a compile error.
   - `tsconfig.json` is the browser build.
   - `tsconfig.node.json` covers tests and tools.
 
@@ -48,9 +48,9 @@ engine/        pure rules: no DOM, no Math.random, no Date. Runs in browser and 
 bot/           heuristic bot (belief model, search, bluff/call/showdown policy) and the expert's determinized search. Sees only player views.
 coach/         the in-game coach: illegal-move explanations, blunder guard, claim and call advice. Public info only.
 lessons/       lesson runner logic (matching player actions to scripted steps).
-puzzles/       puzzle goals, judging, and the forced-win solver the tests use.
+daily/         the daily game: the date picks the opponent, rule twist, colour and both back ranks.
 net/           message types shared by the room server and the browser.
-data/          bot personalities, lessons (data/lessons/*.json), puzzles (data/puzzles/*.json) and the codex (data/codex.json).
+data/          bot personalities, lessons (data/lessons/*.json) and the codex (data/codex.json).
 ui/            rendering, input, animations, synthesized sound (audio.ts), localStorage, the bot worker, the online client.
 ui/art/        SVG chess pieces, character emblems, icons.
 assets/fonts/  Archivo, a variable font (SIL Open Font License, licence alongside).
@@ -68,7 +68,7 @@ The engine, bot, coach and lessons are all type-checked without DOM types (`tsco
 - **Expert difficulty (Phase 2 search):** the Phase 1 search treats every unclaimed enemy card as a piece that can move as anything. At Expert, each bot also samples six concrete identities for your hidden cards from its beliefs, searches each sampled world a ply deeper with full information, and averages the results (determinization). It never blunders on purpose and avoids repeating a position when ahead. Personalities, bluffing and tells are unchanged. In test games against Harder it won 3 and drew 3 of 6, at about 0.2 s a move.
 - **Play either colour:** pick White, Black or Random on the setup screen. The board turns to face you.
 - **Phones:** on small screens the game drops the scaled stage and lays out at real size. The board runs the full width, the opponent and you sit in slim strips, the coach, claims and move list share tabs, and the turn bar sits at the bottom. Claims are picked from a sheet along the bottom edge, and a long press on a card shows what it could be and lets you note a guess. Turning the phone puts the board beside everything else.
-- **Puzzles:** five positions with one goal each: mate in N, call or pass, or win a showdown. They're stored as JSON (`data/puzzles/`), your opponent answers your moves, and you can retry as often as you like.
+- **Daily game:** one full game a day, the same for everyone. The date picks a circuit opponent, a rule twist (house rules, short stacks, loose claims and so on), your colour and both back ranks, which are dealt rather than arranged. It plays at Normal whatever your difficulty setting. Your first attempt counts (leaving or reloading counts as a loss) and replays don't; the screen keeps a streak and recent results, and copies a spoiler-free result line to share. It doesn't touch circuit records or unlocks.
 - **PvP:**
   - **Pass-and-play** on one device. Both players arrange their cards in secret, and between turns the table is covered by a "Pass to…" screen that shows what happened since that player last looked. The shared log only ever uses public information.
   - **Online rooms** with a five-letter code. The server runs the same engine and holds the real game, and each player receives only their own view, so no client ever has the other side's hidden cards. It handles reconnecting (a reload rejoins), an offline marker, resigning and rematches with colours swapped.
@@ -84,10 +84,11 @@ The engine, bot, coach and lessons are all type-checked without DOM types (`tsco
 
 - Full ISMCTS. The expert's determinized alpha-beta was chosen over Monte Carlo tree search, because random playouts are weak in chess-like games and it fits the time budget.
 - PvP extras from design section 8: a call-window timer (an online opponent can stall), ratings, lifetime table image for humans, and a hosted server.
-- A daily puzzle, and more puzzles.
 
 ## Tuning notes
 
 A literal "bluff only when it beats the best honest move" rule almost never fires, because lies rarely buy a big tactical edge. So the bot treats a bluff as available when it costs little position (`bluffMargin`) and the risk of being called is tolerable (`riskTolerance`). Personality and context (`bluffRate`, `bluffContext`) then decide how often it takes one. Lies that win big are twice as tempting. Measured lie rates against the Deacon: Tutor about 50%, Widow about 19%, Pip about 16%, Marlowe about 14% (honest for his first four claims), Sable about 5% (queen claims only), and the Deacon about 1% unless he falls behind.
 
-**Difficulty.** Opponents were measured against two stand-ins for a new player: a novice that takes the biggest capture it sees and otherwise moves at random, and a casual player that looks one move ahead and often settles for a lesser move. Each bot has a `chessStrength` (search depth) and a `mistakeRate`/`mistakeWindow` (how often it plays a lesser move, and how much worse that move may be). On Normal, the casual stand-in wins about 75% against Professor Fumble, 41% against the Deacon, 39% against Marlowe, 31% against Pip, 25% against Sable and 20% against the Widow (measured with two-way chip bets and busting). A Difficulty setting (Easier / Normal / Harder, in Settings or on the Circuit page) adjusts every opponent's strength, mistakes and calling; against the Deacon it gives roughly 73% / 41% / 13%. The novice stand-in doesn't win, because random moves can't deliver checkmate; it only shows that the bots never lose to random play. Re-measure with `npm run difficulty -- deacon 30` after changing any bot parameter.
+**Difficulty.** Opponents were measured against two stand-ins for a new player: a novice that takes the biggest capture it sees and otherwise moves at random, and a casual player that looks one move ahead and often settles for a lesser move. Each bot has a `chessStrength` (search depth) and a `mistakeRate`/`mistakeWindow` (how often it plays a lesser move, and how much worse that move may be). On Normal, with 3 starting chips, the casual stand-in wins about 82% against Professor Fumble, 43% against the Deacon, 36% against Marlowe, 21% against Pip, 15% against Sable and 19% against the Widow (200 games each, with two-way chip bets and busting; Sable and the Widow are within noise of each other). A Difficulty setting (Easier / Normal / Harder, in Settings or on the Circuit page) adjusts every opponent's strength, mistakes and calling; against the Deacon it gives roughly 69% / 43% / 17%. The novice stand-in doesn't win, because random moves can't deliver checkmate; it only shows that the bots never lose to random play. Re-measure with `npm run difficulty -- deacon 200` after changing any bot parameter (`CHIPS=n` tries another starting stack).
+
+**Chips.** Each side has only seven cards to call, and each one can usefully be called once, so chips beyond about three stop being scarce: with plenty in hand you can call every claim and bluffing stops paying. The default dropped from 4 to 3 and Free play now tops out at 5. At 1 chip nobody calls at all, since one wrong call busts you. Moving to 3 left calls per game about the same (Deacon 5.3 to 4.9) and raised busts from about 6% to 10% of games. Marlowe, who bluffs the most, went bust far more often at 3 chips (35 of 200 games) and fell below the Deacon, so his `riskTolerance` went from 500 to 300, which puts him back at about 36%.

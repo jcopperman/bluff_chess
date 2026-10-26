@@ -9,7 +9,7 @@
   "chessStrength": 1,
   "bluffRate": 0.85,
   "bluffMargin": 70,
-  "riskTolerance": 500,
+  "riskTolerance": 300,
   "honestFirstClaims": 4,
   "bluffContext": {
     "opening": 0.6,

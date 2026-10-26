@@ -1,6 +1,7 @@
 {
   "name": "passing the defend window lets the king move stand and the card stays hidden",
   "config": {
+    "startingChips": 4,
     "turn": "black",
     "pieces": [
       {

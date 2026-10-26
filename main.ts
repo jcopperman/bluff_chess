@@ -1,4 +1,4 @@
-// Wires the engine, bot, coach, lessons, puzzles, PvP and UI together. The UI
+// Wires the engine, bot, coach, lessons, the daily game, PvP and UI together. The UI
 // only ever renders one seat's view; the bot only ever receives its own view.
 
 import * as E from './engine/index.ts';
@@ -12,8 +12,8 @@ import { explainIllegal, whyStuck, blunderCheck, claimAdvice, callAdvice, defend
 import type { Advice } from './coach/advice.ts';
 import { matchesExpect, startStep, recommended } from './lessons/lessons.ts';
 import type { Lesson, Profile } from './lessons/lessons.ts';
-import { startPuzzle as puzzleState, judge, movesMade } from './puzzles/puzzles.ts';
-import type { Puzzle, Verdict } from './puzzles/puzzles.ts';
+import { dailyFor, streak, shareText } from './daily/daily.ts';
+import type { Daily, DailyEntry } from './daily/daily.ts';
 import * as R from './ui/render.ts';
 import type { BeliefSnap, CodexData, ColorChoice, FreeKnobs, LogEntry, LogKind, PvpForm } from './ui/render.ts';
 import type { Mood } from './ui/art/emblems.ts';
@@ -49,9 +49,9 @@ const params = new URLSearchParams(location.search);
 const SPEED = params.has('fast') ? 0.05 : 1;
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms * SPEED));
 
-/** circuit, free, practice, lesson and puzzle are against a bot; local is pass-and-play; online is a room. */
-type Mode = 'circuit' | 'free' | 'practice' | 'lesson' | 'puzzle' | 'local' | 'online';
-type Screen = 'title' | 'hub' | 'circuit' | 'free' | 'lessons' | 'puzzles' | 'pvp' | 'room' | 'setup' | 'game';
+/** circuit, free, practice, lesson and daily are against a bot; local is pass-and-play; online is a room. */
+type Mode = 'circuit' | 'free' | 'practice' | 'lesson' | 'daily' | 'local' | 'online';
+type Screen = 'title' | 'hub' | 'circuit' | 'free' | 'lessons' | 'daily' | 'pvp' | 'room' | 'setup' | 'game';
 
 const vsHuman = (mode: Mode) => mode === 'local' || mode === 'online';
 
@@ -75,13 +75,6 @@ interface LessonRun {
   /** playing: waiting for the player; success: step done, waiting for Continue; busy: scripted moves running. */
   phase: 'playing' | 'success' | 'busy';
   feedback: { tone: 'hint' | 'success'; text: string } | null;
-}
-
-interface PuzzleRun {
-  puzzle: Puzzle;
-  /** History length when the puzzle began (scripted moves excluded from your count). */
-  start: number;
-  verdict: Verdict;
 }
 
 interface Match {
@@ -122,7 +115,8 @@ interface Match {
   over: boolean;
   newlyUnlocked: string[];
   lesson: LessonRun | null;
-  puzzle: PuzzleRun | null;
+  /** Daily game: today's challenge, and whether this run is the attempt that counts. */
+  daily: { daily: Daily; counted: boolean } | null;
   /** Pass-and-play: the table is covered until this seat takes the device. */
   curtain: Color | null;
   /** Pass-and-play: how much of the log each seat has seen. */
@@ -146,7 +140,6 @@ interface App {
   tutorialId: string;
   bots: Record<string, PersonalityConfig>;
   lessons: Lesson[];
-  puzzles: Puzzle[];
   codex: CodexData;
   data: Store.SaveData;
   screen: Screen;
@@ -168,11 +161,10 @@ const app: App = {
   tutorialId: 'tutor',
   bots: {},
   lessons: [],
-  puzzles: [],
   codex: { categories: [] },
   data: Store.load(),
   screen: 'title',
-  free: { bot: '', startingChips: 4, claimLocking: true, liarPaysChip: true, chipsOutLoss: true, oneShowdown: false },
+  free: { bot: '', startingChips: 3, claimLocking: true, liarPaysChip: true, chipsOutLoss: true, oneShowdown: false },
   setup: null,
   lastArrangement: null,
   match: null,
@@ -202,8 +194,6 @@ async function init(): Promise<void> {
   }
   const lessonIds = await fetchJson<string[]>('data/lessons/index.json');
   app.lessons = await Promise.all(lessonIds.map((id) => fetchJson<Lesson>(`data/lessons/${id}.json`)));
-  const puzzleIds = await fetchJson<string[]>('data/puzzles/index.json');
-  app.puzzles = await Promise.all(puzzleIds.map((id) => fetchJson<Puzzle>(`data/puzzles/${id}.json`)));
   app.codex = await fetchJson<CodexData>('data/codex.json');
   app.free.bot = app.roster[0];
   app.pvp.name = app.data.settings.playerName;
@@ -267,8 +257,6 @@ function unlocked(): Set<string> {
 
 function coachOn(): boolean {
   const m = app.match;
-  // Puzzles test what you can read yourself.
-  if (m?.mode === 'puzzle') return false;
   if (m && (m.mode === 'lesson' || m.mode === 'practice')) return app.data.settings.coach !== 'off';
   const c = app.data.settings.coach;
   return c === 'on' || (c === 'auto' && app.data.matchesPlayed < 5);
@@ -278,7 +266,7 @@ function coachOn(): boolean {
 // Screens
 
 const TITLES: Record<Screen, string> = {
-  title: '', hub: '', circuit: 'Circuit', free: 'Free play', lessons: 'Lessons', puzzles: 'Puzzles', pvp: 'Player vs player', room: 'Online room',
+  title: '', hub: '', circuit: 'Circuit', free: 'Free play', lessons: 'Lessons', daily: 'Daily game', pvp: 'Player vs player', room: 'Online room',
   setup: 'Setup', game: '',
 };
 
@@ -299,7 +287,7 @@ function humanCard(name: string, color: Color): PersonalityConfig {
 
 function matchTitle(m: Match): string {
   if (m.mode === 'lesson') return `Lesson · ${m.lesson!.lesson.title}`;
-  if (m.mode === 'puzzle') return `Puzzle · ${m.puzzle!.puzzle.title}`;
+  if (m.mode === 'daily') return `Daily · versus ${m.bot.name}`;
   if (m.mode === 'local') return `${m.names.white} vs ${m.names.black}`;
   if (m.mode === 'online') return `Online · versus ${m.names[opp()]}`;
   return `Versus ${m.bot.name}`;
@@ -317,7 +305,7 @@ function renderHud(): void {
   const inGame = app.screen === 'game' && !!m;
   const title = inGame ? matchTitle(m) : TITLES[app.screen];
   const back = app.screen === 'hub' ? null : inGame ? 'leave' : app.screen === 'setup' ? 'setup-back' : app.screen === 'room' ? 'room-leave' : 'go-hub';
-  hud.innerHTML = R.hudHTML({ title, back, inGame: inGame && m.mode !== 'puzzle', muted: app.data.settings.muted, coachOn: coachOn() });
+  hud.innerHTML = R.hudHTML({ title, back, inGame, muted: app.data.settings.muted, coachOn: coachOn() });
 }
 
 function show(screen: Exclude<Screen, 'game'>): void {
@@ -337,8 +325,12 @@ function show(screen: Exclude<Screen, 'game'>): void {
   } else if (screen === 'lessons') {
     const profile = app.data.profile;
     root.innerHTML = R.lessonsScreen({ lessons: app.lessons, done: new Set(app.data.lessonsDone), isRecommended: (l) => recommended(l, profile), profile });
-  } else if (screen === 'puzzles') {
-    root.innerHTML = R.puzzlesScreen({ puzzles: app.puzzles, done: new Set(app.data.puzzlesDone) });
+  } else if (screen === 'daily') {
+    const d = today();
+    root.innerHTML = R.dailyScreen({
+      daily: d, bot: app.bots[d.botId], num: botNumber(d.botId), entry: app.data.daily[d.key], streak: streak(app.data.daily, d.key),
+      history: Object.entries(app.data.daily).filter(([k]) => k !== d.key).sort(([a], [b]) => b.localeCompare(a)).slice(0, 6),
+    });
   } else if (screen === 'pvp') {
     root.innerHTML = R.pvpScreen({ form: app.pvp, error: app.pvpError, busy: app.pvpBusy, online: app.onlineAvailable });
   } else if (screen === 'room' && app.online) {
@@ -425,7 +417,7 @@ function newMatch(mode: Mode, botId: string, config: GameConfig, state: GameStat
     memory: app.data.memory[botId] || Store.blankMemory(),
     log: [], snaps: [], notes: { white: {}, black: {} }, selected: null, choice: null, guard: null, note: null, stuck: null, hover: [],
     flip: new Set(), pendingFx: [], lastMove: null, busy: false, thinking: false, lastThinkMs: null, botThinks: [], mood: 'neutral', over: false,
-    newlyUnlocked: [], lesson: null, puzzle: null, curtain: null, seen: { white: 0, black: 0 }, game: 0,
+    newlyUnlocked: [], lesson: null, daily: null, curtain: null, seen: { white: 0, black: 0 }, game: 0,
   };
 }
 
@@ -557,46 +549,66 @@ function lessonContinue(): void {
 }
 
 // ---------------------------------------------------------------------------
-// Puzzles
+// Daily game
 
-function startPuzzle(id: string): void {
-  const puzzle = app.puzzles.find((p) => p.id === id);
-  if (!puzzle) return;
-  const state = puzzleState(puzzle);
-  const m = newMatch('puzzle', puzzle.opponent, puzzle.position, state, E.createRng(7), 7);
-  m.bot = { ...app.bots[puzzle.opponent], ...puzzle.overrides };
-  m.puzzle = { puzzle, start: state.history.length, verdict: 'playing' };
-  // Show the scripted move that set the puzzle up.
-  const last = [...state.history].reverse().find((a): a is MoveAction => a.type === 'move');
-  if (last) m.lastMove = { from: last.from, to: last.to };
+/** Today's date in the player's own time zone, as YYYY-MM-DD. */
+function todayKey(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function today(): Daily {
+  return dailyFor(todayKey(), app.roster);
+}
+
+/** Start today's game. The first attempt counts and is saved as a loss until it ends, so
+ *  reloading can't wipe it; later runs are replays that don't count. */
+function startDaily(): void {
+  const d = today();
+  const counted = !app.data.daily[d.key];
+  const bot = app.bots[d.botId];
+  const state = E.createGame(d.config);
+  const m = newMatch('daily', d.botId, d.config, state, E.createRng(d.seed), d.seed, d.seat);
+  m.daily = { daily: d, counted };
+  if (counted) {
+    app.data.daily[d.key] = { outcome: 'l', moves: 0, chips: state.chips[d.seat], done: false };
+    save();
+  }
   enterGame(m);
-  log(`Puzzle: ${esc(puzzle.title)}`, 'system');
-  Sound.play('step');
+  log(`Daily game, ${d.key}. ${esc(d.twist.title)}: ${esc(d.twist.text)}`, 'system');
+  log(d.seat === 'white' ? `Against ${esc(bot.name)}. You are white and move first.` : `Against ${esc(bot.name)}. You are black: ${esc(bot.name)} moves first.`, 'system');
+  if (!counted) log('A replay: only your first game today counts.', 'system');
+  say(pickLine('greet'));
   advance();
 }
 
-function puzzleJudge(before: GameState, action: Action, events: GameEvent[]): void {
-  const m = match();
-  const run = m.puzzle;
-  if (!run || run.verdict !== 'playing') return;
-  run.verdict = judge(run.puzzle, before, action, m.state, events, run.start);
-  if (run.verdict === 'solved') {
-    if (!app.data.puzzlesDone.includes(run.puzzle.id)) app.data.puzzlesDone.push(run.puzzle.id);
-    save();
-    m.pendingFx.push(() => Sound.play('win'));
-    setMood('beaten', 60000);
-  } else if (run.verdict === 'failed') {
-    m.pendingFx.push(() => Sound.play('lose'));
-    setMood('smug', 60000);
-  }
+function recordDaily(m: Match): void {
+  const run = m.daily;
+  if (!run?.counted) return;
+  const s = m.state;
+  const result = s.result!;
+  const entry: DailyEntry = {
+    outcome: !result.winner ? 'd' : result.winner === me() ? 'w' : 'l',
+    moves: s.history.filter((a) => a.type === 'move' && a.player === me()).length,
+    chips: s.chips[me()],
+    done: true,
+  };
+  app.data.daily[run.daily.key] = entry;
 }
 
-function nextPuzzle(): Puzzle | null {
-  const run = match().puzzle!;
-  const idx = app.puzzles.indexOf(run.puzzle);
-  // The next unsolved puzzle, wrapping around; failing that, simply the next one.
-  const order = [...app.puzzles.slice(idx + 1), ...app.puzzles.slice(0, idx)];
-  return order.find((p) => !app.data.puzzlesDone.includes(p.id)) ?? app.puzzles[idx + 1] ?? null;
+async function copyDaily(): Promise<void> {
+  const d = today();
+  const entry = app.data.daily[d.key];
+  if (!entry) return;
+  const text = shareText(d, app.bots[d.botId].name, entry, streak(app.data.daily, d.key));
+  try {
+    await navigator.clipboard.writeText(text);
+    const btn = $('[data-act="daily-share"]');
+    if (btn) btn.textContent = 'Copied';
+  } catch {
+    // Clipboard blocked: show the text so it can be copied by hand.
+    window.prompt('Copy your result:', text);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -780,7 +792,7 @@ const view = (): PlayerView => E.getPlayerView(match().state, me());
 
 /** Whether the bot (not a human) controls the other seat right now. */
 function botControlled(m: Match): boolean {
-  return !vsHuman(m.mode) && m.mode !== 'lesson' && !(m.puzzle && m.puzzle.verdict !== 'playing');
+  return !vsHuman(m.mode) && m.mode !== 'lesson';
 }
 
 function advance(): void {
@@ -796,7 +808,7 @@ function advance(): void {
   renderGame();
   if (m.mode === 'lesson') return;
   if (s.phase === 'over') {
-    if (!m.over && m.mode !== 'puzzle') finishMatch();
+    if (!m.over) finishMatch();
     return;
   }
   if (botControlled(m) && E.getActor(s) === opp() && !m.busy) void botAct();
@@ -809,7 +821,8 @@ async function botAct(): Promise<void> {
   renderGame();
   const v = E.getPlayerView(m.state, opp());
   const t0 = performance.now();
-  const level = m.mode === 'puzzle' ? 'normal' : app.data.settings.difficulty;
+  // The daily game is the same for everyone, so it ignores the difficulty setting.
+  const level = m.mode === 'daily' ? 'normal' : app.data.settings.difficulty;
   const d = await think(v, applyDifficulty(m.bot, level), m.memory, m.rng.int(0x7fffffff));
   const elapsed = performance.now() - t0;
   if (app.match !== m) return;
@@ -895,7 +908,6 @@ function dispatch(action: Action, opts: { silentAdvance?: boolean } = {}): void 
   m.selected = null;
   m.choice = null;
   handleEvents(res.events, before);
-  if (m.puzzle) puzzleJudge(before, action, res.events);
   if (opts.silentAdvance) renderGame();
   else advance();
 }
@@ -969,7 +981,7 @@ function handleEvents(events: GameEvent[], before: GameState): void {
         Sound.play(ev.capturedId ? 'capture' : 'move');
         const p = bv.pieces.find((x) => x.id === ev.pieceId);
         const cap = ev.capturedId ? bv.pieces.find((x) => x.id === ev.capturedId) : undefined;
-        const n = m.mode === 'lesson' || m.mode === 'puzzle' ? '' : `${before.fullmove}${ev.player === 'white' ? '.' : '…'}`;
+        const n = m.mode === 'lesson' ? '' : `${before.fullmove}${ev.player === 'white' ? '.' : '…'}`;
         let text: string;
         if (ev.castle) {
           text = `${who(ev.player)} castled ${ev.castle === 'K' ? 'kingside' : 'queenside'}`;
@@ -987,7 +999,7 @@ function handleEvents(events: GameEvent[], before: GameState): void {
         break;
       }
       case 'claimMade':
-        if (ev.player === me() && vsBot && m.mode !== 'lesson' && m.mode !== 'puzzle') {
+        if (ev.player === me() && vsBot && m.mode !== 'lesson') {
           const bview = E.getPlayerView(m.state, opp());
           const dist = beliefsFor(bview, m.bot, m.memory).probs[ev.pieceId];
           if (dist) m.snaps.push({ fullmove: before.fullmove, pieceId: ev.pieceId, claim: ev.claim, square: ev.square, dist });
@@ -1295,7 +1307,6 @@ function promptFor(v: PlayerView, actor: Color | null): Prompt {
   const human = vsHuman(m.mode);
   const run = m.lesson;
   const step = run ? lessonStep() : null;
-  const pz = m.puzzle;
 
   if (m.curtain) return { tone: 'wait', key: `curtain-${m.curtain}`, title: `Pass to ${esc(m.names[m.curtain])}` };
   if (m.mode === 'online' && app.online?.down) return { tone: 'wait', key: 'down', title: 'Reconnecting to the server', sub: 'Your game is safe on the server.' };
@@ -1304,18 +1315,6 @@ function promptFor(v: PlayerView, actor: Color | null): Prompt {
       tone: 'act', key: 'guard', title: 'Are you sure?', sub: `${esc(m.guard.advice.lines.join(' '))} Pick a move on the board to choose again.`,
       buttons: '<button class="btn" data-act="guard-cancel">Take it back</button><button class="btn btn-ink" data-act="guard-confirm">Move anyway</button>',
     };
-  }
-  if (pz && pz.verdict !== 'playing') {
-    const next = nextPuzzle();
-    return pz.verdict === 'solved'
-      ? {
-          tone: 'done', key: 'puzzle-solved', title: 'Solved!', sub: 'See why on the right.',
-          buttons: `<button class="btn" data-act="go-puzzles">All puzzles</button>${next ? `<button class="btn btn-red" data-act="start-puzzle" data-puzzle="${next.id}">Next puzzle</button>` : ''}`,
-        }
-      : {
-          tone: 'done', key: 'puzzle-failed', title: 'Not this time', sub: esc(pz.puzzle.hint),
-          buttons: `<button class="btn" data-act="go-puzzles">All puzzles</button><button class="btn btn-red" data-act="start-puzzle" data-puzzle="${pz.puzzle.id}">Try again</button>`,
-        };
   }
   if (run && step) {
     if (run.phase === 'busy') return { tone: 'wait', key: `lesson-busy-${run.step}`, title: 'Watch the board' };
@@ -1529,16 +1528,15 @@ function overlayHTML(v: PlayerView): string {
   return html;
 }
 
-/** Sidebar detail: lesson or puzzle text and the specifics of a pending claim. Actions live in the prompt bar. */
+/** Sidebar detail: lesson text and the specifics of a pending claim. Actions live in the prompt bar. */
 function infoPanelHTML(v: PlayerView): string {
   const m = match();
-  let html = m.lesson ? lessonCardHTML() : m.puzzle ? puzzleCardHTML(v) : '';
+  let html = m.lesson ? lessonCardHTML() : '';
   if (v.phase === 'callWindow' && v.pending && v.pending.mover === opp() && !m.curtain) {
     const p = v.pending;
     const claim = p.claim!;
-    // Puzzles ask you to do the counting.
-    const certain = m.mode !== 'puzzle' && computeBeliefs(v).certainLies.includes(claim);
-    const secs = m.lastThinkMs && !vsHuman(m.mode) && m.mode !== 'lesson' && m.mode !== 'puzzle' ? ` · thought ${(m.lastThinkMs / 1000).toFixed(1)}s` : '';
+    const certain = computeBeliefs(v).certainLies.includes(claim);
+    const secs = m.lastThinkMs && !vsHuman(m.mode) && m.mode !== 'lesson' ? ` · thought ${(m.lastThinkMs / 1000).toFixed(1)}s` : '';
     html += `<div class="ap-claim"><div class="ap-kicker">${codexLink('call', 'Their claim')}</div>
       <div class="ap-title">${esc(m.names[opp()])} claims ${claimTag(claim)}</div>
       <div class="ap-sub">${p.castle ? 'Castled' : `Moved ${p.from}→${p.to}`}${p.capturedId ? ', capturing' : ''}${secs}</div></div>
@@ -1554,23 +1552,6 @@ function lessonCardHTML(): string {
     <div class="lp-head"><span>${esc(run.lesson.title)}</span><span class="lp-dots">${run.lesson.steps.map((_, i) => `<i class="${i < run.step ? 'done' : i === run.step ? 'now' : ''}"></i>`).join('')}</span></div>
     <div class="lp-say">${step.say}</div>
     ${run.feedback ? `<div class="lp-feedback ${run.feedback.tone}">${esc(run.feedback.text)}</div>` : ''}
-  </div>`;
-}
-
-function puzzleCardHTML(v: PlayerView): string {
-  const run = match().puzzle!;
-  const p = run.puzzle;
-  const g = p.goal;
-  let goal: string;
-  if (g.type === 'mate') {
-    const left = Math.max(0, g.moves - movesMade(v, run.start));
-    goal = `Mate in ${g.moves} · ${left} left`;
-  } else goal = g.type === 'decide' ? 'Call or pass' : 'Break the mate';
-  return `<div class="lesson-panel">
-    <div class="lp-head"><span>${esc(p.title)}</span><span class="lp-goal">${goal}</span></div>
-    <div class="lp-say">${p.say}</div>
-    ${run.verdict === 'solved' ? `<div class="lp-feedback success">${p.explain}</div>` : ''}
-    ${run.verdict === 'failed' ? `<div class="lp-feedback hint">${esc(p.hint)}</div>` : ''}
   </div>`;
 }
 
@@ -1612,7 +1593,9 @@ function finishMatch(): void {
   }
   const outcome = !result.winner ? 'd' : result.winner === me() ? 'w' : 'l';
   const before = unlocked();
-  app.data.records = Store.recordResult(app.data.records, m.botId, outcome);
+  // The daily game keeps its own record and doesn't count towards the circuit.
+  if (m.mode === 'daily') recordDaily(m);
+  else app.data.records = Store.recordResult(app.data.records, m.botId, outcome);
   app.data.memory[m.botId] = Store.updateMemory(app.data.memory[m.botId], s, me());
   app.data.matchesPlayed += 1;
   save();
@@ -1630,6 +1613,7 @@ function openReveal(): void {
   openModal(R.revealHTML({
     state: m.state, bot: m.bot, num: oppNumber(m), snaps: m.snaps, me: me(), newlyUnlocked: m.newlyUnlocked, resultText: resultText(r),
     won: r.winner ? r.winner === me() : null, meName: m.mode === 'local' ? m.names[me()] : 'You', beliefs: !vsHuman(m.mode),
+    again: m.mode === 'daily' ? 'Play again' : 'Rematch',
   }), 'modal-wide');
 }
 
@@ -1643,7 +1627,7 @@ function leaveGame(): void {
     leaveOnline();
   } else if (m.mode === 'local') {
     if (live && !confirm('Leave this game? It will be abandoned.')) return;
-  } else if (m.mode !== 'lesson' && m.mode !== 'puzzle' && live) {
+  } else if (m.mode !== 'lesson' && live) {
     if (!confirm('Leave the table? This match will count as a loss.')) return;
     dispatch({ type: 'resign', player: me() }, { silentAdvance: true });
     finishMatch();
@@ -1651,7 +1635,7 @@ function leaveGame(): void {
   closeModal();
   app.match = null;
   const back: Record<Mode, Exclude<Screen, 'game'>> = {
-    circuit: 'circuit', free: 'free', practice: 'lessons', lesson: 'lessons', puzzle: 'puzzles', local: 'pvp', online: 'pvp',
+    circuit: 'circuit', free: 'free', practice: 'lessons', lesson: 'lessons', daily: 'daily', local: 'pvp', online: 'pvp',
   };
   show(back[m.mode]);
 }
@@ -1666,6 +1650,7 @@ function rematch(): void {
   }
   // Swap colours for the next pass-and-play game.
   if (m.mode === 'local') return startLocalSetup({ white: m.names.black, black: m.names.white });
+  if (m.mode === 'daily') return startDaily();
   startSetup(m.botId, m.mode, m.config);
 }
 
@@ -1698,7 +1683,6 @@ function onSquare(sq: Square): void {
   const m = app.match;
   if (!m || app.screen !== 'game' || m.busy || m.curtain) return;
   if (m.lesson && m.lesson.phase !== 'playing') return;
-  if (m.puzzle && m.puzzle.verdict !== 'playing') return;
   // Clicking the board while the coach's warning is up means "take it back":
   // dismiss the warning and handle the click, so the board never feels frozen.
   if (m.guard) {
@@ -1833,7 +1817,6 @@ function playerDecision(type: 'call' | 'pass'): void {
   const m = app.match;
   if (!m || m.busy || m.curtain) return;
   if (m.lesson && m.lesson.phase !== 'playing') return;
-  if (m.puzzle && m.puzzle.verdict !== 'playing') return;
   const v = view();
   if (v.phase !== 'callWindow' && v.phase !== 'defendWindow') return;
   if (!v.pending || v.pending.mover !== opp()) return;
@@ -1874,7 +1857,9 @@ const handlers: InputHandlers = {
       case 'go-circuit': closeModal(); app.match = null; return show('circuit');
       case 'go-free': return show('free');
       case 'go-lessons': closeModal(); app.match = null; return show('lessons');
-      case 'go-puzzles': closeModal(); app.match = null; return show('puzzles');
+      case 'go-daily': closeModal(); app.match = null; return show('daily');
+      case 'daily-start': return startDaily();
+      case 'daily-share': return void copyDaily();
       case 'go-pvp':
         app.pvpError = null;
         return show(app.online ? 'room' : 'pvp');
@@ -1923,7 +1908,7 @@ const handlers: InputHandlers = {
         openSettings();
         return app.screen === 'game' ? renderGame() : renderHud();
       case 'reset-progress':
-        if (confirm('Reset all progress: records, lessons, puzzles, and what the regulars remember about you?')) {
+        if (confirm('Reset all progress: records, lessons, daily games, and what the regulars remember about you?')) {
           app.data = Store.blank();
           save();
           applySettings();
@@ -1945,7 +1930,6 @@ const handlers: InputHandlers = {
         if (e.target instanceof Element && e.target.classList.contains('modal-overlay') && !e.target.classList.contains('curtain-overlay')) closeModal();
         return;
       case 'start-lesson': return startLesson(ds.lesson!);
-      case 'start-puzzle': return startPuzzle(ds.puzzle!);
       case 'practice': closeModal(); return startSetup(app.tutorialId, 'practice', {});
       case 'lesson-next': return lessonContinue();
       case 'pick-bot': return startSetup(ds.bot!, 'circuit', {});

@@ -1,7 +1,7 @@
 // How often does a new player beat each bot? Plays a bot against stand-ins for
 // a new human player at each difficulty level.
 // Usage: npm run difficulty -- <bot id> [games] [easier|normal|harder]
-//        (set PROXY=novice or PROXY=casual to run one stand-in only)
+//        (set PROXY=novice or PROXY=casual to run one stand-in only, CHIPS=n to change starting chips)
 import { readFileSync } from 'node:fs';
 import * as E from '../engine/index.ts';
 import { chooseAction, applyDifficulty } from '../bot/bot.ts';
@@ -32,9 +32,11 @@ function novice(view: any, rng: any): any {
 const CASUAL = { id: 'casual', name: 'Casual', title: '', avatar: '', color: '', blurb: '', teaches: '',
   chessStrength: 1, bluffRate: 0.1, callThreshold: 60, chipCaution: 1, mistakeRate: 0.35 };
 
-function game(botP: any, proxy: 'novice' | 'casual', seed: number): 'W' | 'L' | 'D' {
+const chips = process.env.CHIPS ? Number(process.env.CHIPS) : undefined;
+
+function game(botP: any, proxy: 'novice' | 'casual', seed: number): { out: 'W' | 'L' | 'D'; reason: string; calls: number } {
   const rng = E.createRng(seed);
-  let s = E.createGame({ setups: { white: E.randomArrangement(rng), black: E.randomArrangement(rng) } });
+  let s = E.createGame({ startingChips: chips, setups: { white: E.randomArrangement(rng), black: E.randomArrangement(rng) } });
   for (let n = 0; n < 400 && s.phase !== 'over'; n++) {
     const actor = E.getActor(s)!;
     const v = E.getPlayerView(s, actor);
@@ -42,8 +44,10 @@ function game(botP: any, proxy: 'novice' | 'casual', seed: number): 'W' | 'L' | 
       : proxy === 'novice' ? novice(v, rng) : chooseAction(v, CASUAL, {}, rng)!.action;
     s = E.applyAction(s, a).state;
   }
-  if (!s.result || !s.result.winner) return 'D';
-  return s.result.winner === 'black' ? 'W' : 'L';
+  const calls = s.history.filter((a) => a.type === 'call').length;
+  const reason = s.result?.reason ?? 'unfinished';
+  if (!s.result || !s.result.winner) return { out: 'D', reason, calls };
+  return { out: s.result.winner === 'black' ? 'W' : 'L', reason, calls };
 }
 
 const id = process.argv[2] ?? 'deacon';
@@ -53,7 +57,15 @@ for (const level of ['easier', 'normal', 'harder'] as const) {
   const p = applyDifficulty(load(id), level);
   for (const proxy of (process.env.PROXY ? [process.env.PROXY] : ['novice', 'casual']) as ('novice' | 'casual')[]) {
     const r = { W: 0, L: 0, D: 0 };
-    for (let i = 0; i < n; i++) r[game(p, proxy, 1000 + i)]++;
-    console.log(`${id.padEnd(8)} ${level.padEnd(7)} vs ${proxy.padEnd(7)}: bot wins ${r.W}, loses ${r.L}, draws ${r.D}  (player win rate ${Math.round(100 * r.L / n)}%)`);
+    const reasons: Record<string, number> = {};
+    let calls = 0;
+    for (let i = 0; i < n; i++) {
+      const g = game(p, proxy, 1000 + i);
+      r[g.out]++;
+      reasons[g.reason] = (reasons[g.reason] ?? 0) + 1;
+      calls += g.calls;
+    }
+    const ends = Object.entries(reasons).map(([k, v]) => `${k} ${v}`).join(', ');
+    console.log(`${id.padEnd(8)} ${level.padEnd(7)} vs ${proxy.padEnd(7)}: bot wins ${r.W}, loses ${r.L}, draws ${r.D}  (player win rate ${Math.round(100 * r.L / n)}%)  ends: ${ends}; calls/game ${(calls / n).toFixed(1)}`);
   }
 }

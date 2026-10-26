@@ -1,6 +1,7 @@
 {
   "name": "no defend window when no unclaimed card could reach the king's square",
   "config": {
+    "startingChips": 4,
     "pieces": [
       {
         "id": "w-k",

@@ -5,6 +5,7 @@ import type { Color, GameState } from '../engine/index.ts';
 import type { Difficulty, GamePhase, TableImage } from '../bot/bot.ts';
 import type { Profile } from '../lessons/lessons.ts';
 import type { CircuitRecord } from './render.ts';
+import type { DailyEntry } from '../daily/daily.ts';
 
 const KEY = 'bluffchess.v1';
 
@@ -26,14 +27,15 @@ export interface SaveData {
   memory: Record<string, TableImage>;
   profile: Profile | null;
   lessonsDone: string[];
-  puzzlesDone: string[];
+  /** Daily game results, by date key. */
+  daily: Record<string, DailyEntry>;
   matchesPlayed: number;
   settings: Settings;
 }
 
 export function blank(): SaveData {
   return {
-    records: {}, memory: {}, profile: null, lessonsDone: [], puzzlesDone: [], matchesPlayed: 0,
+    records: {}, memory: {}, profile: null, lessonsDone: [], daily: {}, matchesPlayed: 0,
     settings: { volume: 0.6, muted: false, coach: 'auto', difficulty: 'normal', reducedMotion: false, seat: 'white', playerName: '' },
   };
 }
@@ -43,7 +45,7 @@ export function load(): SaveData {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return base;
-    const saved = JSON.parse(raw) as Partial<SaveData>;
+    const { puzzlesDone: _, ...saved } = JSON.parse(raw) as Partial<SaveData> & { puzzlesDone?: unknown };
     return { ...base, ...saved, settings: { ...base.settings, ...(saved.settings || {}) } };
   } catch {
     return base;

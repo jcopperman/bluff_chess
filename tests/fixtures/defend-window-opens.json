@@ -1,6 +1,7 @@
 {
   "name": "a king capture onto a square an unclaimed card could reach opens a defend window",
   "config": {
+    "startingChips": 4,
     "turn": "black",
     "pieces": [
       {

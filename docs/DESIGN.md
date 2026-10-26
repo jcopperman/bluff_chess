@@ -29,7 +29,7 @@ The first release is **player vs bot**. Bots are a roster of distinct characters
 - **Pawns and the king are always face-up.** King starts on its normal square (e1 / e8).
 - Each player **secretly arranges** their other seven back-rank pieces (2 rooks, 2 knights, 2 bishops, 1 queen) across the seven remaining back-rank squares. These are **face-down** to the opponent.
 - Bishops may end up on the same colour. That's a legitimate strategic choice.
-- Each player starts with **4 chips** (tuning knob).
+- Each player starts with **3 chips** (tuning knob; it was 4, see 2.8).
 
 ### 2.2 Claims
 
@@ -106,7 +106,7 @@ This is the dramatic last-chance moment and should be presented as such.
 
 | Knob | Default | Notes |
 |---|---|---|
-| Starting chips | 4 | Tuned by simulation: about 7% of games end in a bust and about 40% reach someone's last chip. |
+| Starting chips | 3 | Was 4. Each side has seven cards to call, and each can usefully be called only once, so a big stack makes every call free and kills bluffing late in the game. At 3, calls per game stay about the same and about 10% of games end in a bust (6% at 4). At 1 nobody calls. Free play allows 1 to 5. |
 | Chips-out loss (bust) | On | Makes chips matter; off restores the original rules. |
 | Lie caught penalty | Piece removed + turn forfeited + liar pays 1 chip | "Liars pay" off: the caller just keeps their chip. |
 | Claim locking | On | Off makes lies easier to maintain and deduction weaker. |
@@ -125,17 +125,18 @@ A roster of bot opponents the player works through, roughly ordered by difficult
 
 Pick any unlocked opponent and adjust tuning knobs (starting chips, claim locking, etc.). Good for testing and for players who want specific rules.
 
-### 3.3 Bluff Puzzles
+### 3.3 Daily Game
 
-Curated positions with a goal, in the spirit of chess puzzles:
+One full game a day, the same for everyone. The local date seeds a PRNG that picks:
 
-- "Win in three moves, using exactly one lie."
-- "The bot has a hidden queen. Find it before it finds your king."
-- "You have one chip. Which move do you call?"
+- a circuit opponent,
+- one rule twist: house rules, two chips each, claim locking off, liars don't pay, one showdown per mate, or no bust at zero chips,
+- your colour,
+- both back ranks, which are dealt rather than arranged.
 
-Stored as JSON so new puzzles are data, not code. A daily puzzle is a natural later addition.
+Difficulty is fixed at Normal, whatever the player's setting, so the game is the same for everyone. The first attempt counts and is saved as a loss until it finishes, so reloading can't erase it; replays don't count. Results are stored in `localStorage` by date, with a streak of consecutive days played and a spoiler-free result line to copy. The daily game keeps its own record, apart from the circuit's records and unlocks. Logic is in `daily/daily.ts`.
 
-**As built:** each puzzle is a position, optional scripted moves that set it up, one goal and an opponent personality. There are three goal types: `mate` (win within N of your moves; the opponent bot answers), `decide` (call or pass on a pending claim) and `breakMate` (expose a lie in a showdown). You always play white, and the coach is off. Tests prove every mate puzzle is forced in exactly N moves by searching the full state, calls included.
+This replaced the original Bluff Puzzles: curated positions with one goal each (mate in N, call or pass, or break a mate in a showdown), stored as JSON.
 
 ### 3.4 Tutorial
 
@@ -286,10 +287,10 @@ Events (for UI and logs): `moved`, `claimMade`, `callWindowOpened`, `lieCaught`,
       "hasMoved": false
     }
   ],
-  "chips": { "white": 4, "black": 4 },
+  "chips": { "white": 3, "black": 3 },
   "pending": null,
   "history": [],
-  "config": { "startingChips": 4, "claimLocking": true }
+  "config": { "startingChips": 3, "claimLocking": true }
 }
 ```
 
@@ -317,7 +318,6 @@ Events (for UI and logs): `moved`, `claimMade`, `callWindowOpened`, `lieCaught`,
   evaluate.ts
 /data/
   personalities/*.json
-  puzzles/*.json
 /ui/
   render.ts
   input.ts
@@ -365,7 +365,7 @@ Belief model, Phase 1 heuristic bot, one personality with one tell. End-of-match
 Three to five personalities with distinct tells, table image memory, circuit progression and records.
 
 **M5 — Teaching and polish**
-Tutorial, first set of bluff puzzles, claim tracker, possible-identities readout, reveal animations, final card-back design.
+Tutorial, first set of bluff puzzles (since replaced by the daily game), claim tracker, possible-identities readout, reveal animations, final card-back design.
 
 **PvP** (see section 8): pass-and-play and online rooms are built; a call timer, ratings and hosting are still to do.
 
@@ -390,7 +390,7 @@ Tutorial, first set of bluff puzzles, claim tracker, possible-identities readout
 
 ## 9. Open questions
 
-- Is 4 chips right with human players? The simulation says so, but playtest 3–5.
+- Is 3 chips right with human players? Playtesting suggested 4 was too many. If endgames still go slack, test making a wrong call cost 2 chips once the target has 3 or fewer hidden cards.
 - Unclaimed cards now defend against the king (2.5). Should they also pin, or is that too much for the defend window?
 - Should the king ever be placeable elsewhere on the back rank during secret setup?
 - Unlimited showdowns, or one per game?
