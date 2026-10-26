@@ -5,7 +5,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && node tools/preload.ts",
     "start": "npm run build && node tools/serve.ts",
     "dev": "node tools/serve.ts --watch",
     "test": "node --test \"tests/*.test.ts\"",

@@ -552,7 +552,45 @@ h1, h2, h3 { margin: 0; font-weight: 400; }
 .rv-quote { display: block; font: 19px var(--body); }
 .rv-belief small { color: var(--ink-2); font-size: 15px; }
 
-.boot-error { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; padding: 40px; font-size: 22px; }
+/* The loading screen lives outside the stage, so it shows before any script runs. It mirrors
+   the title screen at the same scale (--u is one stage pixel), so the title fades in over it
+   with the cards and wordmark already in place. */
+#boot { --u: min(0.0625vw, 0.1111vh); position: fixed; inset: 0; z-index: 200; background: #141210; color: var(--on-table); font-family: var(--body); }
+#boot.done { animation: fade-out 0.3s ease-in forwards; pointer-events: none; }
+.boot-stage { position: absolute; left: 50%; top: 50%; width: calc(1600 * var(--u)); height: calc(900 * var(--u)); transform: translate(-50%, -50%); background: var(--table);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(22 * var(--u)); text-align: center; }
+.boot-cards { position: relative; flex: none; width: calc(260 * var(--u)); height: calc(190 * var(--u)); margin-bottom: calc(6 * var(--u)); }
+#boot .tcard { left: calc(80 * var(--u)); width: calc(110 * var(--u)); height: calc(160 * var(--u)); }
+#boot .tcard .piece-svg { width: calc(76 * var(--u)); height: calc(76 * var(--u)); }
+#boot .tcard.t1 { transform: translateX(calc(-70 * var(--u))) rotate(-12deg); }
+#boot .tcard.t3 { transform: translateX(calc(70 * var(--u))) rotate(12deg); }
+/* The middle card turns over and back while loading. */
+.boot-flip { position: absolute; inset: 0; perspective: 600px; }
+.boot-flip .tcard { backface-visibility: hidden; animation: boot-flip 2.4s ease-in-out infinite; }
+.boot-flip .boot-face { animation-name: boot-flip-face; }
+@keyframes boot-flip { 0%, 30% { transform: rotateY(0); } 45%, 75% { transform: rotateY(180deg); } 90%, 100% { transform: rotateY(360deg); } }
+@keyframes boot-flip-face { 0%, 30% { transform: rotateY(-180deg); } 45%, 75% { transform: rotateY(0); } 90%, 100% { transform: rotateY(180deg); } }
+#boot.failed .boot-flip .tcard { animation: none; }
+#boot.failed .boot-face { visibility: hidden; }
+.boot-word { font: 800 condensed calc(140 * var(--u))/0.95 var(--head); text-transform: uppercase; letter-spacing: 0.01em; }
+.boot-word span { color: var(--red); }
+/* Holds the space of the title's tagline and Play button, so everything above lines up. */
+.boot-foot { flex: none; height: calc(148 * var(--u)); display: flex; flex-direction: column; align-items: center; gap: calc(12 * var(--u)); }
+.boot-bar { width: calc(320 * var(--u)); height: calc(4 * var(--u)); min-height: 2px; margin-top: calc(14 * var(--u)); background: var(--table-line); }
+.boot-bar i { display: block; width: 0; height: 100%; background: var(--on-table); transition: width 0.2s ease-out; }
+#boot p { margin: 0; max-width: calc(560 * var(--u)); font-size: max(14px, calc(20 * var(--u))); color: var(--on-table-2); }
+#boot button { padding: 10px 22px; border: 0; border-radius: 2px; background: var(--red); color: var(--paper); font: 700 condensed 16px var(--head); text-transform: uppercase; letter-spacing: 0.06em; cursor: pointer; }
+#boot.failed .boot-bar { display: none; }
+/* Phones draw the stage at real size (see fitStage), with the title's phone layout. */
+@media (max-width: 559.98px), (max-height: 559.98px) {
+  #boot { --u: 1px; }
+  .boot-stage { width: 100%; height: 100%; gap: 16px; padding: 20px; box-sizing: border-box; }
+  .boot-cards { transform: scale(0.72); margin: -26px 0 -40px; }
+  .boot-word { font-size: 66px; }
+  .boot-foot { height: 113px; }
+  .boot-bar { width: min(240px, 70vw); }
+}
+@media (max-height: 559.98px) and (orientation: landscape) { .boot-cards { display: none; } }
 
 /* ---------- reduced motion ---------- */
 @media (prefers-reduced-motion: reduce) {

@@ -36,6 +36,7 @@ npm run typecheck  # strict tsc over the engine/bot, the browser build, and test
 
 - Source is TypeScript with only erasable syntax (`erasableSyntaxOnly`), and imports name `.ts` files. Node strips the types at runtime, so tests and `tools/serve.ts` need no build step.
 - `tsc` rewrites those imports to `.js` (`rewriteRelativeImportExtensions`) when it builds the browser bundle into `dist/`. There is no bundler.
+- After `tsc`, `npm run build` runs `tools/preload.ts`, which writes a preload list into `index.html`: every module the game imports at startup and every data file it fetches. The browser fetches them all at once instead of finding modules one import at a time, and the loading screen counts them for its progress bar. Commit the updated `index.html` with any change to imports or data files.
 - There are three tsconfigs, sharing `tsconfig.base.json`:
   - `tsconfig.core.json` checks `engine/`, `bot/`, `coach/`, `lessons/` and `daily/` with no DOM or Node types. Any browser or platform API used there is a compile error.
   - `tsconfig.json` is the browser build.
