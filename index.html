@@ -11,6 +11,8 @@
   <link rel="stylesheet" href="ui/styles.css">
 </head>
 <body>
+  <!-- Shown until the game has loaded, so a slow first load (or a failed one) is never a blank screen. -->
+  <div id="boot" role="status"><div class="boot-word">Bluff <span>Chess</span></div><p id="boot-msg">Shuffling the deck…</p></div>
   <div id="viewport">
     <div id="stage" data-layout="landscape">
       <div id="app">
@@ -22,5 +24,17 @@
     </div>
   </div>
   <script type="module" src="dist/main.js"></script>
+  <script>
+    // If a script never arrives, init() can't report it: offer a reload after a while.
+    setTimeout(function () {
+      var boot = document.getElementById('boot');
+      if (boot.classList.contains('done') || boot.querySelector('button')) return;
+      document.getElementById('boot-msg').textContent = 'This is taking longer than it should.';
+      var b = document.createElement('button');
+      b.textContent = 'Reload';
+      b.onclick = function () { location.reload(); };
+      boot.appendChild(b);
+    }, 20000);
+  </script>
 </body>
 </html>

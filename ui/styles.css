@@ -552,7 +552,13 @@ h1, h2, h3 { margin: 0; font-weight: 400; }
 .rv-quote { display: block; font: 19px var(--body); }
 .rv-belief small { color: var(--ink-2); font-size: 15px; }
 
-.boot-error { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; padding: 40px; font-size: 22px; }
+/* The loading screen lives outside the stage, so it shows before any script runs. */
+#boot { position: fixed; inset: 0; z-index: 200; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 16px; text-align: center; background: #141210; color: #e9e1cf; font: 18px/1.45 system-ui, sans-serif; }
+#boot.done { display: none; }
+.boot-word { font: 800 condensed 56px/1 var(--head), system-ui, sans-serif; text-transform: uppercase; letter-spacing: 0.01em; }
+.boot-word span { color: #b8261d; }
+#boot p { margin: 0; max-width: 460px; color: #b9b09c; }
+#boot button { margin-top: 6px; padding: 10px 22px; border: 0; border-radius: 2px; background: #b8261d; color: #fff; font: 700 16px system-ui, sans-serif; text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; }
 
 /* ---------- reduced motion ---------- */
 @media (prefers-reduced-motion: reduce) {

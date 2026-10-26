@@ -179,22 +179,37 @@ const app: App = {
 // ---------------------------------------------------------------------------
 // Boot, stage scaling, persistence
 
+/** Fetch JSON, retrying twice: a cold CDN (itch.io on a first visit) sometimes drops a request. */
 async function fetchJson<T>(url: string): Promise<T> {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`${url}: ${res.status}`);
-  return (await res.json()) as T;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`${url}: ${res.status}`);
+      return (await res.json()) as T;
+    } catch (e) {
+      if (attempt >= 2) throw e;
+      await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
+    }
+  }
 }
 
 async function init(): Promise<void> {
-  const index = await fetchJson<{ tutorial: string; circuit: string[] }>('data/personalities/index.json');
+  // Everything at once: one round trip per level instead of one per file.
+  const [index, lessonIds, codex] = await Promise.all([
+    fetchJson<{ tutorial: string; circuit: string[] }>('data/personalities/index.json'),
+    fetchJson<string[]>('data/lessons/index.json'),
+    fetchJson<CodexData>('data/codex.json'),
+  ]);
+  const ids = [index.tutorial, ...index.circuit];
+  const [bots, lessons] = await Promise.all([
+    Promise.all(ids.map((id) => fetchJson<PersonalityConfig>(`data/personalities/${id}.json`))),
+    Promise.all(lessonIds.map((id) => fetchJson<Lesson>(`data/lessons/${id}.json`))),
+  ]);
   app.roster = index.circuit;
   app.tutorialId = index.tutorial;
-  for (const id of [index.tutorial, ...index.circuit]) {
-    app.bots[id] = await fetchJson<PersonalityConfig>(`data/personalities/${id}.json`);
-  }
-  const lessonIds = await fetchJson<string[]>('data/lessons/index.json');
-  app.lessons = await Promise.all(lessonIds.map((id) => fetchJson<Lesson>(`data/lessons/${id}.json`)));
-  app.codex = await fetchJson<CodexData>('data/codex.json');
+  ids.forEach((id, i) => { app.bots[id] = bots[i]; });
+  app.lessons = lessons;
+  app.codex = codex;
   app.free.bot = app.roster[0];
   app.pvp.name = app.data.settings.playerName;
   applySettings();
@@ -203,6 +218,7 @@ async function init(): Promise<void> {
   window.addEventListener('resize', fitStage);
   fitStage();
   show('title');
+  el('#boot').classList.add('done');
   // A reload during an online game rejoins it.
   app.onlineAvailable = await Net.serverAvailable();
   const seat = Net.savedSeat();
@@ -218,6 +234,8 @@ async function init(): Promise<void> {
 function fitStage(): void {
   const stage = el('#stage');
   const vw = window.innerWidth, vh = window.innerHeight;
+  // An embed (itch.io) can start at zero size; scaling to 0 would hide the game until the next resize.
+  if (!vw || !vh) return;
   const portrait = vw < vh * 0.9;
   const phone = Math.min(vw, vh) < 560;
   const [w, h] = phone ? [vw, vh] : portrait ? [900, 1600] : [1600, 900];
@@ -2076,5 +2094,15 @@ const handlers: InputHandlers = {
 
 init().catch((e: unknown) => {
   console.error(e);
-  el('#screen').innerHTML = `<div class="boot-error"><h2>Could not start</h2><p>Bluff Chess uses ES modules and JSON data, so it must be served over HTTP, not opened as a file.</p><p>Run <code>npm start</code> in the project folder and open the printed URL.</p></div>`;
+  // The stage may never have been sized, so the error goes on the loading screen.
+  const msg = el('#boot-msg');
+  if (location.protocol === 'file:') {
+    msg.textContent = 'Bluff Chess must be served over HTTP, not opened as a file. Run npm start in the project folder and open the printed URL.';
+    return;
+  }
+  msg.textContent = 'The game didn’t finish loading. This is usually a hiccup in the connection.';
+  const btn = document.createElement('button');
+  btn.textContent = 'Reload';
+  btn.addEventListener('click', () => location.reload());
+  msg.after(btn);
 });
