@@ -1,0 +1,46 @@
+{
+  "name": "no defend window when no unclaimed card could reach the king's square",
+  "config": {
+    "pieces": [
+      {
+        "id": "w-k",
+        "owner": "white",
+        "type": "king",
+        "square": "d2"
+      },
+      {
+        "id": "w-pa",
+        "owner": "white",
+        "type": "pawn",
+        "square": "a2"
+      },
+      {
+        "id": "b-k",
+        "owner": "black",
+        "type": "king",
+        "square": "h8"
+      },
+      {
+        "id": "b-g8",
+        "owner": "black",
+        "type": "knight",
+        "square": "h5"
+      }
+    ]
+  },
+  "actions": [
+    {
+      "type": "move",
+      "player": "white",
+      "from": "d2",
+      "to": "c2"
+    }
+  ],
+  "expect": {
+    "phase": "move",
+    "turn": "black",
+    "eventsExclude": [
+      "defendWindowOpened"
+    ]
+  }
+}

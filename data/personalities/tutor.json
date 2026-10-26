@@ -80,6 +80,9 @@
     ],
     "playerQueen": [
       "A queen? Ooh, is it though?"
+    ],
+    "defend": [
+      "Careful! My card was guarding that square."
     ]
   },
   "mistakeRate": 0.55,

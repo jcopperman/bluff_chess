@@ -187,3 +187,25 @@ test("expert: legal decisions that don't depend on the opponent's hidden arrange
   });
   assert.ok(sameAction(decisions[0].action, decisions[1].action));
 });
+
+test('defend: the bot flips a card that really guards the king\'s square, and passes when none does', () => {
+  const tutor = load('tutor');
+  // The reported game: white's face-up queen checks, an unclaimed card on a4 guards her.
+  const position = (guard: ClaimType) => createGame({
+    turn: 'black',
+    pieces: [
+      { id: 'w-k', owner: 'white', type: 'king', square: 'a1' },
+      { id: 'w-d1', owner: 'white', type: 'queen', square: 'd7', faceUp: true },
+      { id: 'w-c1', owner: 'white', type: guard, square: 'a4' },
+      { id: 'b-k', owner: 'black', type: 'king', square: 'e8' },
+      { id: 'b-ph', owner: 'black', type: 'pawn', square: 'h7' },
+    ],
+  });
+  for (const [guard, expected] of [['bishop', 'defend'], ['knight', 'pass']] as const) {
+    const s = applyAction(position(guard), { type: 'move', player: 'black', from: 'e8', to: 'd7' }).state;
+    assert.equal(s.phase, 'defendWindow');
+    const d = decide(getPlayerView(s, 'white'), tutor, {}, 3);
+    assert.equal(d.action.type, expected, guard);
+    if (d.action.type === 'defend') assert.equal(d.action.pieceId, 'w-c1');
+  }
+});

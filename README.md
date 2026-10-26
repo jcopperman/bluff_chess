@@ -23,7 +23,7 @@ npm test           # node --test, straight from the .ts source
 npm run typecheck  # strict tsc over the engine/bot, the browser build, and tests/tools
 ```
 
-- `tests/fixtures/*.json`: one fixture per rule (claims, locking, call outcomes, reversal with capture, castling claims, apparent check, showdowns, tuning knobs, setup). Each fixture holds a starting config, a list of actions, and the expected state, events, legal moves or error.
+- `tests/fixtures/*.json`: one fixture per rule (claims, locking, call outcomes, reversal with capture, castling claims, apparent check, defending, showdowns, tuning knobs, setup). Each fixture holds a starting config, a list of actions, and the expected state, events, legal moves or error.
 - `tests/engine.test.ts`: runs the fixtures, plus determinism, replay-from-log, random-game fuzzing and view-hiding tests.
 - `tests/bot.test.ts`: fairness (bot decisions are identical whatever the opponent's hidden arrangement), legality across whole bot-vs-bot games, the belief model, showdown choice, tells and table image.
 - `tests/moves.test.ts`: move generation three ways. Perft from six standard chess positions against published counts (castling, en passant, promotion, pins), the same perft through the full engine, and a differential test where an independent reference generator must agree with the engine on every position from random games with hidden pieces, claims and bluffs.
@@ -63,7 +63,7 @@ The engine, bot, coach and lessons are all type-checked without DOM types (`tsco
 
 ## What's implemented
 
-- **Engine:** the full rules: secret setup, claims and locking, call windows with reversal (including captures and castling), chips, apparent-board check and mate, showdowns, stalemate, threefold repetition, fifty-move rule, insufficient material (once every piece left is face-up), and every tuning knob. Adds one action type the doc didn't list, `acceptMate`, so a mated player can decline a showdown.
+- **Engine:** the full rules: secret setup, claims and locking, call windows with reversal (including captures and castling), defend windows against the king, chips, apparent-board check and mate, showdowns, stalemate, threefold repetition, fifty-move rule, insufficient material (once every piece left is face-up), and every tuning knob. Adds one action type the doc didn't list, `acceptMate`, so a mated player can decline a showdown.
 - **Bots:** an exact belief model (enumerates every consistent hidden arrangement), alpha-beta search on the apparent board, a personality-driven bluff policy, an EV-based call policy, and showdown targeting. There are five circuit characters plus a tutorial bot, each with consistent tells (think time, dialogue, hovering). Bots think in a Web Worker, so a long search never freezes the page.
 - **Expert difficulty (Phase 2 search):** the Phase 1 search treats every unclaimed enemy card as a piece that can move as anything. At Expert, each bot also samples six concrete identities for your hidden cards from its beliefs, searches each sampled world a ply deeper with full information, and averages the results (determinization). It never blunders on purpose and avoids repeating a position when ahead. Personalities, bluffing and tells are unchanged. In test games against Harder it won 3 and drew 3 of 6, at about 0.2 s a move.
 - **Play either colour:** pick White, Black or Random on the setup screen. The board turns to face you.

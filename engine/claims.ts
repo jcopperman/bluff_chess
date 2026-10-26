@@ -1,8 +1,9 @@
-// Moves, including claims by face-down pieces and the pending call window.
+// Moves, including claims by face-down pieces and the pending call and defend windows.
 
-import { idxToSq, opponent } from './moves.ts';
+import { guardsOf, idxToSq, opponent } from './moves.ts';
 import { legalMoves, must, pieceAt } from './state.ts';
 import { finalizeMove } from './calls.ts';
+import { getApparentBoard } from './view.ts';
 import type { GameEvent, GameState, Move, MoveAction, Pending } from './types.ts';
 
 function sameMove(m: Move, action: MoveAction): boolean {
@@ -105,7 +106,22 @@ export function applyMove(state: GameState, action: MoveAction, events: GameEven
     state.phase = 'callWindow';
     events.push({ type: 'claimMade', player, pieceId: pend.pieceId, claim: pend.claim, square: pend.to });
     events.push({ type: 'callWindowOpened', player: opponent(player), pieceId: pend.pieceId });
-  } else {
-    finalizeMove(state, pend, events);
+    return;
   }
+
+  // Unclaimed cards attack nothing on the apparent board, so a king may step (or capture)
+  // where one of them really reaches. If one could, the opponent gets to defend the square.
+  const opp = opponent(player);
+  if (m.type === 'king' && !m.castle && state.chips[opp] > 0) {
+    const board = getApparentBoard(state);
+    const defenders = guardsOf(board, m.to, opp).map((i) => board[i]!.id);
+    if (defenders.length) {
+      pend.defenders = defenders;
+      state.pending = pend;
+      state.phase = 'defendWindow';
+      events.push({ type: 'defendWindowOpened', player: opp, kingId: piece.id, square: action.to, defenders });
+      return;
+    }
+  }
+  finalizeMove(state, pend, events);
 }

@@ -1,0 +1,53 @@
+{
+  "name": "only a card that could reach the square may defend it",
+  "config": {
+    "pieces": [
+      {
+        "id": "w-k",
+        "owner": "white",
+        "type": "king",
+        "square": "d2"
+      },
+      {
+        "id": "w-pa",
+        "owner": "white",
+        "type": "pawn",
+        "square": "a2"
+      },
+      {
+        "id": "b-k",
+        "owner": "black",
+        "type": "king",
+        "square": "h8"
+      },
+      {
+        "id": "b-b8",
+        "owner": "black",
+        "type": "knight",
+        "square": "b4"
+      },
+      {
+        "id": "b-g8",
+        "owner": "black",
+        "type": "knight",
+        "square": "h5"
+      }
+    ]
+  },
+  "actions": [
+    {
+      "type": "move",
+      "player": "white",
+      "from": "d2",
+      "to": "c2"
+    },
+    {
+      "type": "defend",
+      "player": "black",
+      "pieceId": "b-g8"
+    }
+  ],
+  "expect": {
+    "error": "cannot defend"
+  }
+}

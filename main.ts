@@ -8,7 +8,7 @@ import type {
 import { chooseSetup, beliefsFor, applyDifficulty } from './bot/bot.ts';
 import type { LineKey, PersonalityConfig, TableImage } from './bot/bot.ts';
 import { computeBeliefs } from './bot/belief.ts';
-import { explainIllegal, whyStuck, blunderCheck, claimAdvice, callAdvice } from './coach/advice.ts';
+import { explainIllegal, whyStuck, blunderCheck, claimAdvice, callAdvice, defendAdvice } from './coach/advice.ts';
 import type { Advice } from './coach/advice.ts';
 import { matchesExpect, startStep, recommended } from './lessons/lessons.ts';
 import type { Lesson, Profile } from './lessons/lessons.ts';
@@ -843,6 +843,10 @@ async function botAct(): Promise<void> {
     Sound.play('call');
     FX.stamp($('#fx-layer'), $('#board'), v.pending.to, 'Called', 'call');
     await sleep(650);
+  } else if (d.action.type === 'defend' && v.pending) {
+    Sound.play('call');
+    FX.stamp($('#fx-layer'), $('#board'), v.pending.to, 'Defend', 'call');
+    await sleep(650);
   } else if (d.action.type === 'pass' && v.pending) {
     Sound.play('step');
     FX.stamp($('#fx-layer'), $('#board'), v.pending.to, 'Pass', 'pass');
@@ -1011,6 +1015,37 @@ function handleEvents(events: GameEvent[], before: GameState): void {
         setMood(ev.liar === opp() ? 'caught' : 'smug');
         break;
       }
+      case 'defendWindowOpened':
+        log(`${who(ev.player)} may defend ${ev.square} with an unclaimed card.`, 'pass');
+        break;
+      case 'defended': {
+        const moverIs = isYou(ev.mover) ? 'You are' : `${esc(m.names[ev.mover])} is`;
+        log(`↳ ${verb(ev.player, 'defend', 'defends')} with the card on ${ev.square}: a <b>${typeName(ev.pieceType)}</b>, guarding ${ev.kingTo}. The king goes back to ${ev.kingFrom}${ev.restoredId ? ' and the capture is undone' : ''}.${ev.paid ? ` Chip to ${isYou(ev.player) ? 'you' : esc(midName(m.names[ev.player]))}.` : ''}${ev.stillInCheck ? ` ${moverIs} back in check and must answer it.` : ''}`, 'lie');
+        m.flip.add(ev.pieceId);
+        fx(() => {
+          Sound.play('lie');
+          FX.stamp($('#fx-layer'), $('#board'), ev.kingTo, 'Guarded', 'lie');
+          if (!app.data.settings.reducedMotion) FX.shake($('#board'));
+          if (ev.paid) {
+            setTimeout(() => Sound.play('coin'), 250);
+            FX.chipFly($(ev.mover === me() ? '#me-panel .purse' : '#opp-panel .purse'), $(ev.mover === me() ? '#opp-panel .purse' : '#me-panel .purse'));
+          }
+        });
+        if (ev.player === opp()) say(pickLine('defend'));
+        setMood(ev.player === opp() ? 'smug' : 'caught');
+        break;
+      }
+      case 'defenseFailed':
+        log(`↳ ${verb(ev.player, 'defend', 'defends')} with the card on ${ev.square}, but it's a <b>${typeName(ev.pieceType)}</b> and can't reach ${ev.kingTo}. Chip to ${isYou(ev.mover) ? 'you' : esc(midName(m.names[ev.mover]))}.`, 'true');
+        m.flip.add(ev.pieceId);
+        fx(() => {
+          Sound.play('flip');
+          setTimeout(() => Sound.play('coin'), 250);
+          FX.stamp($('#fx-layer'), $('#board'), ev.kingTo, 'Open', 'true');
+          FX.chipFly($(ev.player === me() ? '#me-panel .purse' : '#opp-panel .purse'), $(ev.player === me() ? '#opp-panel .purse' : '#me-panel .purse'));
+        });
+        setMood(ev.player === opp() ? 'nervous' : 'smug');
+        break;
       case 'claimConfirmed': {
         log(`↳ ${ev.showdown ? 'Showdown' : verb(ev.caller, 'call', 'calls')}: it really is a <b>${typeName(ev.pieceType)}</b>. Chip to ${isYou(ev.mover) ? 'you' : esc(midName(m.names[ev.mover]))}.`, 'true');
         m.flip.add(ev.pieceId);
@@ -1160,6 +1195,8 @@ function renderGame(opts: { noSlide?: boolean } = {}): void {
       if (sq) showdownTargets.add(sq);
     }
   }
+  // Defending reuses the showdown marks: the cards that really guard the king's square.
+  if (v.phase === 'defendWindow' && actor === me()) for (const p of defendCards(v)) showdownTargets.add(p.square!);
   const step = m.lesson ? lessonStep() : null;
 
   const boardEl = el('#board');
@@ -1225,6 +1262,7 @@ function coachAdvice(v: PlayerView): Advice | null {
   if (v.phase === 'callWindow' && v.pending?.mover === opp() && m.mode !== 'lesson') {
     return vsHuman(m.mode) ? callAdvice(v, m.names[opp()], [], undefined) : callAdvice(v, m.bot.name, m.botThinks, m.lastThinkMs ?? undefined);
   }
+  if (v.phase === 'defendWindow' && m.mode !== 'lesson') return defendAdvice(v, m.names[opp()]);
   if (m.choice && m.choice.options[0].claim) {
     const options = m.choice.options;
     const bluff = options.find((a) => claimAdvice(v, a, m.names[opp()]).tone !== 'good');
@@ -1309,6 +1347,19 @@ function promptFor(v: PlayerView, actor: Color | null): Prompt {
     }
     return { tone: 'wait', key: 'bot-calling', title: `${name} is deciding`, sub: 'Will they call your claim?' };
   }
+  if (v.phase === 'defendWindow' && v.pending) {
+    if (v.pending.mover === opp()) {
+      const can = defendCards(v).length > 0;
+      return {
+        tone: 'act', key: `defend-${v.pending.to}-${v.fullmove}`, title: `Defend ${v.pending.to}?`,
+        sub: can
+          ? `${name}'s king moved to ${v.pending.to}. Pick a marked card that guards it (1 chip), or pass.`
+          : `${name}'s king moved to ${v.pending.to}, an unclaimed card's reach. None of yours really guard it.`,
+        buttons: '<button class="btn" data-act="pass">Pass <small>P</small></button>',
+      };
+    }
+    return { tone: 'wait', key: 'bot-defending', title: `${name} is deciding`, sub: `Can they defend ${v.pending.to}?` };
+  }
   if (v.phase === 'showdown') {
     if (actor === me()) {
       return {
@@ -1349,7 +1400,7 @@ let lastActKey: string | null = null;
 let lastFlashKey: string | null = null;
 
 /** Waiting moments worth a card on the board. Plain "they're thinking" shows on their card and the board edge instead. */
-const WAIT_CARDS = new Set(['down', 'bot-calling', 'showdown-bot', 'setup-wait']);
+const WAIT_CARDS = new Set(['down', 'bot-calling', 'bot-defending', 'showdown-bot', 'setup-wait']);
 
 /**
  * The prompt pops up from the board instead of sitting in a bar: decisions are cards with
@@ -1363,7 +1414,7 @@ function renderPrompt(v: PlayerView, actor: Color | null): void {
   // Choosing a claim happens on the claim picker, which carries its own Cancel.
   const card = p.key !== 'choice' && (!!p.buttons || !!p.small || (p.tone === 'wait' && WAIT_CARDS.has(p.key)));
   const html = card ? `<div class="callout-text"><b>${p.title}</b>${p.sub ? `<span>${p.sub}</span>` : ''}</div>${p.buttons ? `<div class="callout-actions">${p.buttons}</div>` : ''}` : '';
-  const pos = p.tone === 'done' ? 'mid' : calloutSide(p.key === 'guard' ? m.guard?.action.to : v.phase === 'callWindow' ? v.pending?.to : m.stuck?.squares[0]);
+  const pos = p.tone === 'done' ? 'mid' : calloutSide(p.key === 'guard' ? m.guard?.action.to : v.phase === 'callWindow' || v.phase === 'defendWindow' ? v.pending?.to : m.stuck?.squares[0]);
   let current = host.querySelector<HTMLElement>('.callout:not(.out)');
   if (host.dataset.key !== p.key || !card) {
     const late = host.dataset.tone === 'wait' && p.tone === 'act';
@@ -1449,7 +1500,8 @@ function overlayHTML(v: PlayerView): string {
   let html = '';
   // Rank + 1 is up the screen for white and down it for black.
   const up = me() === 'white' ? 1 : -1;
-  if (v.phase === 'callWindow' && v.pending?.claim) {
+  const flagged = v.phase === 'callWindow' && v.pending?.claim || v.phase === 'defendWindow';
+  if (flagged && v.pending) {
     const s = squareSpot(v.pending.to);
     // Sit above the square unless that would cover a piece and the square below is free.
     const file = v.pending.to[0];
@@ -1457,7 +1509,8 @@ function overlayHTML(v: PlayerView): string {
     const atTop = s.rank === (up > 0 ? 7 : 0);
     const below = atTop || (occupied(s.rank + up) && !occupied(s.rank - up));
     const theirs = v.pending.mover === opp();
-    const text = theirs ? `Claims ${typeName(v.pending.claim)}?` : `${m.mode === 'local' ? `${esc(m.names[me()])} claims` : 'You claim'} ${typeName(v.pending.claim)}`;
+    const text = !v.pending.claim ? (theirs ? 'Defend?' : 'Guarded?')
+      : theirs ? `Claims ${typeName(v.pending.claim)}?` : `${m.mode === 'local' ? `${esc(m.names[me()])} claims` : 'You claim'} ${typeName(v.pending.claim)}`;
     // On the outer files the flag extends inward, so it isn't cut off at the board's edge.
     const boardW = el('#board').offsetWidth, edge = s.x - s.size / 2 - el('#board').offsetLeft;
     const pin = edge < s.size * 1.5 ? ' pin-l' : edge > boardW - s.size * 2.5 ? ' pin-r' : '';
@@ -1619,6 +1672,15 @@ function rematch(): void {
 // Input
 
 /** Castling moves for the selected king, keyed by the corner square they bring across. */
+/** In a defend window, your cards that really reach the enemy king's square (you know your own cards). */
+function defendCards(v: PlayerView): Piece[] {
+  const pend = v.pending;
+  if (v.phase !== 'defendWindow' || !pend || pend.mover !== opp() || v.chips[me()] <= 0) return [];
+  const board = E.getApparentBoard(v);
+  return v.pieces.filter((p) => pend.defenders?.includes(p.id) && p.square && p.type && p.type !== 'king' && p.type !== 'pawn' &&
+    E.reaches(board, E.sqToIdx(p.square), E.sqToIdx(pend.to), p.type));
+}
+
 function castlesFrom(v: PlayerView, legal: Action[], from: Square | null): Map<Square, MoveAction> {
   const out = new Map<Square, MoveAction>();
   const king = v.pieces.find((p) => !p.captured && p.square === from && p.type === 'king');
@@ -1652,6 +1714,18 @@ function onSquare(sq: Square): void {
     if (p && E.getLegalActions(v, me()).some((a) => a.type === 'showdown' && a.targetPieceId === p.id)) {
       playerAct({ type: 'showdown', player: me(), targetPieceId: p.id });
     } else Sound.play('error');
+    return;
+  }
+  if (v.phase === 'defendWindow') {
+    const p = defendCards(v).find((x) => x.square === sq);
+    if (!p || !v.pending) return Sound.play('error');
+    m.busy = true;
+    Sound.play('call');
+    FX.stamp($('#fx-layer'), $('#board'), v.pending.to, 'Defend', 'call');
+    setTimeout(() => {
+      m.busy = false;
+      playerAct({ type: 'defend', player: me(), pieceId: p.id });
+    }, 550 * Math.max(SPEED, 0.3));
     return;
   }
   if (v.phase !== 'move') return;
@@ -1746,8 +1820,10 @@ function playerDecision(type: 'call' | 'pass'): void {
   if (m.lesson && m.lesson.phase !== 'playing') return;
   if (m.puzzle && m.puzzle.verdict !== 'playing') return;
   const v = view();
-  if (v.phase !== 'callWindow' || !v.pending || v.pending.mover !== opp()) return;
+  if (v.phase !== 'callWindow' && v.phase !== 'defendWindow') return;
+  if (!v.pending || v.pending.mover !== opp()) return;
   if (type === 'call') {
+    if (v.phase !== 'callWindow') return;
     if (v.chips[me()] <= 0) return;
     if (m.lesson && !lessonAccepts({ type: 'call', player: me() })) return;
     m.busy = true;

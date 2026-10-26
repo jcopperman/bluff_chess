@@ -91,6 +91,9 @@
     ],
     "playerQueen": [
       "A queen enters. Or a pretender?"
+    ],
+    "defend": [
+      "Ah, but the stage has a hidden player. Defended!"
     ]
   },
   "mistakeRate": 0.1

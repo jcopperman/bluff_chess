@@ -5,7 +5,7 @@ export type ClaimType = 'rook' | 'knight' | 'bishop' | 'queen';
 export type PieceType = ClaimType | 'king' | 'pawn';
 /** Algebraic square, e.g. "e4". */
 export type Square = string;
-export type Phase = 'setup' | 'move' | 'callWindow' | 'showdown' | 'over';
+export type Phase = 'setup' | 'move' | 'callWindow' | 'defendWindow' | 'showdown' | 'over';
 /** Seven types for back-rank files a, b, c, d, f, g, h. */
 export type Arrangement = ClaimType[];
 
@@ -73,6 +73,8 @@ export interface Pending {
   castle: PendingCastle | null;
   prevEp: Square | null;
   claimIndex: number | null;
+  /** A king move held open for a defend: the opponent's unclaimed cards that could reach its square. */
+  defenders?: string[];
 }
 
 export type ClaimOutcome = 'pending' | 'passed' | 'caught' | 'confirmed';
@@ -141,11 +143,13 @@ export interface SetupAction { type: 'setup'; player: Color; arrangement?: Arran
 export interface MoveAction { type: 'move'; player: Color; from: Square; to: Square; claim?: ClaimType; promotion?: ClaimType }
 export interface CallAction { type: 'call'; player: Color }
 export interface PassAction { type: 'pass'; player: Color }
+/** Flip an unclaimed card that really attacks the square the enemy king just moved to. */
+export interface DefendAction { type: 'defend'; player: Color; pieceId: string }
 export interface ShowdownAction { type: 'showdown'; player: Color; targetPieceId: string }
 export interface AcceptMateAction { type: 'acceptMate'; player: Color }
 export interface ResignAction { type: 'resign'; player: Color }
 
-export type Action = SetupAction | MoveAction | CallAction | PassAction | ShowdownAction | AcceptMateAction | ResignAction;
+export type Action = SetupAction | MoveAction | CallAction | PassAction | DefendAction | ShowdownAction | AcceptMateAction | ResignAction;
 
 // ---------------------------------------------------------------------------
 // Events (for the UI and logs)
@@ -172,6 +176,16 @@ export type GameEvent =
       type: 'claimConfirmed'; pieceId: string; pieceType: PieceType; square: Square;
       mover: Color; caller: Color; showdown?: boolean;
     }
+  | { type: 'defendWindowOpened'; player: Color; kingId: string; square: Square; defenders: string[] }
+  | {
+      type: 'defended'; player: Color; pieceId: string; pieceType: PieceType; square: Square;
+      mover: Color; kingFrom: Square; kingTo: Square; restoredId: string | null;
+      /** The king's player paid the defender a chip. */
+      paid: boolean;
+      /** Undoing the king move left it in check, so its player moves again (or is mated). */
+      stillInCheck: boolean;
+    }
+  | { type: 'defenseFailed'; player: Color; pieceId: string; pieceType: PieceType; square: Square; mover: Color; kingTo: Square }
   | { type: 'pieceRevealed'; pieceId: string; pieceType: PieceType }
   | {
       type: 'captured'; pieceId: string; pieceType: PieceType; owner: Color; square: Square;

@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, applyAction, getPlayerView, CLASSIC_ARRANGEMENT } from '../engine/index.ts';
 import type { Arrangement, PieceInit } from '../engine/index.ts';
-import { explainIllegal, whyStuck, blunderCheck, claimAdvice, callAdvice } from '../coach/advice.ts';
+import { explainIllegal, whyStuck, blunderCheck, claimAdvice, callAdvice, defendAdvice } from '../coach/advice.ts';
 
 const P = (id: string, owner: 'white' | 'black', type: PieceInit['type'], square: string, extra: Partial<PieceInit> = {}): PieceInit =>
   ({ id, owner, type, square, ...extra });
@@ -104,4 +104,21 @@ test('whyStuck: pinned, blocked, and in check', () => {
   assert.match(checked.text, /rook on e8/);
 
   assert.equal(whyStuck(getPlayerView(createGame({ pieces: base }), 'white'), 'd2'), null);
+});
+
+test('defending: the guard warns before a king walks into a card\'s reach, and the defender is told which card works', () => {
+  const s = createGame({
+    turn: 'black',
+    pieces: [
+      P('w-k', 'white', 'king', 'a1'), P('w-q', 'white', 'queen', 'd7', { faceUp: true }), P('w-c1', 'white', 'bishop', 'a4'),
+      P('b-k', 'black', 'king', 'e8'), P('b-ph', 'black', 'pawn', 'h7'),
+    ],
+  });
+  const take = { type: 'move', player: 'black', from: 'e8', to: 'd7' } as const;
+  const warn = blunderCheck(getPlayerView(s, 'black'), take);
+  assert.match(warn!.lines.join(' '), /a4 could defend d7/);
+  const held = applyAction(s, take).state;
+  const advice = defendAdvice(getPlayerView(held, 'white'), 'Black')!;
+  assert.equal(advice.tone, 'good');
+  assert.match(advice.lines.join(' '), /bishop on a4 really reaches d7.*must move again/);
 });

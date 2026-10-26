@@ -239,7 +239,7 @@ export function tooltipHTML(piece: Piece, dist: TypeDist | undefined, history: C
     .join('');
   const hist = history.length
     ? history.map((h) => `<div class="tt-hist">Move ${h.fullmove}: claimed ${typeName(h.claim)}, ${h.outcome === 'passed' ? 'not called' : h.outcome}</div>`).join('')
-    : '<div class="tt-hist">No claim yet, so it threatens nothing.</div>';
+    : '<div class="tt-hist">No claim yet: it can\'t give check, but it may defend a square against your king.</div>';
   return `<div class="tt-title">Card from ${originSquare(piece.id) || '?'}${piece.claim ? `, claims ${typeName(piece.claim)}` : ''}</div>
     <div class="tt-sub">Could be, from public information:</div>${rows}${hist}
     ${touch

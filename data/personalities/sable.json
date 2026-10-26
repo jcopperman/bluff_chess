@@ -81,6 +81,9 @@
     ],
     "playerQueen": [
       "A queen. Really."
+    ],
+    "defend": [
+      "Guarded."
     ]
   },
   "mistakeRate": 0.32

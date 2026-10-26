@@ -80,6 +80,9 @@
     ],
     "playerQueen": [
       "A QUEEN? Suuure."
+    ],
+    "defend": [
+      "NOPE! Covered! Ha!"
     ]
   },
   "mistakeRate": 0.3

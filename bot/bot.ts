@@ -3,7 +3,7 @@
 
 import {
   getApparentBoard, apparentIfCaught, generateMoves, makeMove, opponent, sqToIdx, idxToSq, inCheck,
-  randomArrangement, boardKey, PIECE_COUNTS,
+  randomArrangement, boardKey, reaches, PIECE_COUNTS,
 } from '../engine/index.ts';
 import type {
   Action, Arrangement, Board, Cell, ClaimType, Color, Move, MoveAction, PieceType, PlayerView, Rng, Square,
@@ -468,6 +468,27 @@ function chooseCall(view: PlayerView, p: Personality, memory: Partial<TableImage
 }
 
 // ---------------------------------------------------------------------------
+// Defend choice
+
+/**
+ * The bot knows its own cards, so a defend is never a guess: flip a card that really
+ * reaches the king's square (the least valuable one, to give away the least), else pass.
+ */
+function chooseDefend(view: PlayerView, p: Personality, rng: Rng): Decision {
+  const me = view.viewer;
+  const pend = view.pending!;
+  const board = getApparentBoard(view);
+  const to = sqToIdx(pend.to);
+  const thinkMs = rangePick(rng, p.callThinkMs, [600, 1400]);
+  const guards = view.chips[me] > 0
+    ? view.pieces.filter((x) => pend.defenders?.includes(x.id) && x.square && x.type && reaches(board, sqToIdx(x.square), to, x.type as ClaimType))
+    : [];
+  if (!guards.length) return { action: { type: 'pass', player: me }, thinkMs, line: null };
+  const pick = guards.sort((a, b) => VALUES[a.type!] - VALUES[b.type!])[0];
+  return { action: { type: 'defend', player: me, pieceId: pick.id }, thinkMs, line: line(p, rng, 'defend') };
+}
+
+// ---------------------------------------------------------------------------
 // Showdown choice
 
 function chooseShowdown(view: PlayerView, p: Personality, memory: Partial<TableImage>, rng: Rng): Decision {
@@ -512,6 +533,7 @@ export function chooseAction(view: PlayerView, personality: PersonalityConfig, m
     return { action: { type: 'setup', player: me, arrangement: chooseSetup(p, rng) }, thinkMs: 0, line: null };
   }
   if (view.phase === 'callWindow' && view.pending && view.pending.mover !== me) return chooseCall(view, p, memory, rng);
+  if (view.phase === 'defendWindow' && view.pending && view.pending.mover !== me) return chooseDefend(view, p, rng);
   if (view.phase === 'showdown' && view.turn === me) return chooseShowdown(view, p, memory, rng);
   if (view.phase === 'move' && view.turn === me) return chooseMove(view, p, memory, rng);
   return null;

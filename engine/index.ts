@@ -7,14 +7,14 @@ import {
   isValidArrangement, placeArrangement, updateStatus,
 } from './state.ts';
 import { applyMove } from './claims.ts';
-import { applyCall, applyPass } from './calls.ts';
+import { applyCall, applyDefend, applyPass } from './calls.ts';
 import { applyShowdown, applyAcceptMate } from './showdown.ts';
 import { getPlayerView, getPublicView, getApparentBoard, apparentIfCaught, boardKey } from './view.ts';
 import type { Action, Color, GameEvent, GameState, Result } from './types.ts';
 
 export { createGame, getPlayerView, getPublicView, getApparentBoard, apparentIfCaught, boardKey };
 export { randomArrangement, isValidArrangement, CLASSIC_ARRANGEMENT, BACK_FILES, PIECE_COUNTS, DEFAULT_CONFIG } from './state.ts';
-export { opponent, CLAIMABLE, sqToIdx, idxToSq, inCheck, generateMoves, makeMove } from './moves.ts';
+export { opponent, CLAIMABLE, sqToIdx, idxToSq, inCheck, generateMoves, makeMove, guardsOf, reaches } from './moves.ts';
 export { createRng } from './rng.ts';
 export type { Rng } from './rng.ts';
 export type * from './types.ts';
@@ -22,7 +22,7 @@ export type * from './types.ts';
 /** Who must act next, or null when the game is over (or still in setup). */
 export function getActor(state: GameState): Color | null {
   if (state.phase === 'move' || state.phase === 'showdown') return state.turn;
-  if (state.phase === 'callWindow' && state.pending) return opponent(state.pending.mover);
+  if ((state.phase === 'callWindow' || state.phase === 'defendWindow') && state.pending) return opponent(state.pending.mover);
   return null;
 }
 
@@ -44,6 +44,13 @@ export function getLegalActions(state: GameState, player: Color): Action[] {
     const acts: Action[] = [{ type: 'pass', player }];
     if (state.chips[player] > 0) acts.unshift({ type: 'call', player });
     return [...acts, resign];
+  }
+  if (state.phase === 'defendWindow' && state.pending) {
+    if (player === state.pending.mover) return [resign];
+    const defends: Action[] = state.chips[player] > 0
+      ? (state.pending.defenders ?? []).map((pieceId) => ({ type: 'defend', player, pieceId }))
+      : [];
+    return [...defends, { type: 'pass', player }, resign];
   }
   if (state.phase === 'showdown') {
     if (state.turn !== player) return [resign];
@@ -75,6 +82,7 @@ export function applyAction(state: GameState, action: Action): { state: GameStat
     case 'move': applyMove(s, action, events); break;
     case 'call': applyCall(s, action, events); break;
     case 'pass': applyPass(s, action, events); break;
+    case 'defend': applyDefend(s, action, events); break;
     case 'showdown': applyShowdown(s, action, events); break;
     case 'acceptMate': applyAcceptMate(s, action, events); break;
     case 'resign': gameOver(s, opponent(action.player), 'resign', events); break;

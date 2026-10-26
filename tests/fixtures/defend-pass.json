@@ -1,0 +1,74 @@
+{
+  "name": "passing the defend window lets the king move stand and the card stays hidden",
+  "config": {
+    "turn": "black",
+    "pieces": [
+      {
+        "id": "w-k",
+        "owner": "white",
+        "type": "king",
+        "square": "a1"
+      },
+      {
+        "id": "w-d1",
+        "owner": "white",
+        "type": "queen",
+        "square": "d7",
+        "faceUp": true
+      },
+      {
+        "id": "w-c1",
+        "owner": "white",
+        "type": "bishop",
+        "square": "a4"
+      },
+      {
+        "id": "b-k",
+        "owner": "black",
+        "type": "king",
+        "square": "e8"
+      },
+      {
+        "id": "b-ph",
+        "owner": "black",
+        "type": "pawn",
+        "square": "h7"
+      }
+    ]
+  },
+  "actions": [
+    {
+      "type": "move",
+      "player": "black",
+      "from": "e8",
+      "to": "d7"
+    },
+    {
+      "type": "pass",
+      "player": "white"
+    }
+  ],
+  "expect": {
+    "phase": "move",
+    "turn": "white",
+    "chips": {
+      "white": 4,
+      "black": 4
+    },
+    "eventsInclude": [
+      "passed",
+      "captured"
+    ],
+    "pieces": {
+      "w-d1": {
+        "captured": true
+      },
+      "w-c1": {
+        "faceUp": false
+      },
+      "b-k": {
+        "square": "d7"
+      }
+    }
+  }
+}

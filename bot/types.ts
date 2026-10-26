@@ -12,7 +12,7 @@ export type Tell =
 
 export type LineKey =
   | 'greet' | 'win' | 'lose' | 'call' | 'pass' | 'caughtLying' | 'catchesYou'
-  | 'wrongCall' | 'confirmed' | 'showdown' | 'playerQueen';
+  | 'wrongCall' | 'confirmed' | 'showdown' | 'playerQueen' | 'defend';
 
 export type GamePhase = 'opening' | 'middlegame' | 'endgame';
 /** A player-chosen difficulty applied on top of each personality. */

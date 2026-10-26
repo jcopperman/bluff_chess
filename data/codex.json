@@ -27,7 +27,12 @@
         {
           "id": "apparent",
           "title": "The apparent board",
-          "body": "<p>Check and checkmate are judged on the <b>apparent board</b>, which everyone can see:</p><ul><li>face-up pieces count as what they are;</li><li>claimed face-down pieces count as their claim;</li><li><b>unclaimed</b> face-down pieces block lines but threaten nothing.</li></ul><p>So a bluffed check is a real check until someone calls it, and an unclaimed card is invisible as a threat until it commits to a claim.</p>"
+          "body": "<p>Check and checkmate are judged on the <b>apparent board</b>, which everyone can see:</p><ul><li>face-up pieces count as what they are;</li><li>claimed face-down pieces count as their claim;</li><li><b>unclaimed</b> face-down pieces block lines but threaten nothing.</li></ul><p>So a bluffed check is a real check until someone calls it, and an unclaimed card can't give check until it commits to a claim. It can still <a data-codex=\"defend\">defend</a> a square against the enemy king.</p>"
+        },
+        {
+          "id": "defend",
+          "title": "Defending",
+          "body": "<p>An unclaimed card threatens nothing on the apparent board, so a king may step onto, or capture on, a square that card really guards. When a king moves (not castling) to a square one of your unclaimed cards <i>could</i> reach as some piece, you may <b>defend</b> it: spend 1 chip and flip that card.</p><p>If its real type reaches the square, the king move is undone (any capture comes back), the king's owner pays you a chip and loses the turn. If that leaves their king in check, they must move again instead. If the card can't reach it, you pay them a chip and the move stands. Either way the card stays face-up.</p><p>The window opens whenever a card <i>could</i> reach the square, so a king walking near unclaimed cards is always a gamble.</p>"
         },
         {
           "id": "showdown",

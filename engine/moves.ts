@@ -69,6 +69,31 @@ export function isAttacked(board: Board, idx: number, by: Color): boolean {
   return false;
 }
 
+/** Can a piece of `type` on `from` reach `to` (empty or occupied) on this board? Line pieces need a clear path. */
+export function reaches(board: Board, from: number, to: number, type: ClaimType): boolean {
+  const df = (to & 7) - (from & 7), dr = (to >> 3) - (from >> 3);
+  if (!df && !dr) return false;
+  if (type === 'knight') return Math.abs(df * dr) === 2;
+  const straight = !df || !dr, diagonal = Math.abs(df) === Math.abs(dr);
+  if (type === 'rook' ? !straight : type === 'bishop' ? !diagonal : !straight && !diagonal) return false;
+  const sf = Math.sign(df), sr = Math.sign(dr);
+  for (let i = from + sr * 8 + sf; i !== to; i += sr * 8 + sf) if (board[i]) return false;
+  return true;
+}
+
+/**
+ * `by`'s unclaimed face-down pieces that could reach square `idx` as some claimable type.
+ * They attack nothing on the apparent board, so these are the cards that may defend it.
+ */
+export function guardsOf(board: Board, idx: number, by: Color): number[] {
+  const out: number[] = [];
+  for (let i = 0; i < 64; i++) {
+    const c = board[i];
+    if (c && c.color === by && c.hidden && !c.claim && (reaches(board, i, idx, 'queen') || reaches(board, i, idx, 'knight'))) out.push(i);
+  }
+  return out;
+}
+
 export function kingIdx(board: Board, color: Color): number {
   for (let i = 0; i < 64; i++) {
     const c = board[i];

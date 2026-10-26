@@ -2,10 +2,10 @@
   "id": "apparent",
   "title": "The apparent board",
   "audience": "everyone",
-  "blurb": "Why unclaimed cards are invisible threats, and why a bluffed check still counts.",
+  "blurb": "Why unclaimed cards can't give check, how they can still defend, and why a bluffed check still counts.",
   "steps": [
     {
-      "say": "Check and checkmate are judged on the <b>apparent board</b>: claims count as if true. An <b>unclaimed</b> card threatens nothing yet. Move your king to <b>e2</b>, right in line with the card on e5.",
+      "say": "Check and checkmate are judged on the <b>apparent board</b>: claims count as if true. An <b>unclaimed</b> card can't give check yet. Move your king to <b>e2</b>, right in line with the card on e5. The card could be a rook or a queen, so he gets a chance to <b>defend</b> e2.",
       "position": {
         "pieces": [
           {
@@ -46,8 +46,12 @@
         "e5"
       ],
       "hint": "Select your king, then e2.",
-      "success": "Safe, for now.",
+      "success": "He passed, so that card can't really reach e2. Safe, for now.",
       "reply": [
+        {
+          "type": "pass",
+          "player": "black"
+        },
         {
           "type": "move",
           "player": "black",
@@ -69,6 +73,63 @@
       ],
       "hint": "Press Call in the bar under the board.",
       "success": "It was a bishop pretending to be a rook. Claiming early gives a piece power, but it also gives you something to call."
+    },
+    {
+      "say": "Now the other side. Take the pawn on <b>c2</b> with your king. Nothing on the apparent board guards it, but the card on b4 could, if it's really a knight.",
+      "position": {
+        "pieces": [
+          {
+            "id": "w-k",
+            "owner": "white",
+            "type": "king",
+            "square": "d2"
+          },
+          {
+            "id": "b-k",
+            "owner": "black",
+            "type": "king",
+            "square": "h8"
+          },
+          {
+            "id": "b-b8",
+            "owner": "black",
+            "type": "knight",
+            "square": "b4"
+          },
+          {
+            "id": "b-pc",
+            "owner": "black",
+            "type": "pawn",
+            "square": "c2"
+          },
+          {
+            "id": "w-pa",
+            "owner": "white",
+            "type": "pawn",
+            "square": "a2"
+          }
+        ]
+      },
+      "expect": [
+        {
+          "from": "d2",
+          "to": "c2"
+        }
+      ],
+      "highlight": [
+        "d2",
+        "c2",
+        "b4"
+      ],
+      "hint": "Select your king, then c2.",
+      "success": "He defended: the card was a knight, and it guards c2. Your king goes back, the pawn returns, you pay a chip and lose your turn. A king that walks next to unclaimed cards is gambling.",
+      "reply": [
+        {
+          "type": "defend",
+          "player": "black",
+          "pieceId": "b-b8"
+        }
+      ]
     }
   ]
 }

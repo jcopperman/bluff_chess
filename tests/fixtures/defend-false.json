@@ -1,0 +1,75 @@
+{
+  "name": "defending with a card that does not really reach the square costs the defender a chip and the move stands",
+  "config": {
+    "turn": "black",
+    "pieces": [
+      {
+        "id": "w-k",
+        "owner": "white",
+        "type": "king",
+        "square": "a1"
+      },
+      {
+        "id": "w-d1",
+        "owner": "white",
+        "type": "queen",
+        "square": "d7",
+        "faceUp": true
+      },
+      {
+        "id": "w-c1",
+        "owner": "white",
+        "type": "knight",
+        "square": "a4"
+      },
+      {
+        "id": "b-k",
+        "owner": "black",
+        "type": "king",
+        "square": "e8"
+      },
+      {
+        "id": "b-ph",
+        "owner": "black",
+        "type": "pawn",
+        "square": "h7"
+      }
+    ]
+  },
+  "actions": [
+    {
+      "type": "move",
+      "player": "black",
+      "from": "e8",
+      "to": "d7"
+    },
+    {
+      "type": "defend",
+      "player": "white",
+      "pieceId": "w-c1"
+    }
+  ],
+  "expect": {
+    "phase": "move",
+    "turn": "white",
+    "chips": {
+      "white": 3,
+      "black": 5
+    },
+    "eventsInclude": [
+      "defenseFailed",
+      "captured"
+    ],
+    "pieces": {
+      "w-d1": {
+        "captured": true
+      },
+      "w-c1": {
+        "faceUp": true
+      },
+      "b-k": {
+        "square": "d7"
+      }
+    }
+  }
+}

@@ -2,7 +2,8 @@
 // public information: the same rule the bots follow.
 
 import {
-  getApparentBoard, apparentIfCaught, generateMoves, makeMove, opponent, sqToIdx, idxToSq, inCheck, PIECE_COUNTS,
+  getApparentBoard, apparentIfCaught, generateMoves, makeMove, opponent, sqToIdx, idxToSq, inCheck, guardsOf, reaches,
+  CLAIMABLE, PIECE_COUNTS,
 } from '../engine/index.ts';
 import type { Board, ClaimType, Color, Move, MoveAction, PieceType, PlayerView, Square } from '../engine/index.ts';
 import { computeBeliefs } from '../bot/belief.ts';
@@ -203,6 +204,8 @@ export function blunderCheck(view: PlayerView, action: MoveAction): Advice | nul
   if (!m) return null;
   const before = getApparentBoard(view);
   const after = makeMove(before, m);
+  const defend = defendRisk(view, m, after);
+  if (defend) return defend;
   const already = new Set(hangingPieces(view, before).map((h) => h.id));
   const movedId = before[m.from]!.id;
   const fresh = hangingPieces(view, after).filter((h) => !already.has(h.id) || h.id === movedId);
@@ -214,6 +217,54 @@ export function blunderCheck(view: PlayerView, action: MoveAction): Advice | nul
     title: 'Careful!',
     lines: [`Your ${worst.type} on ${worst.square} can be taken ${how}.`],
   };
+}
+
+/** A king move onto a square an unclaimed enemy card could defend, with the public odds that one really does. */
+function defendRisk(view: PlayerView, m: Move, after: Board): Advice | null {
+  const opp = opponent(view.viewer);
+  if (m.type !== 'king' || m.castle || view.chips[opp] <= 0) return null;
+  const guards = guardsOf(after, m.to, opp);
+  if (!guards.length) return null;
+  const probs = computeBeliefs(view).probs;
+  let safe = 1;
+  for (const g of guards) {
+    const dist = probs[after[g]!.id];
+    safe *= 1 - CLAIMABLE.reduce((p, t) => p + (reaches(after, g, m.to, t) ? dist?.[t] ?? 0.25 : 0), 0);
+  }
+  const where = guards.map(idxToSq).join(', ');
+  const capture = view.pieces.some((p) => !p.captured && p.square === idxToSq(m.to)) ? ', the capture is undone' : '';
+  return {
+    tone: 'warn',
+    title: 'Careful!',
+    lines: [
+      `Unclaimed ${guards.length > 1 ? `cards on ${where} could` : `card on ${where} could`} defend ${idxToSq(m.to)}. If one really reaches it, your king goes back${capture}, you pay a chip and lose your turn.`,
+      `About ${Math.round((1 - safe) * 100)}% that one does.`,
+    ],
+  };
+}
+
+/** Advice for the defend window: which of your cards really reach the king's square. */
+export function defendAdvice(view: PlayerView, opponentName: string): Advice | null {
+  const me = view.viewer, opp = opponent(me);
+  const pend = view.pending;
+  if (view.phase !== 'defendWindow' || !pend || pend.mover !== opp) return null;
+  const mid = opponentName.replace(/^The /, 'the ');
+  const board = getApparentBoard(view);
+  const to = sqToIdx(pend.to);
+  const guards = view.pieces.filter((p) => pend.defenders?.includes(p.id) && p.square && p.type && reaches(board, sqToIdx(p.square), to, p.type as ClaimType));
+  if (view.chips[me] <= 0) return { tone: 'info', title: 'Coach leans: pass', lines: ['You have no chips, so you can only pass.'], lean: 'pass' };
+  if (!guards.length) {
+    return {
+      tone: 'info', title: 'Coach leans: pass', lean: 'pass',
+      lines: [`None of your cards really reach ${pend.to}. Defending would flip the card and hand ${mid} a chip.`],
+    };
+  }
+  const g = guards[0];
+  const lines = [`Your hidden ${g.type} on ${g.square} really reaches ${pend.to}. Defend with it and the king goes back${pend.capturedId ? ', your piece returns' : ''} and ${mid} pays you a chip.`];
+  const undone = getApparentBoard({ ...view, pieces: view.pieces.map((p) => p.id === pend.pieceId ? { ...p, square: pend.from } : p.id === pend.capturedId ? { ...p, captured: false, square: pend.capturedSquare } : p.id === g.id ? { ...p, faceUp: true } : p) });
+  lines.push(inCheck(undone, opp) ? `The king is back in check, so ${mid} must move again.` : `${opponentName} loses the turn.`);
+  lines.push('The card flips face-up, so they learn what it is.');
+  return { tone: 'good', title: 'Coach: defend', lines };
 }
 
 // ---------------------------------------------------------------------------

@@ -75,7 +75,16 @@ Rules:
 - You may not make a move that leaves your king in apparent check.
 - The king is never captured. The game ends by checkmate or stalemate on the apparent board.
 - A bluffed check is a real check until someone calls it. The defender can respond normally or call the checking move.
-- Consequence: an unclaimed piece is "invisible" as a threat until it commits to a claim. Claiming early gives a piece power but also gives the opponent information.
+- Consequence: an unclaimed piece can't give check until it commits to a claim. Claiming early gives a piece power but also gives the opponent information.
+
+**Defending.** (Added after playtesting: a king could take a queen guarded by an unclaimed bishop, because the bishop "attacked nothing".)
+
+- When a king moves (not castling) to a square that one of the opponent's unclaimed cards *could* reach as some claimable type (a knight jump, or a clear queen line), the move is held and the opponent gets a **defend window**. It needs a chip to defend; with none, no window opens.
+- The defender may pass, or **defend** by naming one of those cards. The card flips face-up whatever happens.
+  - If its true type really attacks the square: the king move is undone (any capture restored), the king's player pays the defender a chip (if `liarPaysChip`) and forfeits the turn, unless the undo leaves them in check: then they move again, and with no answer it is checkmate (showdown rules apply). The same rule as a caught lie.
+  - If it doesn't: the defender pays the king's player a chip and the move stands.
+- The window opens on what a card *could* do, from public information, so whether it opens says nothing about the cards. The defender knows their own cards, so a defend is a sure thing when they have a real guard; the gamble is the king's.
+- Unclaimed cards still never give check, and they don't pin: only king moves open a defend window.
 
 ### 2.6 Showdown
 
@@ -252,12 +261,13 @@ Action types:
 { type: 'setup', player, arrangement }             // secret back-rank arrangement
 { type: 'move', player, from, to, claim?, promotion? }
 { type: 'call', player }
-{ type: 'pass', player }
+{ type: 'pass', player }                           // declines a call or a defend
+{ type: 'defend', player, pieceId }                // in a defend window (2.5)
 { type: 'showdown', player, targetPieceId }
 { type: 'resign', player }
 ```
 
-Events (for UI and logs): `moved`, `claimMade`, `callWindowOpened`, `lieCaught`, `claimConfirmed`, `pieceRevealed`, `captured`, `check`, `showdownAvailable`, `gameOver`, etc.
+Events (for UI and logs): `moved`, `claimMade`, `callWindowOpened`, `lieCaught`, `claimConfirmed`, `defendWindowOpened`, `defended`, `defenseFailed`, `pieceRevealed`, `captured`, `check`, `showdownAvailable`, `gameOver`, etc.
 
 ### 6.3 State shape (sketch)
 
@@ -381,7 +391,7 @@ Tutorial, first set of bluff puzzles, claim tracker, possible-identities readout
 ## 9. Open questions
 
 - Is 4 chips right with human players? The simulation says so, but playtest 3–5.
-- Should unclaimed face-down pieces have any defensive presence on the apparent board, or is "invisible until claimed" the right tension?
+- Unclaimed cards now defend against the king (2.5). Should they also pin, or is that too much for the defend window?
 - Should the king ever be placeable elsewhere on the back rank during secret setup?
 - Unlimited showdowns, or one per game?
 - Is the call window on every face-down move too frequent? Does it slow the game?

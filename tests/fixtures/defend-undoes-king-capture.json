@@ -1,0 +1,93 @@
+{
+  "name": "a true defend undoes the king capture, the king pays a chip, and a king left in check moves again",
+  "config": {
+    "turn": "black",
+    "pieces": [
+      {
+        "id": "w-k",
+        "owner": "white",
+        "type": "king",
+        "square": "a1"
+      },
+      {
+        "id": "w-d1",
+        "owner": "white",
+        "type": "queen",
+        "square": "d7",
+        "faceUp": true
+      },
+      {
+        "id": "w-c1",
+        "owner": "white",
+        "type": "bishop",
+        "square": "a4"
+      },
+      {
+        "id": "b-k",
+        "owner": "black",
+        "type": "king",
+        "square": "e8"
+      },
+      {
+        "id": "b-ph",
+        "owner": "black",
+        "type": "pawn",
+        "square": "h7"
+      }
+    ]
+  },
+  "actions": [
+    {
+      "type": "move",
+      "player": "black",
+      "from": "e8",
+      "to": "d7"
+    },
+    {
+      "type": "defend",
+      "player": "white",
+      "pieceId": "w-c1"
+    }
+  ],
+  "expect": {
+    "phase": "move",
+    "turn": "black",
+    "chips": {
+      "white": 5,
+      "black": 3
+    },
+    "eventsInclude": [
+      "defended",
+      "pieceRevealed",
+      "check"
+    ],
+    "pieces": {
+      "w-d1": {
+        "square": "d7",
+        "captured": false
+      },
+      "w-c1": {
+        "faceUp": true,
+        "square": "a4"
+      },
+      "b-k": {
+        "square": "e8"
+      }
+    },
+    "legal": {
+      "player": "black",
+      "excludes": [
+        {
+          "from": "e8",
+          "to": "d7"
+        }
+      ],
+      "includes": [
+        {
+          "from": "e8",
+          "to": "f8"
+        }
+      ]
+    }
+  }
+}

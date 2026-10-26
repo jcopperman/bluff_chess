@@ -1,0 +1,76 @@
+{
+  "name": "a defended king move that was not escaping check forfeits the turn",
+  "config": {
+    "pieces": [
+      {
+        "id": "w-k",
+        "owner": "white",
+        "type": "king",
+        "square": "d2"
+      },
+      {
+        "id": "w-pa",
+        "owner": "white",
+        "type": "pawn",
+        "square": "a2"
+      },
+      {
+        "id": "b-k",
+        "owner": "black",
+        "type": "king",
+        "square": "h8"
+      },
+      {
+        "id": "b-b8",
+        "owner": "black",
+        "type": "knight",
+        "square": "b4"
+      },
+      {
+        "id": "b-pc",
+        "owner": "black",
+        "type": "pawn",
+        "square": "c2"
+      }
+    ]
+  },
+  "actions": [
+    {
+      "type": "move",
+      "player": "white",
+      "from": "d2",
+      "to": "c2"
+    },
+    {
+      "type": "defend",
+      "player": "black",
+      "pieceId": "b-b8"
+    }
+  ],
+  "expect": {
+    "phase": "move",
+    "turn": "black",
+    "chips": {
+      "white": 3,
+      "black": 5
+    },
+    "eventsInclude": [
+      "defended"
+    ],
+    "eventsExclude": [
+      "check"
+    ],
+    "pieces": {
+      "w-k": {
+        "square": "d2"
+      },
+      "b-pc": {
+        "square": "c2",
+        "captured": false
+      },
+      "b-b8": {
+        "faceUp": true
+      }
+    }
+  }
+}

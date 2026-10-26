@@ -85,6 +85,9 @@
     ],
     "playerQueen": [
       "A queen? We shall see."
+    ],
+    "defend": [
+      "Not so fast. That square is watched over."
     ]
   },
   "mistakeRate": 0.45
