@@ -29,7 +29,7 @@ The first release is **player vs bot**. Bots are a roster of distinct characters
 - **Pawns and the king are always face-up.** King starts on its normal square (e1 / e8).
 - Each player **secretly arranges** their other seven back-rank pieces (2 rooks, 2 knights, 2 bishops, 1 queen) across the seven remaining back-rank squares. These are **face-down** to the opponent.
 - Bishops may end up on the same colour. That's a legitimate strategic choice.
-- Each player starts with **4 chips** (tuning knob).
+- Each player starts with **3 chips** (tuning knob; it was 4, see 2.8).
 
 ### 2.2 Claims
 
@@ -106,7 +106,7 @@ This is the dramatic last-chance moment and should be presented as such.
 
 | Knob | Default | Notes |
 |---|---|---|
-| Starting chips | 4 | Tuned by simulation: about 7% of games end in a bust and about 40% reach someone's last chip. |
+| Starting chips | 3 | Was 4. Each side has seven cards to call, and each can usefully be called only once, so a big stack makes every call free and kills bluffing late in the game. At 3, calls per game stay about the same and about 10% of games end in a bust (6% at 4). At 1 nobody calls. Free play allows 1 to 5. |
 | Chips-out loss (bust) | On | Makes chips matter; off restores the original rules. |
 | Lie caught penalty | Piece removed + turn forfeited + liar pays 1 chip | "Liars pay" off: the caller just keeps their chip. |
 | Claim locking | On | Off makes lies easier to maintain and deduction weaker. |
@@ -130,7 +130,7 @@ Pick any unlocked opponent and adjust tuning knobs (starting chips, claim lockin
 One full game a day, the same for everyone. The local date seeds a PRNG that picks:
 
 - a circuit opponent,
-- one rule twist: house rules, two or eight chips, claim locking off, liars don't pay, one showdown per mate, or no bust at zero chips,
+- one rule twist: house rules, two chips each, claim locking off, liars don't pay, one showdown per mate, or no bust at zero chips,
 - your colour,
 - both back ranks, which are dealt rather than arranged.
 
@@ -287,10 +287,10 @@ Events (for UI and logs): `moved`, `claimMade`, `callWindowOpened`, `lieCaught`,
       "hasMoved": false
     }
   ],
-  "chips": { "white": 4, "black": 4 },
+  "chips": { "white": 3, "black": 3 },
   "pending": null,
   "history": [],
-  "config": { "startingChips": 4, "claimLocking": true }
+  "config": { "startingChips": 3, "claimLocking": true }
 }
 ```
 
@@ -390,7 +390,7 @@ Tutorial, first set of bluff puzzles (since replaced by the daily game), claim t
 
 ## 9. Open questions
 
-- Is 4 chips right with human players? The simulation says so, but playtest 3–5.
+- Is 3 chips right with human players? Playtesting suggested 4 was too many. If endgames still go slack, test making a wrong call cost 2 chips once the target has 3 or fewer hidden cards.
 - Unclaimed cards now defend against the king (2.5). Should they also pin, or is that too much for the defend window?
 - Should the king ever be placeable elsewhere on the back rank during secret setup?
 - Unlimited showdowns, or one per game?

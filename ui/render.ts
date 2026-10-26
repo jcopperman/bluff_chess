@@ -349,7 +349,7 @@ export function freePlayScreen({ choices, bots, knobs, numbers }: {
       <div class="picks">${who}</div>
       <div class="sheet rules-sheet">
         <label class="rule rule-range"><span><b>Starting chips: <span id="chip-val">${knobs.startingChips}</span></b><small>Fewer chips make every call riskier, so bluffs are safer.</small></span>
-          <input type="range" min="1" max="12" value="${knobs.startingChips}" data-knob="startingChips"></label>
+          <input type="range" min="1" max="5" value="${knobs.startingChips}" data-knob="startingChips"></label>
         ${chk('claimLocking', 'Claim locking', "A piece's first claim fixes its identity.")}
         ${chk('liarPaysChip', 'Liars pay', 'A caught liar pays the caller 1 chip. Off: only wrong calls cost chips.')}
         ${chk('chipsOutLoss', 'Bust at zero chips', 'Running out of chips loses the game.')}

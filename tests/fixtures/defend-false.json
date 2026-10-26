@@ -1,6 +1,7 @@
 {
   "name": "defending with a card that does not really reach the square costs the defender a chip and the move stands",
   "config": {
+    "startingChips": 4,
     "turn": "black",
     "pieces": [
       {

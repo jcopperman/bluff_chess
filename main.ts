@@ -164,7 +164,7 @@ const app: App = {
   codex: { categories: [] },
   data: Store.load(),
   screen: 'title',
-  free: { bot: '', startingChips: 4, claimLocking: true, liarPaysChip: true, chipsOutLoss: true, oneShowdown: false },
+  free: { bot: '', startingChips: 3, claimLocking: true, liarPaysChip: true, chipsOutLoss: true, oneShowdown: false },
   setup: null,
   lastArrangement: null,
   match: null,

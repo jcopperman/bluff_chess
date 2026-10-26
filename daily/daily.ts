@@ -15,10 +15,9 @@ export interface Twist {
 
 /** House rules come up more often than any single twist. */
 export const TWISTS: readonly Twist[] = [
-  { id: 'house', title: 'House rules', text: 'Four chips each and the standard rules.', config: {} },
-  { id: 'house', title: 'House rules', text: 'Four chips each and the standard rules.', config: {} },
+  { id: 'house', title: 'House rules', text: 'Three chips each and the standard rules.', config: {} },
+  { id: 'house', title: 'House rules', text: 'Three chips each and the standard rules.', config: {} },
   { id: 'short', title: 'Short stacks', text: 'Two chips each. Every call is expensive, so bluffs go further.', config: { startingChips: 2 } },
-  { id: 'deep', title: 'Deep pockets', text: 'Eight chips each. Expect to be called.', config: { startingChips: 8 } },
   { id: 'loose', title: 'Loose claims', text: 'Claim locking is off: a card can claim something new on every move.', config: { claimLocking: false } },
   { id: 'free-lies', title: 'Free lies', text: 'Caught liars pay nothing. Only wrong calls cost chips.', config: { liarPaysChip: false } },
   { id: 'last-stand', title: 'Last stand', text: 'One showdown per checkmate, however many chips you hold.', config: { showdownsPerMate: 1 } },

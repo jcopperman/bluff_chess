@@ -22,7 +22,7 @@
         {
           "id": "chips",
           "title": "Chips",
-          "body": "<p>Each player starts with 4 chips. Every <a data-codex=\"call\">call</a> or <a data-codex=\"showdown\">showdown</a> is a bet of 1 chip: catch a liar and they pay you a chip; call an honest claim and you pay them.</p><p><b>Bust:</b> if you run out of chips, you lose the game on the spot.</p><p>On your last chip, a wrong call loses the game, so you can barely afford to call, and your opponent can bluff more freely. Getting caught bluffing on your last chip loses too. Keep an eye on both purses.</p>"
+          "body": "<p>Each player starts with 3 chips. Every <a data-codex=\"call\">call</a> or <a data-codex=\"showdown\">showdown</a> is a bet of 1 chip: catch a liar and they pay you a chip; call an honest claim and you pay them.</p><p><b>Bust:</b> if you run out of chips, you lose the game on the spot.</p><p>On your last chip, a wrong call loses the game, so you can barely afford to call, and your opponent can bluff more freely. Getting caught bluffing on your last chip loses too. Keep an eye on both purses.</p>"
         },
         {
           "id": "apparent",
