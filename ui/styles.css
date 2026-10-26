@@ -534,7 +534,7 @@ h1, h2, h3 { margin: 0; font-weight: 400; }
 .board-small .sq { cursor: default; }
 .board-small .coord { font-size: 10px; }
 .board-small .idx { top: -3px; left: -3px; }
-.rv-legend { font: 15px var(--body); color: var(--ink-2); margin: 10px 0 0; }
+.rv-legend { font: 15px/1.35 var(--body); color: var(--ink-2); margin-top: 12px; }
 .rv-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
 .rv-cols h3, .rv-beliefs h3 { font: 700 condensed 24px var(--head); text-transform: uppercase; border-bottom: 1px solid var(--ink); margin-bottom: 4px; }
 .rv-stat { color: var(--ink-2); font-size: 16px; margin: 4px 0 8px; }
@@ -931,7 +931,7 @@ h1, h2, h3 { margin: 0; font-weight: 400; }
 [data-size=phone] .board-small { width: var(--board); height: var(--board); }
 [data-size=phone] .rv-cols { grid-template-columns: 1fr; gap: 14px; }
 [data-size=phone] .rv-cols h3, [data-size=phone] .rv-beliefs h3 { font-size: 19px; }
-[data-size=phone] .rv-lie, [data-size=phone] .rv-stat, [data-size=phone] .rv-quote { font-size: 14px; }
+[data-size=phone] .rv-lie, [data-size=phone] .rv-stat, [data-size=phone] .rv-empty, [data-size=phone] .rv-legend, [data-size=phone] .rv-quote { font-size: 14px; }
 [data-size=phone] .banner-sub { font-size: 16px; padding: 0 16px; }
 [data-size=phone] .banner-title { padding: 10px 20px; }
 [data-size=phone] .tooltip { width: min(300px, calc(var(--stage-w) - 20px)); font-size: 14px; }
