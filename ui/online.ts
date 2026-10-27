@@ -6,10 +6,17 @@ import type { ColorChoice, RoomMessage, Seat } from '../net/protocol.ts';
 
 export type { RoomMessage, Seat };
 
+/** Where the rooms live: '' for the server that served this page, else the hosted server's URL. Set by serverAvailable(). */
+let base = '';
+
+function rooms(path = ''): string {
+  return `${base}api/rooms${path}`;
+}
+
 async function post<T>(path: string, body: unknown): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(`api/rooms${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    res = await fetch(rooms(path), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   } catch {
     throw new Error('Can\'t reach the game server.');
   }
@@ -18,14 +25,31 @@ async function post<T>(path: string, body: unknown): Promise<T> {
   return data;
 }
 
-/** Whether a room server is answering. Static hosts (itch.io and the like) have none. */
-export async function serverAvailable(): Promise<boolean> {
+async function answers(server: string): Promise<boolean> {
   try {
-    const res = await fetch('api/rooms', { cache: 'no-store' });
+    const res = await fetch(`${server}api/rooms`, { cache: 'no-store' });
     return res.ok && ((await res.json()) as { ok?: boolean }).ok === true;
   } catch {
     return false;
   }
+}
+
+/**
+ * Whether a room server is answering. The server that served this page comes first
+ * (`npm start`, or the hosted copy); static hosts like itch.io have none, so then
+ * we try the hosted server named in index.html's server meta tag.
+ */
+export async function serverAvailable(): Promise<boolean> {
+  if (await answers('')) {
+    base = '';
+    return true;
+  }
+  const hosted = document.querySelector<HTMLMetaElement>('meta[name=server]')?.content.trim().replace(/\/*$/, '/');
+  if (hosted && hosted !== '/' && await answers(hosted)) {
+    base = hosted;
+    return true;
+  }
+  return false;
 }
 
 export async function createRoom(name: string, color: ColorChoice): Promise<Seat> {
@@ -49,7 +73,7 @@ export function requestRematch(seat: Seat): Promise<unknown> {
 
 /** Listen to the room. EventSource reconnects by itself; `onDown` reports lost connections. */
 export function connect(seat: Seat, onMessage: (m: RoomMessage) => void, onDown: (down: boolean) => void): () => void {
-  const es = new EventSource(`api/rooms/${seat.code}/events?token=${encodeURIComponent(seat.token)}`);
+  const es = new EventSource(rooms(`/${seat.code}/events?token=${encodeURIComponent(seat.token)}`));
   es.onmessage = (e: MessageEvent<string>) => {
     onDown(false);
     onMessage(JSON.parse(e.data) as RoomMessage);

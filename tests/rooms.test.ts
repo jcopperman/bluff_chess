@@ -101,3 +101,20 @@ test('rooms: idle rooms are swept', () => {
   rooms.sweep(Date.now() + 4 * 60 * 60 * 1000);
   assert.equal(rooms.size, 0);
 });
+
+test('rooms: caps on rooms per address, rooms overall, and streams per seat', () => {
+  const perAddress = new Rooms({ perAddressPerHour: 2 });
+  perAddress.create('Ann', 'white', '1.2.3.4');
+  perAddress.create('Ann', 'white', '1.2.3.4');
+  assert.equal(status(() => perAddress.create('Ann', 'white', '1.2.3.4')), 429);
+  perAddress.create('Bo', 'white', '5.6.7.8');
+
+  const full = new Rooms({ maxRooms: 1 });
+  full.create('Ann', 'white', 'a');
+  assert.equal(status(() => full.create('Bo', 'white', 'b')), 503);
+
+  const streams = new Rooms({ listenersPerSeat: 1 });
+  const host = streams.create('Ann', 'white');
+  streams.subscribe(host.code, host.token, () => {});
+  assert.equal(status(() => streams.check(host.code, host.token)), 429);
+});
