@@ -271,7 +271,7 @@ export function coachCardHTML(advice: Advice | null, legend: { types: ClaimType[
 // ---------------------------------------------------------------------------
 // Screens
 
-export function titleScreen(): string {
+export function titleScreen(version: string): string {
   return `<section class="title-screen">
     <div class="title-cards" aria-hidden="true">
       <span class="tcard t1">${pieceSVG('knight')}</span><span class="tcard t2 backside"></span><span class="tcard t3">${pieceSVG('queen')}</span>
@@ -279,6 +279,7 @@ export function titleScreen(): string {
     <h1 class="wordmark">Bluff <span class="red">Chess</span></h1>
     <p class="title-tag">Chess with hidden pieces. Move one and you claim what it is. Your opponent can call your bluff.</p>
     <button class="btn btn-red btn-big" data-act="enter">Play</button>
+    ${version ? `<small class="title-version">v${esc(version)}</small>` : ''}
   </section>`;
 }
 
