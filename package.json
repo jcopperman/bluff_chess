@@ -1,6 +1,6 @@
 {
   "name": "bluff-chess",
-  "version": "0.1.0",
+  "version": "0.1.0-rc1",
   "description": "Chess with hidden pieces. Move one and you claim what it is. Your opponent can call your bluff.",
   "type": "module",
   "private": true,
