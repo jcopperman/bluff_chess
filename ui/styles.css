@@ -247,10 +247,12 @@ h1, h2, h3 { margin: 0; font-weight: 400; }
 .pvp-join .field { flex: 1; min-width: 0; }
 .pvp-error { text-align: center; margin: 22px 0 0; color: var(--paper); }
 .pvp-error::before { content: '!'; display: inline-grid; place-items: center; width: 24px; height: 24px; margin-right: 10px; background: var(--red); font-weight: 700; }
-.room { position: absolute; inset: 0; display: grid; place-items: center; padding: 30px; }
-.room-sheet { width: 600px; max-width: 100%; text-align: center; padding: 34px 40px; }
+/* Flex with an auto margin, not grid centring: the sheet shrinks to narrow screens and scrolls on short ones. */
+.room { position: absolute; inset: 0; display: flex; padding: 30px; overflow-y: auto; }
+.room-sheet { width: 600px; max-width: 100%; margin: auto; text-align: center; padding: 34px 40px; }
 .room-sheet p { margin: 0 0 10px; font-size: 19px; }
-.room-code { font: 800 condensed 92px/1.1 var(--head); letter-spacing: 0.18em; margin: 4px 0 12px; user-select: all; }
+/* The indent balances the letter spacing after the last character, so the code sits centred. */
+.room-code { font: 800 condensed 92px/1.1 var(--head); letter-spacing: 0.18em; text-indent: 0.18em; margin: 4px 0 12px; user-select: all; }
 .room-status { color: var(--ink-2); }
 .room-sheet .modal-actions { justify-content: center; }
 

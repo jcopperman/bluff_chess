@@ -228,6 +228,15 @@ async function init(): Promise<void> {
   if (params.has('debug')) window.bluffChess = { app, E, advance: () => advance() };
   bindInput(el('#app'), handlers);
   window.addEventListener('resize', fitStage);
+  // The phone keyboard shows up as visual viewport changes; focus changes start and end typing.
+  // Otherwise the viewport is the player's own pinch-zoom, which the stage leaves alone.
+  // (A field removed by a re-render sends no focusout, so a stage still fitted for typing refits too.)
+  const onViewport = () => { if (typingField() || el('#stage').style.top) fitStage(); };
+  window.visualViewport?.addEventListener('resize', onViewport);
+  window.visualViewport?.addEventListener('scroll', onViewport);
+  const isField = (t: EventTarget | null) => t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement;
+  document.addEventListener('focusin', (e) => { if (isField(e.target)) fitStage(); });
+  document.addEventListener('focusout', (e) => { if (isField(e.target)) requestAnimationFrame(fitStage); });
   fitStage();
   show('title');
   hideBoot();
@@ -248,6 +257,19 @@ function fitStage(): void {
   const vw = window.innerWidth, vh = window.innerHeight;
   // An embed (itch.io) can start at zero size; scaling to 0 would hide the game until the next resize.
   if (!vw || !vh) return;
+  // A phone's on-screen keyboard covers the bottom of the window without resizing it; only the
+  // visual viewport shrinks. While a field has focus, fit the stage to what is still visible,
+  // keep the layout as it was, and bring the field into view.
+  const field = typingField();
+  const vv = window.visualViewport;
+  if (vv && field && stage.dataset.size === 'phone') {
+    stage.style.height = `${vv.height}px`;
+    stage.style.setProperty('--stage-h', `${vv.height}px`);
+    stage.style.top = `${vv.pageTop + vv.height / 2}px`;
+    requestAnimationFrame(() => field.scrollIntoView({ block: 'center' }));
+    return;
+  }
+  stage.style.top = '';
   const portrait = vw < vh * 0.9;
   const phone = Math.min(vw, vh) < 560;
   const [w, h] = phone ? [vw, vh] : portrait ? [900, 1600] : [1600, 900];
@@ -264,6 +286,11 @@ function fitStage(): void {
     if (changed) hideTooltip();
     renderGame({ noSlide: true });
   }
+}
+
+function typingField(): HTMLElement | null {
+  const a = document.activeElement;
+  return a instanceof HTMLInputElement || a instanceof HTMLTextAreaElement ? a : null;
 }
 
 function save(): void {
