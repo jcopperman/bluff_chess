@@ -106,6 +106,18 @@ test('whyStuck: pinned, blocked, and in check', () => {
   assert.equal(whyStuck(getPlayerView(createGame({ pieces: base }), 'white'), 'd2'), null);
 });
 
+test('whyStuck: a king in check names its own blockers and the squares the enemy covers', () => {
+  // Black king e8 boxed by cards on d8/f8 and pawns on d7/e7; a card claiming bishop on g6 checks via f7.
+  const pieces = [P('w-k', 'white', 'king', 'e1'), P('w-g1', 'white', 'knight', 'g6', { claim: 'bishop', hasMoved: true }),
+    P('b-k', 'black', 'king', 'e8'), P('b-d8', 'black', 'queen', 'd8'), P('b-f8', 'black', 'bishop', 'f8'),
+    P('b-pd', 'black', 'pawn', 'd7'), P('b-pe', 'black', 'pawn', 'e7'), P('b-ph', 'black', 'pawn', 'h7')];
+  const stuck = whyStuck(getPlayerView(createGame({ turn: 'black', pieces }), 'black'), 'e8')!;
+  assert.equal(stuck.title, "You're in check");
+  assert.match(stuck.text, /from the card claiming bishop on g6/);
+  assert.match(stuck.text, /d7, e7, d8 and f8 hold your own pieces; it covers f7./);
+  assert.deepEqual(stuck.squares, ['g6']);
+});
+
 test('defending: the guard warns before a king walks into a card\'s reach, and the defender is told which card works', () => {
   const s = createGame({
     turn: 'black',

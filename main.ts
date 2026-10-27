@@ -323,6 +323,8 @@ function unlocked(): Set<string> {
 
 function coachOn(): boolean {
   const m = app.match;
+  // No coach against another person, whatever the setting.
+  if (m && vsHuman(m.mode)) return false;
   if (m && (m.mode === 'lesson' || m.mode === 'practice')) return app.data.settings.coach !== 'off';
   const c = app.data.settings.coach;
   return c === 'on' || (c === 'auto' && app.data.matchesPlayed < 5);
@@ -371,7 +373,7 @@ function renderHud(): void {
   const inGame = app.screen === 'game' && !!m;
   const title = inGame ? matchTitle(m) : TITLES[app.screen];
   const back = app.screen === 'hub' ? null : inGame ? 'leave' : app.screen === 'setup' ? 'setup-back' : app.screen === 'room' ? 'room-leave' : 'go-hub';
-  hud.innerHTML = R.hudHTML({ title, back, inGame, muted: app.data.settings.muted, coachOn: coachOn() });
+  hud.innerHTML = R.hudHTML({ title, back, inGame, muted: app.data.settings.muted, coachOn: coachOn(), coachToggle: !m || !vsHuman(m.mode) });
 }
 
 function show(screen: Exclude<Screen, 'game'>): void {
