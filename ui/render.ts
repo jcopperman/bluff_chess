@@ -58,8 +58,8 @@ function purse(n: number, owner: Color): string {
 // ---------------------------------------------------------------------------
 // Top bar
 
-export function hudHTML({ title, back, inGame, muted, coachOn }: {
-  title: string; back: string | null; inGame: boolean; muted: boolean; coachOn: boolean;
+export function hudHTML({ title, back, inGame, muted, coachOn, coachToggle }: {
+  title: string; back: string | null; inGame: boolean; muted: boolean; coachOn: boolean; coachToggle: boolean;
 }): string {
   return `<div class="hud-left">
       ${back ? `<button class="hud-link hud-back" data-act="${back}">${icon('back')}<span>Back</span></button>` : ''}
@@ -68,7 +68,7 @@ export function hudHTML({ title, back, inGame, muted, coachOn }: {
     <button class="hud-link hud-menu" data-act="hud-menu" aria-expanded="false">Menu</button>
     <nav class="hud-right">
       <button class="hud-link" data-act="codex" data-entry="overview">Rulebook</button>
-      ${inGame ? `<button class="hud-link" data-act="toggle-coach">Coach <b>${coachOn ? 'on' : 'off'}</b></button>` : ''}
+      ${inGame && coachToggle ? `<button class="hud-link" data-act="toggle-coach">Coach <b>${coachOn ? 'on' : 'off'}</b></button>` : ''}
       <button class="hud-link" data-act="toggle-mute">Sound <b>${muted ? 'off' : 'on'}</b></button>
       <button class="hud-link" data-act="settings">Settings</button>
     </nav>`;
