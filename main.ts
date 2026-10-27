@@ -235,7 +235,12 @@ async function init(): Promise<void> {
   window.visualViewport?.addEventListener('resize', onViewport);
   window.visualViewport?.addEventListener('scroll', onViewport);
   const isField = (t: EventTarget | null) => t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement;
-  document.addEventListener('focusin', (e) => { if (isField(e.target)) fitStage(); });
+  // The browser may scroll on its own as the keyboard slides up, so lift the field again after.
+  document.addEventListener('focusin', (e) => {
+    if (!isField(e.target)) return;
+    fitStage();
+    setTimeout(() => { if (typingField() === e.target) fitStage(); }, 400);
+  });
   document.addEventListener('focusout', (e) => { if (isField(e.target)) requestAnimationFrame(fitStage); });
   fitStage();
   show('title');
@@ -257,18 +262,22 @@ function fitStage(): void {
   const vw = window.innerWidth, vh = window.innerHeight;
   // An embed (itch.io) can start at zero size; scaling to 0 would hide the game until the next resize.
   if (!vw || !vh) return;
-  // A phone's on-screen keyboard covers the bottom of the window without resizing it; only the
-  // visual viewport shrinks. While a field has focus, fit the stage to what is still visible,
-  // keep the layout as it was, and bring the field into view.
+  // A phone's on-screen keyboard covers the bottom of the window without resizing it. While a
+  // field has focus, keep the layout as it was and lift the field to the top of the screen,
+  // where no keyboard reaches: the typing class adds room below the content to scroll into.
+  // Fitting the stage to the visual viewport helps when we are the top page, but inside an
+  // embed (itch.io) the keyboard shrinks only the parent page, so the lift is what counts.
   const field = typingField();
   const vv = window.visualViewport;
   if (vv && field && stage.dataset.size === 'phone') {
+    stage.classList.add('typing');
     stage.style.height = `${vv.height}px`;
     stage.style.setProperty('--stage-h', `${vv.height}px`);
     stage.style.top = `${vv.pageTop + vv.height / 2}px`;
-    requestAnimationFrame(() => field.scrollIntoView({ block: 'center' }));
+    requestAnimationFrame(() => field.scrollIntoView({ block: 'start' }));
     return;
   }
+  stage.classList.remove('typing');
   stage.style.top = '';
   const portrait = vw < vh * 0.9;
   const phone = Math.min(vw, vh) < 560;

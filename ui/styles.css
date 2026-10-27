@@ -792,7 +792,9 @@ h1, h2, h3 { margin: 0; font-weight: 400; }
 [data-size=phone] .pvp-sheet p { font-size: 14px; }
 [data-size=phone] .field { gap: 10px; }
 [data-size=phone] .field > span:first-child { width: 84px; font-size: 15px; }
-[data-size=phone] .field input { font-size: 16px; padding: 8px; }
+[data-size=phone] .field input { font-size: 16px; padding: 8px; scroll-margin-top: 48px; }
+/* While typing (see fitStage), room below the content so a field can scroll clear of the keyboard. */
+#stage.typing[data-size=phone] .pvp, #stage.typing[data-size=phone] .modal { padding-bottom: var(--stage-h); }
 [data-size=phone] .field .seg { flex-wrap: wrap; }
 [data-size=phone] .pvp-join { flex-wrap: wrap; }
 [data-size=phone] .pvp-error { font-size: 15px; }
