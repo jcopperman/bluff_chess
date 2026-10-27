@@ -404,6 +404,13 @@ function hubNudge(): string | null {
 }
 
 function openModal(html: string, cls = ''): void {
+  // Re-rendering the open modal (rulebook pages, profile picks) swaps its contents in place
+  // so the overlay's entry animation doesn't replay as a flash.
+  const open = el('#modal-root').querySelector<HTMLElement>('.modal');
+  if (open && open.className === `modal ${cls}`) {
+    open.innerHTML = html;
+    return;
+  }
   el('#modal-root').innerHTML = `<div class="modal-overlay${cls.includes('modal-curtain') ? ' curtain-overlay' : ''}" data-act="close-modal-bg"><div class="modal ${cls}">${html}</div></div>`;
 }
 
@@ -419,7 +426,12 @@ function openProfile(): void {
 function openCodex(entryId: string): void {
   const met = new Set([app.tutorialId, ...unlocked()]);
   const characters = [app.tutorialId, ...app.roster].map((id) => ({ bot: app.bots[id], num: botNumber(id), met: met.has(id) }));
+  // Keep the index where the reader left it; the new page starts at the top.
+  const indexScroll = el('#modal-root').querySelector('.cx-index')?.scrollTop ?? 0;
   openModal(R.codexHTML({ codex: app.codex, entryId, characters }), 'modal-wide');
+  const index = el('#modal-root').querySelector('.cx-index');
+  if (index) index.scrollTop = indexScroll;
+  el('#modal-root').querySelector('.modal')!.scrollTop = 0;
 }
 
 function openSettings(): void {
