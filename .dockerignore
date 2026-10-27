@@ -1,0 +1,8 @@
+.git
+.github
+node_modules
+dist
+build
+docs
+tests
+*.png

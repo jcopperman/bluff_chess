@@ -47,6 +47,12 @@ function readJson(req: IncomingMessage): Promise<Record<string, unknown>> {
   });
 }
 
+/** The caller's IP. Fly's proxy sets Fly-Client-IP; elsewhere the socket is the caller. */
+function address(req: IncomingMessage): string {
+  const fly = req.headers['fly-client-ip'];
+  return (typeof fly === 'string' && fly) || req.socket.remoteAddress || '';
+}
+
 function sendJson(res: ServerResponse, status: number, data: unknown): void {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
   res.end(JSON.stringify(data));
@@ -55,11 +61,19 @@ function sendJson(res: ServerResponse, status: number, data: unknown): void {
 /** GET /api/rooms (health check), POST /api/rooms, POST /api/rooms/:code/{join,action,rematch}, GET /api/rooms/:code/events?token= (server-sent events). */
 async function api(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
   const parts = url.pathname.split('/').filter(Boolean).slice(2);
+  // Any page may use the rooms (the itch.io build is on another site). Seats are held by
+  // tokens in the request, not cookies, so there is nothing for another site to borrow.
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, { 'Access-Control-Allow-Methods': 'GET, POST', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Max-Age': '86400' });
+    res.end();
+    return;
+  }
   try {
     if (req.method === 'GET' && parts.length === 0) return sendJson(res, 200, { ok: true });
     if (req.method === 'POST' && parts.length === 0) {
       const body = await readJson(req);
-      return sendJson(res, 200, rooms.create(body.name, body.color === 'white' || body.color === 'black' ? body.color : 'random'));
+      return sendJson(res, 200, rooms.create(body.name, body.color === 'white' || body.color === 'black' ? body.color : 'random', address(req)));
     }
     const [code, verb] = parts;
     if (req.method === 'POST' && verb === 'join') return sendJson(res, 200, rooms.join(code, (await readJson(req)).name));

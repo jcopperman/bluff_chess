@@ -39,6 +39,19 @@ export class RoomError extends Error {
 /** No I, O, 0 or 1, so codes read aloud cleanly. */
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const IDLE_MS = 3 * 60 * 60 * 1000;
+const HOUR_MS = 60 * 60 * 1000;
+
+/** Caps for a server open to the internet. */
+export interface RoomLimits {
+  /** Rooms open at once, across everyone. */
+  maxRooms: number;
+  /** Rooms one address may open per hour. */
+  perAddressPerHour: number;
+  /** Open event streams per seat (a few tabs, not a flood). */
+  listenersPerSeat: number;
+}
+
+const LIMITS: RoomLimits = { maxRooms: 500, perAddressPerHour: 30, listenersPerSeat: 4 };
 
 export function cleanName(name: unknown, fallback: string): string {
   const s = typeof name === 'string' ? name.replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 20) : '';
@@ -47,9 +60,21 @@ export function cleanName(name: unknown, fallback: string): string {
 
 export class Rooms {
   private rooms = new Map<string, Room>();
+  /** When each address opened its recent rooms. */
+  private opened = new Map<string, number[]>();
+  private limits: RoomLimits;
 
-  /** Open a room and take a seat in it. */
-  create(name: unknown, choice: ColorChoice = 'random'): { code: string; token: string; color: Color } {
+  constructor(limits: Partial<RoomLimits> = {}) {
+    this.limits = { ...LIMITS, ...limits };
+  }
+
+  /** Open a room and take a seat in it. `address` is the caller's IP, for the per-address cap. */
+  create(name: unknown, choice: ColorChoice = 'random', address = ''): { code: string; token: string; color: Color } {
+    if (this.rooms.size >= this.limits.maxRooms) throw new RoomError('The server is full right now. Try again in a while.', 503);
+    const now = Date.now();
+    const recent = (this.opened.get(address) ?? []).filter((t) => now - t < HOUR_MS);
+    if (recent.length >= this.limits.perAddressPerHour) throw new RoomError('Too many rooms opened. Try again later.', 429);
+    this.opened.set(address, [...recent, now]);
     let code: string;
     do {
       code = Array.from({ length: 5 }, () => ALPHABET[randomInt(ALPHABET.length)]).join('');
@@ -71,9 +96,10 @@ export class Rooms {
     return { token: seat.token, color };
   }
 
-  /** Throw unless `token` holds a seat in room `code`. */
+  /** Throw unless `token` holds a seat in room `code` with room for another listener. */
   check(code: string, token: string): void {
-    this.seat(this.room(code), token);
+    const seat = this.seat(this.room(code), token);
+    if (seat.listeners.size >= this.limits.listenersPerSeat) throw new RoomError('Too many connections to this seat.', 429);
   }
 
   /** Listen for a seat's updates; the current state is sent straight away. Returns an unsubscribe function. */
@@ -126,6 +152,9 @@ export class Rooms {
   sweep(now = Date.now()): void {
     for (const [code, room] of this.rooms) {
       if (now - room.touched > IDLE_MS) this.rooms.delete(code);
+    }
+    for (const [address, times] of this.opened) {
+      if (times.every((t) => now - t >= HOUR_MS)) this.opened.delete(address);
     }
   }
 

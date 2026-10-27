@@ -1904,6 +1904,13 @@ const handlers: InputHandlers = {
       case 'daily-share': return void copyDaily();
       case 'go-pvp':
         app.pvpError = null;
+        // The startup check can miss a server that was still waking up: ask again.
+        if (!app.online && !app.onlineAvailable) {
+          void Net.serverAvailable().then((ok) => {
+            app.onlineAvailable = ok;
+            if (ok && app.screen === 'pvp') show('pvp');
+          });
+        }
         return show(app.online ? 'room' : 'pvp');
       case 'codex': return openCodex(ds.entry || 'overview');
       case 'settings': return openSettings();

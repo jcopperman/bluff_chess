@@ -1,0 +1,32 @@
+# The online game server (see Dockerfile). Deploy with `fly deploy`.
+app = "site-control"
+primary_region = "lhr"
+
+[env]
+  PORT = "8080"
+
+# Rooms live in memory, so run exactly one machine and keep it up: a second machine
+# would split players across servers, and a stop would end every game in progress.
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    method = "GET"
+    path = "/api/rooms"
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+
+# Left over from the app this one replaced; still attached so its data is kept. Unused.
+[[mounts]]
+  source = "site_control_data"
+  destination = "/app/server/data"
+
+[[vm]]
+  memory = "1gb"
+  cpu_kind = "shared"
+  cpus = 1
