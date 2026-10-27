@@ -1,5 +1,5 @@
-# Type-checks and runs the test suite on every push and pull request, and deploys
-# the online server to fly.io when master passes.
+# Type-checks and runs the test suite on every push and pull request. When master
+# passes, deploys the online server to fly.io and the browser build to itch.io.
 name: Test
 
 on:
@@ -38,3 +38,37 @@ jobs:
       - run: flyctl deploy --remote-only --ha=false
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+  # The browser build on itch.io, pushed with butler on the same terms as the server,
+  # so the itch build and the room server it talks to never drift apart.
+  itch:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: itch
+      cancel-in-progress: false
+    environment:
+      name: itch
+      url: https://opesinorbit.itch.io/bluff-chess
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+      - run: npm ci
+      - run: npm run package
+      - name: Install butler
+        run: |
+          curl -sSLfo "$RUNNER_TEMP/butler.zip" https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
+          unzip -q "$RUNNER_TEMP/butler.zip" -d "$RUNNER_TEMP/butler"
+          chmod +x "$RUNNER_TEMP/butler/butler"
+          "$RUNNER_TEMP/butler/butler" -V
+      # BUTLER_API_KEY comes from https://itch.io/user/settings/api-keys.
+      - name: Push to itch.io
+        run: |
+          version=$(node -p "require('./package.json').version")
+          "$RUNNER_TEMP/butler/butler" push build/web opesinorbit/bluff-chess:html5 --userversion "$version"
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
