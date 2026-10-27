@@ -691,6 +691,23 @@ async function copyDaily(): Promise<void> {
   }
 }
 
+/**
+ * Copy the game as you see it: your view, moves and all, for a bug report. Your view
+ * never holds the opponent's hidden cards until the game is over, so sharing it mid-game
+ * gives nothing away.
+ */
+async function copyGame(): Promise<void> {
+  const m = app.match;
+  if (!m) return;
+  const text = JSON.stringify({ mode: m.mode, me: m.me, view: shownView(m) });
+  try {
+    await navigator.clipboard.writeText(text);
+    for (const btn of document.querySelectorAll('[data-act="copy-game"]')) btn.textContent = 'Copied';
+  } catch {
+    window.prompt('Copy the game:', text);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Pass-and-play
 
@@ -1930,7 +1947,8 @@ const handlers: InputHandlers = {
   action(name, ds, e) {
     const m = app.match;
     if (name !== 'close-modal-bg') Sound.play('click');
-    if (name !== 'hud-menu') el('#hud').classList.remove('menu-open');
+    // Copy game stays open so its "Copied" shows.
+    if (name !== 'hud-menu' && name !== 'copy-game') el('#hud').classList.remove('menu-open');
     switch (name) {
       case 'enter': return show('hub');
       case 'go-hub': return show('hub');
@@ -1940,6 +1958,7 @@ const handlers: InputHandlers = {
       case 'go-daily': closeModal(); app.match = null; return show('daily');
       case 'daily-start': return startDaily();
       case 'daily-share': return void copyDaily();
+      case 'copy-game': return void copyGame();
       case 'go-pvp':
         app.pvpError = null;
         // The startup check can miss a server that was still waking up: ask again.
