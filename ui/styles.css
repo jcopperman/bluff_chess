@@ -338,6 +338,7 @@ h1, h2, h3 { margin: 0; font-weight: 400; }
 .sq.capture-target::after { content: ''; position: absolute; inset: 6%; border-radius: 50%; border: 3px solid var(--red); z-index: 3; pointer-events: none; }
 .sq.bot-hover::before { content: ''; position: absolute; inset: 2px; border: 3px dotted var(--red); }
 .sq.in-check::before { content: ''; position: absolute; inset: 0; background: rgba(176,42,31,0.38); }
+.sq.in-check.selected::before { box-shadow: inset 0 0 0 4px var(--red); }
 .sq.sd-target::before, .sq.hint-sq::before { content: ''; position: absolute; inset: 3px; border: 3px dashed var(--red); animation: blink 1s steps(2) infinite; z-index: 4; pointer-events: none; }
 @keyframes blink { 50% { border-color: transparent; } }
 .coord { position: absolute; font: 700 condensed 14px var(--head); text-transform: uppercase; color: var(--ink-2); z-index: 1; pointer-events: none; }

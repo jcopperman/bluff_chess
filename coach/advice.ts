@@ -92,6 +92,7 @@ export function whyStuck(view: PlayerView, from: Square): { title: string; text:
   const enemies: number[] = [];
   board.forEach((c, i) => { if (c && c.color === opp) enemies.push(i); });
 
+  if (cell.type === 'king') return kingStuck(board, fi, me, enemies);
   if (inCheck(board, me)) {
     // Checkers: enemies whose removal ends the check.
     const checkers = enemies.filter((i) => { const b = board.slice(); b[i] = null; return !inCheck(b, me); });
@@ -111,6 +112,55 @@ export function whyStuck(view: PlayerView, from: Square): { title: string; text:
     return { title: 'Pinned', text: `Moving your ${what} would expose your king to ${describeAt(board, pinner)}.`, squares: [idxToSq(pinner)] };
   }
   return { title: 'No legal moves', text: `Every move your ${what} could make would leave your king in check.`, squares: [] };
+}
+
+/** Squares written as "d8", "d8 and f8" or "d8, f8 and f7". */
+function listSquares(sqs: Square[]): string {
+  return sqs.length < 2 ? sqs.join('') : `${sqs.slice(0, -1).join(', ')} and ${sqs[sqs.length - 1]}`;
+}
+
+/** A stuck king: name the squares its own pieces fill and the ones the enemy covers. */
+function kingStuck(board: Board, fi: number, me: Color, enemies: number[]): { title: string; text: string; squares: Square[] } {
+  const own: Square[] = [];
+  const covered = new Map<Square, number[]>();
+  const f = fi & 7, r = fi >> 3;
+  for (let dr = -1; dr <= 1; dr++) {
+    for (let df = -1; df <= 1; df++) {
+      const ff = f + df, rr = r + dr;
+      if ((!df && !dr) || ff < 0 || ff > 7 || rr < 0 || rr > 7) continue;
+      const to = rr * 8 + ff, c = board[to];
+      if (c?.color === me) own.push(idxToSq(to));
+      else if (c?.type !== 'king') {
+        // Who covers it: enemies whose removal makes the step safe.
+        const after = makeMove(board, { from: fi, to, type: 'king' });
+        covered.set(idxToSq(to), enemies.filter((i) => i !== to && !inCheck(after.map((x, j) => (j === i ? null : x)), me)));
+      }
+    }
+  }
+  const check = inCheck(board, me);
+  const checkers = check ? enemies.filter((i) => { const b = board.slice(); b[i] = null; return !inCheck(b, me); }) : [];
+  const parts: string[] = [];
+  if (own.length) parts.push(`${listSquares(own)} ${own.length === 1 ? 'holds' : 'hold'} your own ${own.length === 1 ? 'piece' : 'pieces'}`);
+  const byAttacker = new Map<string, Square[]>();
+  for (const [sq, by] of covered) {
+    const who = by.length !== 1 ? 'more than one enemy piece'
+      : checkers.length === 1 && by[0] === checkers[0] ? 'it' : describeAt(board, by[0]);
+    byAttacker.set(who, [...(byAttacker.get(who) ?? []), sq]);
+  }
+  for (const [who, sqs] of byAttacker) parts.push(`${who} covers ${listSquares(sqs)}`);
+  const why = parts.length ? `${parts.join('; ')}.` : '';
+  const flagged = [...new Set([...covered.values()].flat())].map(idxToSq);
+  if (check) {
+    const by = checkers.length === 1 ? ` from ${describeAt(board, checkers[0])}` : '';
+    return {
+      title: "You're in check",
+      text: `Your king can't step out of check${by}${why ? `: ${why}` : '.'} Block or capture with another piece.`,
+      squares: [...new Set([...checkers.map(idxToSq), ...flagged])],
+    };
+  }
+  return covered.size
+    ? { title: 'King has nowhere to go', text: `Every square next to your king is unsafe or taken: ${why}`, squares: flagged }
+    : { title: 'Boxed in', text: 'Your own pieces cover every square your king could reach.', squares: [] };
 }
 
 export function explainIllegal(view: PlayerView, from: Square, to: Square): string | null {
