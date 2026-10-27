@@ -110,7 +110,14 @@ async function api(req: IncomingMessage, res: ServerResponse, url: URL): Promise
 createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', 'http://x');
   if (url.pathname.startsWith('/api/rooms')) return api(req, res, url);
-  const path = normalize(decodeURIComponent(new URL(req.url ?? '/', 'http://x').pathname)).replace(/^([/\\])+/, '');
+  let path: string;
+  try {
+    path = normalize(decodeURIComponent(url.pathname)).replace(/^([/\\])+/, '');
+  } catch {
+    // A malformed escape like /%E0 must not throw: an async throw here kills the server.
+    res.writeHead(400).end('Bad request');
+    return;
+  }
   if (path.startsWith('..')) {
     res.writeHead(403).end();
     return;
