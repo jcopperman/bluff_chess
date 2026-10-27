@@ -1,4 +1,5 @@
-# Type-checks and runs the test suite on every push and pull request.
+# Type-checks and runs the test suite on every push and pull request, and deploys
+# the online server to fly.io when master passes.
 name: Test
 
 on:
@@ -18,3 +19,22 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
+
+  deploy:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    # One deploy at a time; a newer push waits rather than racing an older one.
+    concurrency:
+      group: deploy
+      cancel-in-progress: false
+    environment:
+      name: fly
+      url: https://site-control.fly.dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      # FLY_API_TOKEN is a deploy token scoped to the app (fly tokens create deploy).
+      - run: flyctl deploy --remote-only --ha=false
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
