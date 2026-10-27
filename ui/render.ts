@@ -69,6 +69,7 @@ export function hudHTML({ title, back, inGame, muted, coachOn, coachToggle }: {
     <nav class="hud-right">
       <button class="hud-link" data-act="codex" data-entry="overview">Rulebook</button>
       ${inGame && coachToggle ? `<button class="hud-link" data-act="toggle-coach">Coach <b>${coachOn ? 'on' : 'off'}</b></button>` : ''}
+      ${inGame ? '<button class="hud-link" data-act="copy-game">Copy game</button>' : ''}
       <button class="hud-link" data-act="toggle-mute">Sound <b>${muted ? 'off' : 'on'}</b></button>
       <button class="hud-link" data-act="settings">Settings</button>
     </nav>`;
@@ -789,6 +790,7 @@ export function revealHTML({ state, bot, num, snaps, me, newlyUnlocked, resultTe
     ${showBeliefs ? `<div class="rv-beliefs"><h3>What ${esc(midName(bot.name))} believed</h3>${beliefRows}</div>` : ''}
     <div class="modal-actions">
       <button class="btn" data-act="close-modal">View board</button>
+      <button class="btn" data-act="copy-game">Copy game</button>
       <button class="btn" data-act="leave">Leave</button>
       <button class="btn btn-red" data-act="rematch">${again}</button>
     </div>
