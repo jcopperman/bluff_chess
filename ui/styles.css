@@ -95,11 +95,11 @@ h1, h2, h3 { margin: 0; font-weight: 400; }
 .title-tag { margin: 0; font-size: 24px; color: var(--on-table-2); max-width: 680px; }
 .title-version { position: absolute; right: 24px; bottom: 18px; font-size: 15px; letter-spacing: 0.06em; color: var(--on-table-2); }
 .title-cards { position: relative; width: 260px; height: 190px; margin-bottom: 6px; }
-.tcard { position: absolute; top: 0; left: 80px; width: 110px; height: 160px; border-radius: 4px; background: var(--paper); box-shadow: var(--frame), 0 3px 0 rgba(0,0,0,0.45); display: grid; place-items: center; --fill: var(--paper); --line: var(--ink); --shine: transparent; }
+.tcard { position: absolute; top: 0; left: 80px; width: 110px; height: 160px; border-radius: 4px; background: var(--paper); box-shadow: var(--frame), 0 3px 0 rgba(0,0,0,0.45); display: grid; place-items: center; --fill: var(--paper); --line: var(--ink); --cut: var(--ink); --join: transparent; }
 .tcard .piece-svg { width: 76px; height: 76px; }
 .tcard.t1 { transform: translateX(-70px) rotate(-12deg); }
 .tcard.t3 { transform: translateX(70px) rotate(12deg); }
-.tcard.t1 .piece-svg { --fill: var(--ink); --shine: var(--paper); }
+.tcard.t1 .piece-svg { --fill: var(--ink); --cut: var(--paper); --join: var(--paper); }
 .backside, .ccard.back { background-color: var(--paper); background-image: repeating-linear-gradient(45deg, var(--red) 0 1.2px, transparent 1.2px 9px), repeating-linear-gradient(-45deg, var(--red) 0 1.2px, transparent 1.2px 9px); }
 
 /* ---------- hub ---------- */
@@ -334,7 +334,8 @@ h1, h2, h3 { margin: 0; font-weight: 400; }
 .sq.castle-corner { cursor: pointer; }
 .sq.castle-corner::after { content: ''; position: absolute; inset: 4px; border: 2px dashed var(--red); z-index: 4; pointer-events: none; }
 .tclaim .piece-svg .b { fill: var(--red); stroke: var(--red); }
-.tclaim .piece-svg .d, .tclaim .piece-svg .s, .tclaim .piece-svg .e { stroke: transparent; fill: none; }
+.tclaim .piece-svg .c { fill: none; }
+.tclaim .piece-svg .j { stroke: transparent; }
 .sq.capture-target::after { content: ''; position: absolute; inset: 6%; border-radius: 50%; border: 3px solid var(--red); z-index: 3; pointer-events: none; }
 .sq.bot-hover::before { content: ''; position: absolute; inset: 2px; border: 3px dotted var(--red); }
 .sq.in-check::before { content: ''; position: absolute; inset: 0; background: rgba(176,42,31,0.38); }
@@ -347,12 +348,11 @@ h1, h2, h3 { margin: 0; font-weight: 400; }
 /* ---------- pieces: chess-diagram style ---------- */
 .pc { position: relative; z-index: 2; width: 100%; height: 100%; display: grid; place-items: center; }
 .piece-svg { width: 86%; height: 86%; overflow: visible; }
-.piece-svg .b { fill: var(--fill); stroke: var(--line); stroke-width: 3.2; stroke-linejoin: round; }
-.piece-svg .d { fill: none; stroke: var(--detail, var(--line)); stroke-width: 2.6; stroke-linecap: round; }
-.piece-svg .s { fill: none; stroke: var(--shine); stroke-width: 3; stroke-linecap: round; }
-.piece-svg .e { fill: var(--detail, var(--line)); }
-.pc-white { --fill: var(--paper); --line: var(--ink); --shine: transparent; }
-.pc-black { --fill: var(--ink); --line: var(--ink); --shine: var(--paper); --detail: var(--paper); }
+.piece-svg .b { fill: var(--fill); stroke: var(--line); stroke-width: 3.2; stroke-linejoin: miter; stroke-miterlimit: 4; }
+.piece-svg .c { fill: var(--cut); }
+.piece-svg .j { fill: none; stroke: var(--join); stroke-width: 2.2; }
+.pc-white { --fill: var(--paper); --line: var(--ink); --cut: var(--ink); --join: transparent; }
+.pc-black { --fill: var(--ink); --line: var(--ink); --cut: var(--paper); --join: var(--paper); }
 .pi { display: inline-block; width: 1.2em; height: 1.2em; vertical-align: -0.25em; }
 .pi .piece-svg { width: 100%; height: 100%; }
 
@@ -363,11 +363,11 @@ h1, h2, h3 { margin: 0; font-weight: 400; }
 .card-mark { width: 30%; height: 30%; background: var(--paper); transform: rotate(45deg); box-shadow: 0 0 0 1.5px var(--red); }
 .card-face { width: 70%; height: 66%; display: grid; place-items: center; background: var(--paper); border-radius: 50%; box-shadow: 0 0 0 1.5px var(--ink); }
 .card-face .piece-svg { width: 92%; height: 92%; }
-.idx { position: absolute; top: -6px; left: -6px; width: 42%; height: 42%; display: grid; place-items: center; background: var(--paper); box-shadow: inset 0 0 0 1.5px var(--ink); z-index: 3; --fill: var(--ink); --line: var(--ink); --shine: var(--paper); --detail: var(--paper); }
+.idx { position: absolute; top: -6px; left: -6px; width: 42%; height: 42%; display: grid; place-items: center; background: var(--paper); box-shadow: inset 0 0 0 1.5px var(--ink); z-index: 3; --fill: var(--ink); --line: var(--ink); --cut: var(--paper); --join: var(--paper); }
 .idx .piece-svg { width: 82%; height: 82%; }
 .idx-lie { box-shadow: inset 0 0 0 2px var(--red); --fill: var(--red); --line: var(--red); }
 .card.liar.final { box-shadow: inset 0 0 0 2.5px var(--red), inset 0 0 0 5px var(--paper), 0 2px 0 rgba(0,0,0,0.35); }
-.guess { position: absolute; bottom: -6px; right: -6px; width: 38%; height: 38%; border-radius: 50%; display: grid; place-items: center; background: var(--paper); border: 1.5px dashed var(--ink-2); z-index: 3; --fill: var(--ink-2); --line: var(--ink-2); --shine: transparent; --detail: var(--paper); }
+.guess { position: absolute; bottom: -6px; right: -6px; width: 38%; height: 38%; border-radius: 50%; display: grid; place-items: center; background: var(--paper); border: 1.5px dashed var(--ink-2); z-index: 3; --fill: var(--ink-2); --line: var(--ink-2); --cut: transparent; --join: transparent; }
 .guess .piece-svg { width: 76%; height: 76%; }
 .flip-in { animation: flipin 0.5s ease-out; }
 @keyframes flipin { from { transform: rotateY(90deg); } }
@@ -475,7 +475,7 @@ h1, h2, h3 { margin: 0; font-weight: 400; }
 .tt-marks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .tt-marks .btn { min-width: 44px; min-height: 40px; padding: 4px 8px; }
 .tt-marks .pi { width: 26px; height: 26px; }
-.tt-marks .btn-ink .pi { --fill: var(--paper); --line: var(--paper); --detail: var(--ink); }
+.tt-marks .btn-ink .pi { --fill: var(--paper); --line: var(--paper); --cut: var(--ink); }
 
 /* ---------- modals ---------- */
 .modal-overlay { position: absolute; inset: 0; z-index: 50; display: grid; place-items: center; padding: 30px; background: rgba(15,13,10,0.78); animation: fade-in 0.15s; }
