@@ -93,6 +93,7 @@ h1, h2, h3 { margin: 0; font-weight: 400; }
 .wordmark .red { color: var(--red); }
 .wordmark.small { font-size: 72px; }
 .title-tag { margin: 0; font-size: 24px; color: var(--on-table-2); max-width: 680px; }
+.title-version { position: absolute; right: 24px; bottom: 18px; font-size: 15px; letter-spacing: 0.06em; color: var(--on-table-2); }
 .title-cards { position: relative; width: 260px; height: 190px; margin-bottom: 6px; }
 .tcard { position: absolute; top: 0; left: 80px; width: 110px; height: 160px; border-radius: 4px; background: var(--paper); box-shadow: var(--frame), 0 3px 0 rgba(0,0,0,0.45); display: grid; place-items: center; --fill: var(--paper); --line: var(--ink); --shine: transparent; }
 .tcard .piece-svg { width: 76px; height: 76px; }
@@ -721,6 +722,7 @@ h1, h2, h3 { margin: 0; font-weight: 400; }
 [data-size=phone] .wordmark { font-size: 66px; }
 [data-size=phone] .wordmark.small { font-size: 40px; }
 [data-size=phone] .title-tag { font-size: 16px; }
+[data-size=phone] .title-version { right: 16px; bottom: calc(12px + env(safe-area-inset-bottom)); font-size: 12px; }
 [data-size=phone] .title-cards { transform: scale(0.72); margin: -26px 0 -40px; }
 [data-size=phone] .hub { justify-content: safe center; gap: 16px; padding: 18px 12px calc(24px + env(safe-area-inset-bottom)); overflow-y: auto; }
 [data-size=phone] .menu-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 480px; }

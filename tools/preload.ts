@@ -1,7 +1,8 @@
 // Writes the boot preload list into index.html after a build: every module the
 // game imports at startup, and every data file init() fetches. The browser then
 // fetches them all at once instead of discovering modules one import at a time,
-// and the loading screen counts them for its progress bar.
+// and the loading screen counts them for its progress bar. Also stamps the
+// package.json version into index.html's version meta tag.
 // Usage: node tools/preload.ts (run by `npm run build`).
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
@@ -44,12 +45,16 @@ const links = [
 ];
 
 const file = join(root, 'index.html');
+const { version } = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as { version: string };
 const html = readFileSync(file, 'utf8');
 const eol = html.includes('\r\n') ? '\r\n' : '\n';
 const start = '<!-- boot:preload -->', end = '<!-- /boot:preload -->';
 const i = html.indexOf(start), j = html.indexOf(end);
 if (i < 0 || j < 0) throw new Error(`index.html needs ${start} and ${end} markers`);
+if (!html.includes('<meta name="version"')) throw new Error('index.html needs a <meta name="version"> tag');
 const block = [start, ...links.map((l) => `  ${l}`), `  ${end}`].join(eol);
-const next = html.slice(0, i) + block + html.slice(j + end.length);
+// The title screen shows the version from package.json.
+const next = (html.slice(0, i) + block + html.slice(j + end.length))
+  .replace(/<meta name="version" content="[^"]*">/, `<meta name="version" content="${version}">`);
 if (next !== html) writeFileSync(file, next);
 console.log(`index.html: preloading ${modules.length} modules and ${links.length - modules.length} data files`);

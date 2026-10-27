@@ -343,7 +343,7 @@ function show(screen: Exclude<Screen, 'game'>): void {
   hideTooltip();
   const root = el('#screen');
   root.className = `screen screen-${screen}`;
-  if (screen === 'title') root.innerHTML = R.titleScreen();
+  if (screen === 'title') root.innerHTML = R.titleScreen(document.querySelector<HTMLMetaElement>('meta[name=version]')?.content ?? '');
   else if (screen === 'hub') {
     root.innerHTML = R.hubScreen({ nudge: hubNudge() });
     if (!app.data.profile) openProfile();
